@@ -1,0 +1,35 @@
+<html>
+  <head>
+
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript" src="hc.js"></script>
+
+    <title>chatter</title>
+
+    <style type="text/css">
+      .panic {
+        background-color: red;
+      }
+    </style>
+  </head>
+  <body>
+
+    <h1>A perfectly useless chat</h1>
+
+    <div id="chat-text"></div>
+
+    <div class="data-entry">
+      <textarea id="text-input">
+      </textarea>
+      <button id="send-button" type="button" onclick="send()">
+        Send
+      </button>
+    </div>
+
+    <script type="text/javascript">
+      update();
+    </script>
+
+  </body>
+
+</html>

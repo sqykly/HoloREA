@@ -55,10 +55,10 @@ function validateLinkPkg(entryType) {
 
 function createMessage(msg) {
   var text = msg.text || "";
-  return {
+  return JSON.stringify({
     text: text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace(/[\r\n]/, "&br;"),
     time: Date.now()
-  };
+  });
 }
 
 function postMessage(msg) {
@@ -75,9 +75,14 @@ function receiveMessages(params) {
     }),
     wanted = all.filter(function (entry) {
       return entry.time > after;
+    }).sort(function (a, b) {
+      return b.time - a.time;
     });
 
-  return wanted.map(function (entry) {
-    return (entry.text || "").replace("&br;", "<br/>");
+  return JSON.stringify({
+    messages: wanted.map(function (entry) {
+      return (entry.text || "").replace("&br;", "<br/>");
+    }),
+    last: wanted.length && wanted[wanted.length - 1].time || after
   });
 }

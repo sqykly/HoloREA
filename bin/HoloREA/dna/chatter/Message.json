@@ -7,6 +7,10 @@
     "text": {
       "type": "string",
       "pattern": "^[^<>]*$"
+    },
+    "time": {
+      "type": "number",
+      "minimum": 0
     }
   }
 }

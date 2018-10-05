@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-   	"outDir": "../bin/dna/",
+   	"outDir": "../bin/HoloREA/dna/",
    	"rootDir": "./",
    	"allowJs": false,
     "target": "es5",

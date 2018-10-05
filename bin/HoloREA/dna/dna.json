@@ -1,0 +1,57 @@
+{
+    "Version": 1,
+    "UUID": "e1d2d188-c8b3-11e8-9c63-b639e56260b8",
+    "Name": "HoloREA",
+    "Properties": {
+        "description": "provides an application template",
+        "language": "en"
+    },
+    "PropertiesSchemaFile": "properties_schema.json",
+    "BasedOn": "",
+    "RequiresVersion": 26,
+    "DHTConfig": {
+        "HashType": "sha2-256",
+        "RedundancyFactor": 0
+    },
+    "Progenitor": {
+        "Identity": "",
+        "PubKey": null
+    },
+    "Zomes": [
+        {
+            "Name": "chatter",
+            "Description": "a ridiculously simple chat",
+            "CodeFile": "chatter.js",
+            "RibosomeType": "js",
+            "BridgeFuncs": null,
+            "Config": null,
+            "Entries": [
+                {
+                    "Name": "Message",
+                    "Description": "A ridiculously simple chat message",
+                    "DataFormat": "json",
+                    "Schema": "",
+                    "SchemaFile": "Message.json",
+                    "Sharing": "public"
+                }
+            ],
+            "Functions": [
+                {
+                    "Name": "createMessage",
+                    "CallingType": "json",
+                    "Exposure": "public"
+                },
+                {
+                    "Name": "publishMessage",
+                    "CallingType": "json",
+                    "Exposure": "public"
+                },
+                {
+                    "Name": "receiveMessage",
+                    "CallingType": "json",
+                    "Exposure": "public"
+                }
+            ]
+        }
+    ]
+}

@@ -44,7 +44,7 @@
           "Time": 8000,
           "FnName": "postMessage",
           "Input": {"text": "<script type='text/javascript'>downloadVirus()</script>", "time": "%m1.1%"},
-          "Output": {"text": "&lt;script type='text/javascript'&gt;downloadVirus()&lt;/script&gt;", "time": "%m1.1"}
+          "Output": {"text": "&lt;script type='text/javascript'&gt;downloadVirus()&lt;/script&gt;", "time": "%m1.1%"}
         }
     ],
     "Identity": "",

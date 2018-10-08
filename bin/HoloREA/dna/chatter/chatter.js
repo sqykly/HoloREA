@@ -12,7 +12,7 @@ function genesis() {
 
 function validateCommit(entryType, entry, header, pkg, sources) {
   // check against schema: YAGNI
-  return entryType === "Message";
+  return entryType === "Message" || entryType === "Cleaned";
 }
 
 function validatePut(entryType, entry, header, pkg, sources) {
@@ -59,9 +59,14 @@ function validateLinkPkg(entryType) {
 
 function cleanMessage(msg) {
   var text = msg.text || "",
-    time = msg.time || Date.now(),
+    time = msg.time,
     hash;
 
+  if (typeof time == "string") {
+    time = parseInt(time);
+  } else if (!time) {
+    time = Date.now();
+  }
 
   msg = {
     text: text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace(/[\r\n]/, "&br;"),
@@ -69,9 +74,6 @@ function cleanMessage(msg) {
   };
 
   hash = makeHash("Message", msg);
-  // just to figure out which of these is failing to validate...
-
-  debug(hash);
   commit("Cleaned", hash);
   return msg;
 }

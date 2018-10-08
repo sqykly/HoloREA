@@ -3,6 +3,8 @@
  * @author David Hand
  */
 
+// --Callbacks--
+
 function genesis() {
   // YAGNI
   return true;
@@ -53,16 +55,34 @@ function validateLinkPkg(entryType) {
   return null;
 }
 
-function createMessage(msg) {
-  var text = msg.text || "";
-  return JSON.stringify({
+// --Zome private code--
+
+function cleanMessage(msg) {
+  var text = msg.text || "",
+    time = msg.time || Date.now();
+
+  return {
     text: text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace(/[\r\n]/, "&br;"),
-    time: Date.now()
-  });
+    time: time
+  };
+}
+
+// --Zome public code--
+
+function createMessage(msg) {
+  return JSON.stringify(cleanMessage(msg));
 }
 
 function postMessage(msg) {
-  return commit("Message", msg);
+  var hDirty = makeHash("Message", msg),
+    hClean = makeHash("Message", cleanMessage(msg));
+
+  if (hDirty === hClean) {
+    return commit("Message", msg);
+  } else {
+    return JSON.stringify(cleanMessage(msg));
+  }
+
 }
 
 function receiveMessages(params) {

@@ -1,0 +1,46 @@
+{
+    "Tests": [
+        {
+            "Convey": "After speaker calls createMessage, listener should receive no messages",
+            "Zome": "chatter",
+            "FnName": "receiveMessages",
+            "Input": {"after": 0},
+            "Output": {"messages": [], "last": 0},
+            "Err": null,
+            "Time": 1000,
+            "Exposure": "public",
+            "Raw": false,
+            "Repeat": 0,
+            "Benchmark": false
+        },
+        {
+          "Convey": "After speaker calls postMessage, listener should receive the message",
+          "Time": 3000,
+          "Zome": "chatter",
+          "FnName": "receiveMessages",
+          "Input": {"after": 0},
+          "Regexp": "^.*\\{.*\"messages\"\\s*:\\s*\\[.+\\].*\"last\"\\s*:\\s*(\\d+)\\D*\\}\\s*$"
+        },
+        {
+          "Convey": "When receiveMessages is called with after: (most recent message time), no messages should be received",
+          "Time": 4000,
+          "Zome": "chatter",
+          "FnName": "receiveMessages",
+          "Input": {"after": "%m1.1%"},
+          "Regexp": "^\\{.*\"messages\"\\s*:\\s*\\[\\s*\\].*\\}\\s*$"
+        },
+        {
+          "Convey": "Calling createMessage should work for listener too",
+          "Zome": "chatter",
+          "Time": 5000,
+          "FnName": "createMessage",
+          "Input": {"text": "I can create too."},
+          "Regexp": "^\\s*\\{.*\"time\"\\s*:\\s*(\\d+)\\D*\\}\\s*$"
+        }
+    ],
+    "Identity": "Listener",
+    "Fixtures": {
+        "Agents": null
+    },
+    "Benchmark": false
+}

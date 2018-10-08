@@ -1,0 +1,55 @@
+{
+    "Tests": [
+        {
+            "Convey": "When a message is created, it should obtain a time stamp",
+            "Zome": "chatter",
+            "FnName": "createMessage",
+            "Input": { "text": "Some harmless text" },
+            "Regexp": "\\{.*\"time\"\\s*:\\s*(\\d+)\\D*.*\\}",
+            "Time": 0,
+            "Wait": 0,
+            "Exposure": "",
+            "Raw": false,
+            "Repeat": 0,
+            "Benchmark": false
+        },
+        {
+          "Convey": "When a message is posted, the hash of that message is returned",
+          "Zome": "chatter",
+          "Time": 2000,
+          "FnName": "postMessage",
+          "Input": {"%result%": 0},
+          "Output": "%h%"
+        },
+        {
+          "Convey": "When listener posts a message, speaker should receive it",
+          "Zome": "chatter",
+          "Time": 6000,
+          "FnName": "receiveMessages",
+          "Input": {"after": "%m1.1%"},
+          "Regexp": "^\\s*\\{.*\"messages\"\\s*:\\s*\\[\\s*\\S+(?:.*)\\s*\\].*\"last\"\\s*:\\s*(\\d+)\\D*.*\\}\\s*$"
+        },
+        {
+          "Convey": "When a message is created with undesirable content, that content should be neutered",
+          "Zome": "chatter",
+          "Time": 7000,
+          "FnName": "createMessage",
+          "Input": {"text": "<script type='text/javascript'>downloadVirus()</script>"},
+          "Output": {"text": "&lt;script type='text/javascript'&gt;downloadVirus()&lt;/script&gt;"},
+          "Regexp": "^\\s*\\{[^]*\"time\"\\s*:\\s*(\\d+)\\D*[^]*\\}\\s*"
+        },
+        {
+          "Convey": "When a message with undesirable content is posted, it must fail",
+          "Zome": "chatter",
+          "Time": 8000,
+          "FnName": "postMessage",
+          "Input": {"text": "<script type='text/javascript'>downloadVirus()</script>", "time": "%m1.1%"},
+          "Output": {"text": "&lt;script type='text/javascript'&gt;downloadVirus()&lt;/script&gt;", "time": "%m1.1"}
+        }
+    ],
+    "Identity": "",
+    "Fixtures": {
+        "Agents": null
+    },
+    "Benchmark": false
+}

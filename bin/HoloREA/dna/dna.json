@@ -30,9 +30,14 @@
                     "Name": "Message",
                     "Description": "A ridiculously simple chat message",
                     "DataFormat": "json",
-                    "Schema": "",
                     "SchemaFile": "Message.json",
                     "Sharing": "public"
+                },
+                {
+                  "Name": "Cleaned",
+                  "Description": "Store hashes of cleaned messages",
+                  "DataFormat": "string",
+                  "Sharing": "public"
                 }
             ],
             "Functions": [
@@ -42,7 +47,7 @@
                     "Exposure": "public"
                 },
                 {
-                    "Name": "publishMessage",
+                    "Name": "postMessage",
                     "CallingType": "json",
                     "Exposure": "public"
                 },

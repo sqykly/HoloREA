@@ -59,28 +59,37 @@ function validateLinkPkg(entryType) {
 
 function cleanMessage(msg) {
   var text = msg.text || "",
-    time = msg.time || Date.now();
+    time = msg.time || Date.now(),
+    hash;
 
-  return {
+
+  msg = {
     text: text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace(/[\r\n]/, "&br;"),
     time: time
   };
+
+  hash = makeHash("Message", msg);
+  // just to figure out which of these is failing to validate...
+
+  debug(hash);
+  commit("Cleaned", hash);
+  return msg;
 }
 
 // --Zome public code--
 
 function createMessage(msg) {
-  return JSON.stringify(cleanMessage(msg));
+  // Did the documentation lie to me?  I don't need to stringify?
+  return cleanMessage(msg);
+  //JSON.stringify(cleanMessage(msg));
 }
 
 function postMessage(msg) {
-  var hDirty = makeHash("Message", msg),
-    hClean = makeHash("Message", cleanMessage(msg));
+  var hash = makeHash("Message", msg);
 
-  if (hDirty === hClean) {
+  // Cleaned hashes are stored as hashes of hashes.
+  if (get(makeHash("Cleaned", hash)) !== HC.HashNotFound) {
     return commit("Message", msg);
-  } else {
-    return JSON.stringify(cleanMessage(msg));
   }
 
 }
@@ -88,7 +97,7 @@ function postMessage(msg) {
 function receiveMessages(params) {
   var after = params && params.after || 0,
     all = query({
-      EntryTypes: ["Message"],
+      Constrain: {EntryTypes: ["Message"]},
       Return: {
         Entries: true
       }
@@ -99,10 +108,10 @@ function receiveMessages(params) {
       return b.time - a.time;
     });
 
-  return JSON.stringify({
+  return {
     messages: wanted.map(function (entry) {
       return (entry.text || "").replace("&br;", "<br/>");
     }),
     last: wanted.length && wanted[wanted.length - 1].time || after
-  });
+  };
 }

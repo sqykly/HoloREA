@@ -12,7 +12,7 @@ function genesis() {
 
 function validateCommit(entryType, entry, header, pkg, sources) {
   // check against schema: YAGNI
-  return entryType === "Message" || entryType === "Cleaned";
+  return true;
 }
 
 function validatePut(entryType, entry, header, pkg, sources) {
@@ -31,8 +31,7 @@ function validateDel(entryType, hash, pkg, sources) {
 }
 
 function validateLink(entryType, hash, links, pkg, sources) {
-  // there is no linking messages
-  return false;
+  return true;
 }
 
 function validatePutPkg(entryType) {
@@ -69,7 +68,7 @@ function cleanMessage(msg) {
   }
 
   msg = {
-    text: text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace(/[\r\n]/, "&br;"),
+    text: text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/[\r\n]/g, "&br;"),
     time: time
   };
 
@@ -86,34 +85,80 @@ function createMessage(msg) {
   //JSON.stringify(cleanMessage(msg));
 }
 
+// Apparently query() doesn't query the public DHT, so we need a list of links
+// All the links are stored under the key of the App DNA hash, since that is
+// the only hash scoped to the whole app.  In the future, will need to change
+// it so that the links entries represent a room.
+// This function gives a warning message during tests: DHT query with no peers in routing table
 function postMessage(msg) {
-  var hash = makeHash("Message", msg);
+  // which of these is failing...
+  var msgHash = makeHash("Message", msg), // Changing this one unsurprisingly causes "unclean post"
+    cleanedHash = makeHash("Cleaned", msgHash),
+    posted = {hash: msgHash};
 
   // Cleaned hashes are stored as hashes of hashes.
-  if (get(makeHash("Cleaned", hash)) !== HC.HashNotFound) {
-    return commit("Message", msg);
+  if (get(cleanedHash) === HC.HashNotFound) {
+    posted.error = "unclean post";
+  } else if (commit("Message", msg) !== msgHash) {
+    posted.error = "Message validation failed";
+  } else if (typeof commit("Posted", {Links: [{Base: App.DNA.Hash, Link: msgHash, Tag: "posted"}]}) != "string") {
+    posted.error = "Posted validation failed";
   }
+
+  return posted;
 
 }
 
 function receiveMessages(params) {
-  var after = params && params.after || 0,
-    all = query({
-      Constrain: {EntryTypes: ["Message"]},
-      Return: {
-        Entries: true
-      }
+  var after = params && params.after,
+    all = getLinks(App.DNA.Hash, "posted", {Load: true}).map(function (link) {
+      return link.Entry;
     }),
-    wanted = all.filter(function (entry) {
-      return entry.time > after;
-    }).sort(function (a, b) {
-      return b.time - a.time;
-    });
+    wanted;
+
+  if (!after) {
+    after = 0;
+  } else if (typeof after == "string") {
+    after = parseInt(after) || 0;
+  }
+
+  wanted = all.filter(function (entry) {
+    return entry.time > after;
+  });
+  wanted.sort(function (a, b) {
+    return b.time - a.time;
+  });
 
   return {
     messages: wanted.map(function (entry) {
       return (entry.text || "").replace("&br;", "<br/>");
     }),
+    // empty is a bool I'll use to avoid regex in tests.
+    empty: !wanted.length,
     last: wanted.length && wanted[wanted.length - 1].time || after
   };
+}
+
+// --hacks-- (remove after testing)
+
+// checks out the Cleaned status on a message
+function isClean(msg) {
+  var msgHash = makeHash("Message", msg),
+    cleanHash = makeHash("Cleaned", msgHash);
+
+  return {
+    message: {
+      hash: msgHash,
+      value: msg
+    },
+    cleaned: {
+      hash: cleanHash,
+      value: get(cleanHash)
+    }
+  };
+}
+
+// check out all the links
+function allPosted(dontCare) {
+  return getLinks(App.DNA.Hash, "posted", {Load: true});
 }

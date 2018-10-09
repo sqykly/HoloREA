@@ -38,6 +38,12 @@
                   "Description": "Store hashes of cleaned messages",
                   "DataFormat": "string",
                   "Sharing": "public"
+                },
+                {
+                  "Name": "Posted",
+                  "Description": "A stupid way to query the public DHT for a list",
+                  "DataFormat": "links",
+                  "Sharing": "public"
                 }
             ],
             "Functions": [
@@ -55,6 +61,16 @@
                     "Name": "receiveMessages",
                     "CallingType": "json",
                     "Exposure": "public"
+                },
+                {
+                  "Name": "isClean",
+                  "CallingType": "json",
+                  "Exposure": "public"
+                },
+                {
+                  "Name": "allPosted",
+                  "CallingType": "json",
+                  "Exposure": "public"
                 }
             ]
         }

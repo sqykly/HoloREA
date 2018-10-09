@@ -5,7 +5,7 @@
             "Zome": "chatter",
             "FnName": "receiveMessages",
             "Input": {"after": 0},
-            "Output": {"messages": [], "last": 0},
+            "Output": {"messages": [], "last": 0, "empty": true},
             "Err": null,
             "Time": 1000,
             "Exposure": "public",
@@ -19,7 +19,9 @@
           "Zome": "chatter",
           "FnName": "receiveMessages",
           "Input": {"after": 0},
-          "Regexp": "^.*\\{.*\"messages\"\\s*:\\s*\\[.+\\].*\"last\"\\s*:\\s*(\\d+)\\D*\\}\\s*$"
+          "Output": {"empty": false},
+          "Regexp": "^\\s*\\{.*\"last\"\\s*:\\s*(\\d+)\\D*\\}\\s*$",
+          "Exposure": "public"
         },
         {
           "Convey": "When receiveMessages is called with after: (most recent message time), no messages should be received",
@@ -27,7 +29,8 @@
           "Zome": "chatter",
           "FnName": "receiveMessages",
           "Input": {"after": "%m1.1%"},
-          "Regexp": "^\\{.*\"messages\"\\s*:\\s*\\[\\s*\\].*\\}\\s*$"
+          "Output": {"empty": true},
+          "Exposure": "public"
         },
         {
           "Convey": "Calling createMessage should work for listener too",
@@ -35,7 +38,35 @@
           "Time": 5000,
           "FnName": "createMessage",
           "Input": {"text": "I can create too."},
-          "Regexp": "^\\s*\\{.*\"time\"\\s*:\\s*(\\d+)\\D*\\}\\s*$"
+          "Output": {"text": "I can create too."},
+          "Exposure": "public"
+        },
+        {
+          "Convey": "When listener calls postMessage, it should work",
+          "Time": 5500,
+          "Zome": "chatter",
+          "FnName": "postMessage",
+          "Input": {"%result%": 3},
+          "Output": {"hash": "%h1%"},
+          "Exposure": "public"
+        },
+        {
+          "Convey": "Check out isClean (should not pass)",
+          "Time": 5700,
+          "Zome": "chatter",
+          "FnName": "isClean",
+          "Input": {"%result%": 3},
+          "Output": {"foo": "bar"},
+          "Exposure": "public"
+        },
+        {
+          "Convey": "Check out allPosted (should not pass)",
+          "Time": 5900,
+          "Zome": "chatter",
+          "FnName": "allPosted",
+          "Input": {"don't": "care"},
+          "Output": {"show": "result"},
+          "Exposure": "public"
         }
     ],
     "Identity": "Listener",

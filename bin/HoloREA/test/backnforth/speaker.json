@@ -19,15 +19,53 @@
           "Time": 2000,
           "FnName": "postMessage",
           "Input": {"%result%": 0},
-          "Output": "%h%"
+          "Output": {"hash": "%h1%"},
+          "Exposure": "public"
+        },
+        {
+          "Convey": "Check out isClean (should not pass)",
+          "Time": 2500,
+          "Zome": "chatter",
+          "FnName": "isClean",
+          "Input": {"%result%": 0},
+          "Output": {"foo": "bar"},
+          "Exposure": "public"
+        },
+        {
+          "Convey": "Check out allPosted (should not pass)",
+          "Time": 2750,
+          "Zome": "chatter",
+          "FnName": "allPosted",
+          "Input": {"don't": "care"},
+          "Output": {"show": "result"},
+          "Exposure": "public"
+        },
+        {
+          "Convey": "Check out isClean (should not pass)",
+          "Time": 5750,
+          "Zome": "chatter",
+          "FnName": "isClean",
+          "Input": {"%result%": 3},
+          "Output": {"foo": "bar"},
+          "Exposure": "public"
+        },
+        {
+          "Convey": "Check out allPosted (should not pass)",
+          "Time": 5950,
+          "Zome": "chatter",
+          "FnName": "allPosted",
+          "Input": {"don't": "care"},
+          "Output": {"show": "result"},
+          "Exposure": "public"
         },
         {
           "Convey": "When listener posts a message, speaker should receive it",
           "Zome": "chatter",
           "Time": 6000,
           "FnName": "receiveMessages",
-          "Input": {"after": "%m1.1%"},
-          "Regexp": "^\\s*\\{.*\"messages\"\\s*:\\s*\\[\\s*\\S+(?:.*)\\s*\\].*\"last\"\\s*:\\s*(\\d+)\\D*.*\\}\\s*$"
+          "Input": {"after": 0},
+          "Output": {"empty": false, "messages": ["Some harmless text", "I can create too"]},
+          "Exposure": "public"
         },
         {
           "Convey": "When a message is created with undesirable content, that content should be neutered",
@@ -36,15 +74,34 @@
           "FnName": "createMessage",
           "Input": {"text": "<script type='text/javascript'>downloadVirus()</script>"},
           "Output": {"text": "&lt;script type='text/javascript'&gt;downloadVirus()&lt;/script&gt;"},
-          "Regexp": "^\\s*\\{[^]*\"time\"\\s*:\\s*(\\d+)\\D*[^]*\\}\\s*"
+          "Exposure": "public"
         },
         {
           "Convey": "When a message with undesirable content is posted, it must fail",
           "Zome": "chatter",
           "Time": 8000,
           "FnName": "postMessage",
-          "Input": {"text": "<script type='text/javascript'>downloadVirus()</script>", "time": "%m1.1%"},
-          "Output": {"text": "&lt;script type='text/javascript'&gt;downloadVirus()&lt;/script&gt;", "time": "%m1.1%"}
+          "Input": {"text": "<script type='text/javascript'>downloadVirus()</script>", "time": 0},
+          "Output": {"error": "unclean post"},
+          "Exposure": "public"
+        },
+        {
+          "Convey": "Check out isClean (should not pass)",
+          "Time": 8500,
+          "Zome": "chatter",
+          "FnName": "isClean",
+          "Input": {"%result%": 5},
+          "Output": {"foo": "bar"},
+          "Exposure": "public"
+        },
+        {
+          "Convey": "Check out allPosted (should not pass)",
+          "Time": 9000,
+          "Zome": "chatter",
+          "FnName": "allPosted",
+          "Input": {"don't": "care"},
+          "Output": {"show": "result"},
+          "Exposure": "public"
         }
     ],
     "Identity": "",

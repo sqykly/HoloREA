@@ -23,45 +23,9 @@
           "Exposure": "public"
         },
         {
-          "Convey": "Check out isClean (should not pass)",
-          "Time": 2500,
-          "Zome": "chatter",
-          "FnName": "isClean",
-          "Input": {"%result%": 0},
-          "Output": {"foo": "bar"},
-          "Exposure": "public"
-        },
-        {
-          "Convey": "Check out allPosted (should not pass)",
-          "Time": 2750,
-          "Zome": "chatter",
-          "FnName": "allPosted",
-          "Input": {"don't": "care"},
-          "Output": {"show": "result"},
-          "Exposure": "public"
-        },
-        {
-          "Convey": "Check out isClean (should not pass)",
-          "Time": 5750,
-          "Zome": "chatter",
-          "FnName": "isClean",
-          "Input": {"%result%": 3},
-          "Output": {"foo": "bar"},
-          "Exposure": "public"
-        },
-        {
-          "Convey": "Check out allPosted (should not pass)",
-          "Time": 5950,
-          "Zome": "chatter",
-          "FnName": "allPosted",
-          "Input": {"don't": "care"},
-          "Output": {"show": "result"},
-          "Exposure": "public"
-        },
-        {
           "Convey": "When listener posts a message, speaker should receive it",
           "Zome": "chatter",
-          "Time": 6000,
+          "Time": 7000,
           "FnName": "receiveMessages",
           "Input": {"after": 0},
           "Output": {"empty": false, "messages": ["Some harmless text", "I can create too"]},
@@ -70,7 +34,7 @@
         {
           "Convey": "When a message is created with undesirable content, that content should be neutered",
           "Zome": "chatter",
-          "Time": 7000,
+          "Time": 7100,
           "FnName": "createMessage",
           "Input": {"text": "<script type='text/javascript'>downloadVirus()</script>"},
           "Output": {"text": "&lt;script type='text/javascript'&gt;downloadVirus()&lt;/script&gt;"},
@@ -84,29 +48,7 @@
           "Input": {"text": "<script type='text/javascript'>downloadVirus()</script>", "time": 0},
           "Output": {"error": "unclean post"},
           "Exposure": "public"
-        },
-        {
-          "Convey": "Check out isClean (should not pass)",
-          "Time": 8500,
-          "Zome": "chatter",
-          "FnName": "isClean",
-          "Input": {"%result%": 5},
-          "Output": {"foo": "bar"},
-          "Exposure": "public"
-        },
-        {
-          "Convey": "Check out allPosted (should not pass)",
-          "Time": 9000,
-          "Zome": "chatter",
-          "FnName": "allPosted",
-          "Input": {"don't": "care"},
-          "Output": {"show": "result"},
-          "Exposure": "public"
         }
     ],
-    "Identity": "",
-    "Fixtures": {
-        "Agents": null
-    },
     "Benchmark": false
 }

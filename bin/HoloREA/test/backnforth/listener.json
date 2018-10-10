@@ -49,29 +49,7 @@
           "Input": {"%result%": 3},
           "Output": {"hash": "%h1%"},
           "Exposure": "public"
-        },
-        {
-          "Convey": "Check out isClean (should not pass)",
-          "Time": 5700,
-          "Zome": "chatter",
-          "FnName": "isClean",
-          "Input": {"%result%": 3},
-          "Output": {"foo": "bar"},
-          "Exposure": "public"
-        },
-        {
-          "Convey": "Check out allPosted (should not pass)",
-          "Time": 5900,
-          "Zome": "chatter",
-          "FnName": "allPosted",
-          "Input": {"don't": "care"},
-          "Output": {"show": "result"},
-          "Exposure": "public"
         }
     ],
-    "Identity": "Listener",
-    "Fixtures": {
-        "Agents": null
-    },
     "Benchmark": false
 }

@@ -5,7 +5,25 @@
 function zome(name, fns) {
 
   function send(fnName, data) {
-    return $.post(`fn/${name}/${fnName}`, JSON.stringify(data));
+    // all HC functions take and return the same type: either string or json.
+    let t;
+    switch (typeof data) {
+
+      case "string":
+        t = "text";
+      break;
+
+      case "object":
+        t = "json";
+      break;
+
+      default:
+      t = "json";
+      data = JSON.stringify(data);
+
+    }
+
+    return $.post(`fn/${name}/${fnName}`, data, undefined, t);
   }
 
   const zomeObj = {};

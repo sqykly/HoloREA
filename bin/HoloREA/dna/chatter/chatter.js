@@ -131,7 +131,8 @@ function receiveMessages(params) {
 
   return {
     messages: wanted.map(function (entry) {
-      return (entry.text || "").replace("&br;", "<br/>");
+      // fixed the argument of replace; it has to be a regex in order to replace more that one match
+      return (entry.text || "").replace(/&br;/g, "<br/>");
     }),
     // empty is a bool I'll use to avoid regex in tests.
     empty: !wanted.length,

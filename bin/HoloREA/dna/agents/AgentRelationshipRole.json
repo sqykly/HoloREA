@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/agents/AgentRelationshipRole",
+  "description": "classifies a relationship according to direction of authority and applicability",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "A name for the role within its own namespace"
+    },
+    "scope": {
+      "type": "string",
+      "description": "the agent (project or organization) that uses this role"
+    },
+    "authority": {
+      "description": "if either subject or object has authority, list the authoritative member as 'subject' or 'object'",
+      "enum": ["subject", "object", null],
+      "default": null
+    },
+    "reciprocals": {
+      "description": "When this role is applied, what other roles must come along with it?",
+      "dependencies": {
+        "reciprocals": {
+          "properties": {
+            "reverse": {
+              "type": ["string", "null"],
+              "description": "A relationship, either fully specified or named, that should be applied with the object and subject reversed.  If fully specified, reciprocals.reverse will assume the current role is the object-subject reverse and the authority is reversed.  No other reciprocals default."
+            },
+            "project": {
+              "type": ["object", "string", "null"],
+              "description": "A role, either full or named, that should be applied to the context project agent.  No reciprocal is assumed."
+            },
+            "peers": {
+              "type": ["array", "null"],
+              "items": {
+                "type": "object",
+                "properties": {
+                  "namespace": {
+                    "description": "object = peer is the object of this relationship; project = the peer is the context project or a role within it; organization = the peer is the context organization or a role within it",
+                    "type": ["string", "null"],
+                    "enum": ["subject", "object", "project", "organization"],
+                    "default": "subject"
+                  },
+                  "target": {
+                    "type": ["string", "object", "null"],
+                    "description": "a string that names the relationship in the namespace specified, or an object that maps the names to desired reciprocal relationships, or null to indicate that the namespace itself is the subject or object",
+                    "default": null
+                  },
+                  "role": {
+                    "type": ["string", "object"]
+                  },
+                  "object": {
+                    "enum": ["subject", "target"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

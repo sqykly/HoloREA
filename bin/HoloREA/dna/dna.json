@@ -73,6 +73,104 @@
                   "Exposure": "public"
                 }
             ]
+        },
+        {
+          "Name": "agents",
+          "Description": "All things related to agents and agent relationships",
+          "CodeFile": "agents.js",
+          "RibosomeType": "js",
+          "BridgeFuncs": null,
+          "Config": null,
+          "Entries": [
+            {
+                "Name": "Agent",
+                "Description": "Basic information about an agent",
+                "DataFormat": "json",
+                "SchemaFile": "Agent.json",
+                "Sharing": "public"
+            },
+            {
+              "Name": "Location",
+              "Description": "Links an agent to its locations.  Only 1 can be tagged primary",
+              "DataFormat": "links",
+              "Base": "#Agent",
+              "Link": "#AgentLocation",
+              "Tag": ["primary", "secondary"]
+            },
+            {
+              "Name": "AgentLocation",
+              "Description": "A location used to physically reach an Agent.  GFD: a simple array of strings for a street address",
+              "DataFormat": "json",
+              "SchemaFile": "AgentLocation.json",
+              "Sharing": "public"
+            },
+            {
+              "Name": "Relationship",
+              "Description": "Links Agents to others via AgentRelationships",
+              "DataFormat": "links",
+              "Base": "#Agent",
+              "Link": "#Agent",
+              "Tag": ["#AgentRelationshipRole"]
+            },
+            {
+              "Name": "AgentRelationshipRole",
+              "Description": "Describes a user-constructed type of relationship in more general, universal characteristics",
+              "DataFormat": "json",
+              "SchemaFile": "AgentRelationshipRole.json",
+              "Sharing": "public"
+            },
+            {
+              "Name": "RelationshipRoleDomain",
+              "Description": "A simple Links that allows the API to ingest a namespaced relationship without knowing all the hashes",
+              "DataFormat": "links",
+              "Sharing": "public",
+              "Base": "#Agent",
+              "Link": "#AgentRelationshipRole",
+              "Tag": ["/name/"]
+            }
+          ],
+          "Functions": [
+            {
+              "Name": "createAgent",
+              "CallingType":"json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "createUser",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "createProject",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "createOrganization",
+              "CallingType": "json",
+              "Exposure": "public"
+            }
+            {
+              "Name": "addLocation",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "createRole",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "joinProject",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "createRelationship",
+              "CallingType": "json",
+              "Exposure": "public"
+            }
+          ]
         }
     ]
 }

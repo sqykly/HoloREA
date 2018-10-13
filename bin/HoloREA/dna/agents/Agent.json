@@ -23,5 +23,6 @@
         }
       }
     }
-  }
+  },
+  "additionalProperties": { "$ref": "../VF/VfObject" }
 }

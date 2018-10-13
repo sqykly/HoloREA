@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/VF/VfObject",
+  "description": "A base class for all VF objects with common properties",
+  "properties": {
+    "name": {
+      "type": ["string", "null"],
+      "description": "A simple name, a valid XML identifier, but not necessarily unique",
+      "pattern": "^(-[_a-zA-Z0-9]|[_a-zA-Z0-9])[-_a-zA-Z0-9]*(:(-[_a-zA-Z0-9]|[_a-zA-Z0-9])[-_a-zA-Z0-9]*)"
+    },
+    "url": {
+      "type": ["string", "null"],
+      "description": "A URL where additional information can be obtained",
+      "format": "uri-reference"
+    },
+    "image": {
+      "type": "string",
+      "description": "A URL that points to an image of the object",
+      "format": "uri-reference"
+    },
+    "note": {
+      "type": "string",
+      "description": "Additional information about the object"
+    }
+  }
+}

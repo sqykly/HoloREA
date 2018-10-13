@@ -90,18 +90,19 @@
                 "Sharing": "public"
             },
             {
-              "Name": "Location",
+              "Name": "AgentLocation",
               "Description": "Links an agent to its locations.  Only 1 can be tagged primary",
               "DataFormat": "links",
               "Base": "#Agent",
-              "Link": "#AgentLocation",
-              "Tag": ["primary", "secondary"]
+              "Link": "#Location",
+              "Tag": ["primary", "secondary"],
+              "Sharing": "public"
             },
             {
-              "Name": "AgentLocation",
+              "Name": "Location",
               "Description": "A location used to physically reach an Agent.  GFD: a simple array of strings for a street address",
               "DataFormat": "json",
-              "SchemaFile": "AgentLocation.json",
+              "SchemaFile": "Location.json",
               "Sharing": "public"
             },
             {
@@ -170,6 +171,66 @@
               "CallingType": "json",
               "Exposure": "public"
             }
+          ]
+        },
+        {
+          "Name": "events",
+          "Description": "All things that happen",
+          "CodeFile": "events.js",
+          "RibosomeType": "js",
+          "BridgeFuncs": null,
+          "Config": null,
+          "Entries": [
+            {
+              "Name": "EconomicEvent",
+              "Description": "A concrete event that has happened or will happen",
+              "DataFormat": "json",
+              "SchemaFile": "EconomicEvent.json",
+              "Sharing": "public"
+            },
+            {
+              "Name": "Transfer",
+              "Description": "A directed flow of resources",
+              "DataFormat": "json",
+              "SchemaFile": "Transfer.json",
+              "Sharing": "public"
+            }
+          ]
+        },
+        {
+          "Name": "resources",
+          "Description": "All things that have value",
+          "CodeFile": "resources.js",
+          "RibosomeType": "js",
+          "BridgeFuncs": null,
+          "Config": null,
+          "Entries": [
+            {
+              "Name": "EconomicResource",
+              "Description": "A thing that has value that can be owned by an Agent",
+              "DataFormat": "json",
+              "SchemaFile": "EconomicResource.json",
+              "Sharing": "public"
+            },
+            {
+              "Name": "ResourceClassification",
+              "Description": "A stub",
+              "DataFormat": "string",
+              "Sharing": "public"
+            }
+          ],
+          "Functions": [
+            {
+              "Name": "createResourceClassification",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "createEconomicResource",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+
           ]
         }
     ]

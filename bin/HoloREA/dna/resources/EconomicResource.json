@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/resources/EconomicResource",
+  "properties": {
+    "resourceClassifiedAs": {
+      "type": "string",
+      "description": "A #ResourceClassification that defines the type of this resource"
+    },
+    "underlyingResource": {
+      "type": "string",
+      "description": "A more concrete #EconomicResource upon which this resource is based."
+    },
+    "currentQuantity": { "$ref": "../VF/QuantityValue"},
+    "contains": {
+      "type": "string-link",
+      "description": "An #EconomicResource that contains this resource"
+    },
+    "trackingIdentifier": {
+      "type": "string",
+      "description": "Something like a batch number, or a social security number"
+    }
+  },
+  "additionalProperties": { "$ref": "../VF/VfObject" }
+}

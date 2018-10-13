@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
-  "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/events/Agent",
+  "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/events/EconomicEvent",
   "description": "GFD: An event modifies the quantity of resources available to one or more agents; some parts could be delegated to Links ",
   "properties": {
     "action": {
@@ -16,43 +16,35 @@
       "description": "See inputOf, replace 'input' with 'output'"
     },
     "affects": {
-      "type": "string",
-      "description": "#Resource identifying the resource whose quantities are affected by the event"
+      "type": "string-Link",
+      "description": "#EconomicResource identifying the resource whose quantities are affected by the event"
     },
     "receiver": {
       "type": "string",
       "description": "#Agent whom the intended, committed, or actual economic event is for."
     },
-    "under": {
+    "provider": {
       "type": "string",
-      "description": "#Agreement between agents which specifies the rules or policies which govern this event."
+      "description": "#Agent that enables the event"
     },
     "scope": {
       "type": "string",
       "description": "a #any that is the context for the event"
     },
     "affectedQuantity": {
-      "type": ["number", "object"],
-      "description": "the receiver gets this many of event.affects.  If a number, the resource must be quantified as its own unit",
-      "properties": {
-        "units": {
-          "type": "string",
-          "description": "The name of an appropriate unit for measuring a quantity of the affected resource"
-        },
-        "quantity": {
-          "type": "number",
-          "description": "this is how many event.affects changed hands"
-        }
-      }
+      "if": { "type": "object" },
+      "then": { "$ref": "../VF/QuantityValue" },
+      "else": { "type": "number" }
     },
     "start": {
       "type": "string",
-      "format": "date-time",
+      "format": "date",
       "description": "when the event starts/started"
     },
     "duration": {
       "type": "string",
-      "format": "date-time"
+      "format": "date"
     }
-  }
+  },
+  "additionalProperties": { "$ref": "../VF/VfObject" }
 }

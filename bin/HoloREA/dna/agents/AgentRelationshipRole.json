@@ -58,5 +58,6 @@
         }
       }
     }
-  }
+  },
+  "additionalProperties": { "$ref": "../VF/VfObject" }
 }

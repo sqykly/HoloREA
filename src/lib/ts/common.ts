@@ -6,13 +6,13 @@ import "./holochain-proto";
  */
 export declare type Hash<T> = holochain.Hash;
 
-type QVlike = {units: string, quantity: number};
+export interface QVlike {units: string, quantity: number};
 /**
  * A pretty robust implementation of QuantityValue that will some day enable
  * unit conversions and derived units (e.g. Newtons = kg*m^2*s^2)
  * some of the hard work is done, but clearly not all of it.
  */
-export class QuantityValue {
+export class QuantityValue implements QVlike {
   /**
    * There are two special values of units: "" is like "Each", and "%" is a unitless percentage
    * "" only comes into play when multiplying and dividing
@@ -200,16 +200,17 @@ export type LinkHash = Hash<holochain.LinksEntry>
  * It wants to be a Set, but targetting compilation to ES5 will only allow
  * arrays to be for..of'ed
  */
-export class LinkSet<T = object> extends Array<holochain.GetLinksResponse> {
-  constructor(array: Array<holochain.GetLinksResponse>) {
+export class LinkSet<B, L, Tags extends string = string, T = B> extends Array<holochain.GetLinksResponse> {
+
+  constructor(array: Array<holochain.GetLinksResponse>, private origin: LinkRepo<B,L,Tags>, private baseHash: string) {
     super(...array);
   }
   /**
    * Filter by any number of tags.  Returns a new LinkSet of the same type
    */
-  tags(...narrowing: string[]): LinkSet<T> {
+  tags(...narrowing: string[]): LinkSet<B, L, Tags, T> {
     let uniques = new Set(narrowing);
-    return new LinkSet<T>(this.filter( ({Tag}) => uniques.has(Tag)) );
+    return new LinkSet<B, L, Tags, T>( this.filter( ({Tag}) => uniques.has(Tag) ), this.origin, this.baseHash );
   }
 
   /**
@@ -217,9 +218,9 @@ export class LinkSet<T = object> extends Array<holochain.GetLinksResponse> {
    * returns a new LinkSet.
    * if you like typesafety, use the type parameter to narrow the types, too.
    */
-  types<C = T>(...typeNames: string[]): LinkSet<C> {
+  types<C = T>(...typeNames: string[]): LinkSet<B,L,Tags,C> {
     let uniques = new Set<string>(typeNames);
-    return new LinkSet<C>(this.filter( ({EntryType}) => uniques.has(EntryType)));
+    return new LinkSet<B,L,Tags,C>(this.filter( ({EntryType}) => uniques.has(EntryType) ), this.origin, this.baseHash);
   }
 
   /**
@@ -233,15 +234,27 @@ export class LinkSet<T = object> extends Array<holochain.GetLinksResponse> {
    * Returns the entries in the LinkSet as a typesafe array.
    */
   data(): T[] {
-    return this.map( ({Entry}) => <T>Entry);
+    return this.map( ({Hash}) => <T>notError(get(Hash)));
   }
 
   /**
    * Filters by source.
    */
-  sources(...allowed: holochain.Hash[]): LinkSet<T> {
+  sources(...allowed: holochain.Hash[]): LinkSet<B,L,Tags,T> {
     let uniques = new Set<holochain.Hash>(allowed);
-    return new LinkSet<T>(this.filter( ({Source}) => uniques.has(Source) ));
+    return new LinkSet<B,L,Tags,T>(this.filter( ({Source}) => uniques.has(Source) ), this.origin, this.baseHash);
+  }
+
+  removeAll(): void {
+    this.forEach( (link: holochain.GetLinksResponse, index:number) => {
+      let target = link.Hash, tag = link.Tag;
+      try {
+        this.origin.remove(this.baseHash, target, <Tags>tag);
+      } catch (e) {
+        // don't care, just keep deleting them.
+      }
+    });
+    this.splice(0, this.length);
   }
 }
 
@@ -283,9 +296,9 @@ export class LinkRepo<B, L, T extends string = string> {
    *  LinksOptions.
    * @returns {LinkSet<B>} containing the query result.
    */
-  get(base: Hash<B>, tag: string = ``, options: holochain.LinksOptions = {}): LinkSet<B> {
+  get(base: Hash<B>, tag: string = ``, options: holochain.LinksOptions = {}): LinkSet<B,L,T,B> {
     if (!tag) {
-      return new LinkSet<B>(<holochain.GetLinksResponse[]> notError(getLinks(base, tag, options)));
+      return new LinkSet<B,L,T,B>(<holochain.GetLinksResponse[]> notError(getLinks(base, tag, options)), this, base);
     }
     let tags = tag.split(`|`),
       responses: holochain.GetLinksResponse[] = [];
@@ -295,7 +308,7 @@ export class LinkRepo<B, L, T extends string = string> {
       responses = responses.concat(response);
     }
 
-    return new LinkSet<B>(responses);
+    return new LinkSet<B,L,T,B>(responses, this, base);
   }
 
   /**
@@ -459,7 +472,7 @@ interface Named {
  * @example class MyHoloObject<T> extends HoloObject<MyEntryType>
  * @example class LayeredSubclass<T> extends SubclassOfHoloObject<MyEntryType>
  */
-export class HoloObject<tE> implements Named {
+export class HoloObject<tE={}> implements Named {
   /**
    * You must delcare an override of static className to reflect the name of the entry type
    * as listed in the DNA.  Yes, both static and instance className.
@@ -476,21 +489,38 @@ export class HoloObject<tE> implements Named {
   className: string;
 
   private isCommitted: boolean = false;
+  private hasChanged(): boolean {
+    if (this.myHash) {
+      return this.myHash === this.makeHash();
+    } else {
+      return true;
+    }
+  }
   /**
-   * static entryType must be overriden to be an instance of or just as a type.
+   * static entryType must be overriden to be an instance of your entry type or
+   * typed as one.
    * Unfortunately it is not possible to include a type parameter, so the static
    * version will always be missing the entry type parameter you gave.  Merge it
    * with the superclass's entryType with an & expression.  See example.
    * @static
-   * @example static entryType: typeof Superclass<same as extends clause>.entryType & MyEntryType
+   * @protected
+   * @example static entryType: typeof Superclass.entryType & MyEntryType
    */
-  static entryType: {};
+  static entryType: VfEntry;
+
+  static entryDefaults: VfEntry = {};
+
+  static create(entryProps?: object): HoloObject {
+    let entry = {};
+    Object.assign(entry, this.entryDefaults);
+    if (entryProps) Object.assign(entry, entryProps);
+    return new this(entry);
+  }
 
   /**
-   * You should override myEntry to reflect both the subclass type parameter and
-   * SuperClass<same type as extends clause>.entryType.  If you extended correctly,
-   * Your subclass entry type should already be there.
-   * @example protected myEntry: T & typeof Superclass<same type args as extends clause>.entryType
+   * If you extended correctly, your subclass entry type should already be there
+   * and your own T as well.  Theoretically you can skip overriding this.
+   * @example protected myEntry: T & MyEntryType & typeof Superclass.entryType
    * @protected
    */
   protected myEntry: tE;
@@ -515,7 +545,7 @@ export class HoloObject<tE> implements Named {
    * class instance based on it.
    * @override if you need to prepare instance properties from the entry data,
    *  or to provide better type safety; it is recommended to get the types right,
-   *  even if the body is just return super.get(hash);  it is truly impossible
+   *  even if the body is just returns super.get(hash);  it is truly impossible
    *  to do this in a DRY way.
    * @static
    * @param {Hash<this>} hash the hash of the entry on the DHT
@@ -536,9 +566,9 @@ export class HoloObject<tE> implements Named {
     if (this.myHash) return this.myHash;
     let hash = makeHash(this.className, this.myEntry);
     if (isError(hash)) {
-      throw new TypeError(`entry type mismatch`)
-    } else if (!this.myEntry) {
-
+      throw new TypeError(`entry type mismatch`);
+    } else {
+      return <Hash<this>>notError(hash);
     }
   }
 
@@ -586,8 +616,13 @@ export class HoloObject<tE> implements Named {
     if (this.isCommitted) {
       return this.update();
     } else {
-      let hash = notError<Hash<this>>(commit(this.className, this.myEntry));
-      this.isCommitted = true;
+      let hash = commit(this.className, this.myEntry);
+      if (isError(hash)) {
+        throw new TypeError(`entry type mismatch; hash ${this.myHash} is not a ${this.className}`);
+      } else {
+        this.isCommitted = true;
+        return hash;
+      }
     }
   }
 
@@ -597,7 +632,10 @@ export class HoloObject<tE> implements Named {
    * @returns {Hash<this>}
    */
   update(): Hash<this> {
-    if (this.myHash && this.makeHash() !== this.myHash) {
+    if (!this.isCommitted) {
+      return this.commit();
+    }
+    if (this.hasChanged()) {
       return this.myHash = notError<Hash<this>>(update(this.className, this.entry, this.myHash));
     } else {
       return this.myHash;
@@ -636,17 +674,18 @@ declare interface VfEntry {
  * @see HoloObject
  * @arg T Use this type argument to convey the entry type of a subclass.
  */
-export class VfObject<T = object> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
+export class VfObject<T = {}> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
   static entryType: VfEntry & typeof HoloObject.entryType;
   protected myEntry: VfEntry & typeof HoloObject.entryType & T;
   static className = "VfObject";
   className: string = "VfObject";
+  static entryDefaults: VfEntry & typeof HoloObject.entryDefaults = {};
 
   static get(hash: Hash<VfObject>): VfObject {
     return <VfObject>super.get(hash);
   }
 
-  constructor(entry: VfEntry&T|null, hash?: string) {
+  constructor(entry: T|null, hash?: string) {
     super(entry, hash);
   }
 

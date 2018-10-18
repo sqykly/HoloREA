@@ -38,6 +38,9 @@
 
 // holochain ambient type defs for API
 
+// ADDED: there is apparently an isError()
+declare function isError<T>(thing: holochain.CanError<T>): thing is holochain.HolochainError;
+
 // REPLACED declare function property(name: string): string;
 declare function property(name: string): holochain.CanError<string>;
 
@@ -68,7 +71,7 @@ declare function get(hash: holochain.Hash, options?: holochain.GetOptions): holo
 
 // REPLACED declare function getLinks(base: holochain.Hash, tag: string, options?: object): holochain.GetLinksResponse[];
 // todo: options.Load determines exact return type; should be possible to infer.
-declare function getLinks(base: holochain.Hash, tag: string, options?: holochain.LinksOptions):
+declare function getLinks(base: holochain.Hash, tag?: string, options?: holochain.LinksOptions):
   holochain.CanError<holochain.GetLinksResponse[] | holochain.EntryData[]>;
 
 // REPLACED declare function update(entryType: string, entryData: string | object, replaces: holochain.Hash): holochain.Hash;
@@ -207,7 +210,6 @@ declare namespace holochain {
 
     // REPLACED Entry?: any;
     Entry?: EntryData;
-
 	  EntryType?: string;
 	  Sources?: Hash[];
 	}

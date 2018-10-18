@@ -189,10 +189,26 @@
               "Sharing": "public"
             },
             {
+              "Name": "EventLinks",
+              "Description": "Searchable event links",
+              "DataFormat": "links",
+              "Sharing": "public",
+              "Base": ["EconomicEvent", "Process", "Transfer"],
+              "Link": ["EconomicEvent", "Process", "Transfer"],
+              "Tag": ["inputs", "inputOf", "outputs", "outputOf"]
+            },
+            {
               "Name": "Transfer",
               "Description": "A directed flow of resources",
               "DataFormat": "json",
               "SchemaFile": "Transfer.json",
+              "Sharing": "public"
+            },
+            {
+              "Name": "Action",
+              "Description": "Describes the behavior of a transfer",
+              "DataFormat": "json",
+              "SchemaFile": "Action.json",
               "Sharing": "public"
             }
           ]
@@ -217,6 +233,24 @@
               "Description": "A stub",
               "DataFormat": "string",
               "Sharing": "public"
+            },
+            {
+              "Name": "Classifications",
+              "Description": "Links to provide lists of resources classified by a ResourceClassification",
+              "DataFormat": "links",
+              "Sharing": "public",
+              "Base": "ResourceClassification",
+              "Link": "EconomicResource",
+              "Tag": ["classifies"]
+            },
+            {
+              "Name": "TrackTrace",
+              "Description": "Links to track and trace changes of ownership and quantity of resources",
+              "DataFormat": "links",
+              "Sharing": "public",
+              "Base": ["EconomicResource", "Transfer", "Process", "EconomicEvent"],
+              "Link": ["EconomicEvent", "Transfer", "Process", "EconomicResource"],
+              "Tag": ["affectedBy", "affects"]
             }
           ],
           "Functions": [

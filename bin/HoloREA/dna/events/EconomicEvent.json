@@ -16,8 +16,8 @@
       "description": "See inputOf, replace 'input' with 'output'"
     },
     "affects": {
-      "type": "string-Link",
-      "description": "#EconomicResource identifying the resource whose quantities are affected by the event"
+      "type": "string",
+      "description": "<-resources:TrackTrace.affectedBy-#EconomicResource identifying the resource whose quantities are affected by the event"
     },
     "receiver": {
       "type": "string",
@@ -33,7 +33,7 @@
     },
     "affectedQuantity": {
       "if": { "type": "object" },
-      "then": { "$ref": "../VF/QuantityValue" },
+      "then": { "$ref": "../common/QuantityValue" },
       "else": { "type": "number" }
     },
     "start": {
@@ -46,5 +46,5 @@
       "format": "date"
     }
   },
-  "additionalProperties": { "$ref": "../VF/VfObject" }
+  "additionalProperties": { "$ref": "../common/VfObject" }
 }

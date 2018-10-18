@@ -1,20 +1,21 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
   "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/events/Transfer",
-  "description": "A pair of resource flows that occur as part of an event",
+  "description": "A resource flow that occurs as part of an event",
   "properties": {
+    "description": "I think this will be an opaque LinkRepo type, though it needs some data to be hashed at all",
     "transferClassifiedAs": {
       "type": "string",
       "description": "a #TransferClassification describing the type of the transfer"
     },
     "inputs": {
       "type": "string",
-      "description": "The #EconomicEvent this transfer inputs from (could be linked)"
+      "description": "The #EconomicEvent this transfer inputs from (needs links on inputOf)"
     },
     "outputs": {
       "type": "string",
-      "description": "The #EconomicEvent this transfer outputs to (could be linked)"
+      "description": "The #EconomicEvent this transfer outputs to (needs links on outputOf)"
     }
   },
-  "additionalProperties": { "$ref": "../VF/VfObject" }
+  "additionalProperties": { "$ref": "../common/VfObject" }
 }

@@ -50,6 +50,7 @@ export class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfOb
   trace() {
     let links = TrackTrace.get(this.myHash, `affectedBy`);
     let events = links.types<EconomicEvent>(EconomicEvent.className).data();
+    
     // TODO
   }
 }

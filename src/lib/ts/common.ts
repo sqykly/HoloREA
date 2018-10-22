@@ -1,6 +1,10 @@
 import "./es6";
 import "./holochain-proto";
 
+// FIXME this is only used for testing.  remove when ready to ship
+// maybe it will be fine.  fingers crossed.
+// /FIXME
+
 /**
  * This is for type safety when you need assurance that get(Hash) will return the correct type.
  */
@@ -472,7 +476,7 @@ interface Named {
  * @example class MyHoloObject<T> extends HoloObject<MyEntryType>
  * @example class LayeredSubclass<T> extends SubclassOfHoloObject<MyEntryType>
  */
-export class HoloObject<tE={}> implements Named {
+export class HoloObject<tE extends Object = {}> implements Named {
   /**
    * You must delcare an override of static className to reflect the name of the entry type
    * as listed in the DNA.  Yes, both static and instance className.
@@ -506,9 +510,9 @@ export class HoloObject<tE={}> implements Named {
    * @protected
    * @example static entryType: typeof Superclass.entryType & MyEntryType
    */
-  static entryType: VfEntry;
+  static entryType: {};
 
-  static entryDefaults: VfEntry = {};
+  static entryDefaults: object = {};
 
   static create(entryProps?: object): HoloObject {
     let entry = {};
@@ -616,7 +620,7 @@ export class HoloObject<tE={}> implements Named {
     if (this.isCommitted) {
       return this.update();
     } else {
-      let hash = commit(this.className, this.myEntry);
+      let hash = commit(this.className, <holochain.JsonEntry>this.myEntry);
       if (isError(hash)) {
         throw new TypeError(`entry type mismatch; hash ${this.myHash} is not a ${this.className}`);
       } else {

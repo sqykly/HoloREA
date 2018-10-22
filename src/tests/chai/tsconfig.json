@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+   	"outDir": "../../../build/bin/tests",
+   	"rootDir": "./",
+   	"allowJs": true,
+    "target": "es6",
+    "module": "Node",
+    "lib" : ["es5", "es6"],
+    "types": [],
+    "newLine" : "lf",
+    "downlevelIteration": true
+  },
+  "exclude" : []
+}

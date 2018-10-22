@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+   	"outDir": "../bin/lib/ts/",
+   	"rootDir": "./",
+   	"allowJs": true,
+    "target": "es6",
+    "lib" : ["es5", "es6"],
+    "types": [],
+    "newLine" : "lf",
+    "downlevelIteration": true
+  },
+  "exclude" : []
+}

@@ -5,8 +5,57 @@ import "./holochain-proto";
 // maybe it will be fine.  fingers crossed.
 // /FIXME
 
+export type PhysicalLocation = string[];
+
+export function bisect(array: number[], min: number): number {
+  let b = 0, t = array.length;
+  while (t > b) {
+    let i = (t + b) >> 1,
+      v = array[i];
+    if (v < min) {
+      b = i;
+    } else if (v > min) {
+      t = i;
+    } else {
+      return i;
+    }
+  }
+  return t;
+}
+
+export interface CrudResponse<T extends object> {
+  error?: {
+    name: string;
+    message: string;
+    stack?: string;
+  };
+  hash?: Hash<T>;
+  entry?: T;
+  type?: string;
+}
+
+export function deepAssign<T extends object, U extends object>(dest: T, src: U, ...more: object[]): T & U {
+  for (let p of Object.keys(src)) {
+    let v: U[keyof U];
+    if (typeof src[p] == `object`) {
+      v = deepAssign(dest[p] || {}, src[p]);
+    } else {
+      v = src[p];
+    }
+    dest[p] = v;
+  }
+
+  if (more.length) {
+    let [u, ...rest] = more;
+    return deepAssign(<T&U>dest, u, ...rest);
+  } else {
+    return <T&U>dest;
+  }
+}
+
 /**
  * This is for type safety when you need assurance that get(Hash) will return the correct type.
+ * But I don't think it's working; it all comes out strings.
  */
 export declare type Hash<T> = holochain.Hash;
 
@@ -24,7 +73,10 @@ export class QuantityValue implements QVlike {
    */
   units: string;
   quantity: number;
-
+  /**
+   * Construct a QV from a POO QVlike.
+   * @param {string} units
+   */
   constructor({units, quantity}: QVlike) {
     this.units = units;
     this.quantity = quantity;
@@ -203,14 +255,21 @@ export type LinkHash = Hash<holochain.LinksEntry>
  * Get an array of entries (data()) or hashes (hashes())
  * It wants to be a Set, but targetting compilation to ES5 will only allow
  * arrays to be for..of'ed
+ *
  */
 export class LinkSet<B, L, Tags extends string = string, T = B> extends Array<holochain.GetLinksResponse> {
 
-  constructor(array: Array<holochain.GetLinksResponse>, private origin: LinkRepo<B,L,Tags>, private baseHash: string) {
+  constructor(array: Array<holochain.GetLinksResponse>, private origin: LinkRepo<B,L,Tags>, private baseHash: string, private onlyTag?: string) {
     super(...array);
+    if (onlyTag) {
+      this.forEach((item: holochain.GetLinksResponse) => {
+        item.Tag = onlyTag;
+      });
+    }
   }
   /**
-   * Filter by any number of tags.  Returns a new LinkSet of the same type
+   * Filter by any number of tags.  Returns a new LinkSet of the same type.
+   * @param {string[]} narrowing An array of the tag names wanted.
    */
   tags(...narrowing: string[]): LinkSet<B, L, Tags, T> {
     let uniques = new Set(narrowing);
@@ -221,6 +280,10 @@ export class LinkSet<B, L, Tags extends string = string, T = B> extends Array<ho
    * Filter by any number of entryTypes, which you should probably get from HoloObj.className
    * returns a new LinkSet.
    * if you like typesafety, use the type parameter to narrow the types, too.
+   * @arg C Type or union of types that the result should contain.  These are classes, not names.
+   * @params {string} typeNames is the list of types that the result should have.
+   *  these are the type names, not the classes.
+   * @returns {LinkSet<C>}
    */
   types<C = T>(...typeNames: string[]): LinkSet<B,L,Tags,C> {
     let uniques = new Set<string>(typeNames);
@@ -262,6 +325,7 @@ export class LinkSet<B, L, Tags extends string = string, T = B> extends Array<ho
   }
 }
 
+
 /**
  * LinkRepo encapsulates all kinds of links.  There should be exactly one per
  * Links type Entry in DNA.json.  I name them like NormalClasses because they
@@ -284,8 +348,9 @@ export class LinkRepo<B, L, T extends string = string> {
    *  represent.
    */
   constructor (protected name: string) {}
-  protected backLinks = new Map<T, { repo: LinkRepo<L, B, string>, tag: string }[]>();
-  protected recurseGuard: Set<T> = new Set<T>();
+  protected backLinks = new Map<T, { repo: LinkRepo<L, B, T|string>, tag: T|string }[]>();
+  protected recurseGuard = new Map<T, number>();
+  protected selfLinks = new Map<T, T[]>();
 
   /**
    * Produce a LinkSet including all parameter-specified queries.
@@ -331,10 +396,13 @@ export class LinkRepo<B, L, T extends string = string> {
    * @returns {LinkHash} a hash of the link, but that's pretty useless, so I'll probably end up changing
    *  it to be chainable.
    */
-  put(base: Hash<B>, link: Hash<L>, tag: T, backRepo?: LinkRepo<L, B>, backTag?: string): LinkHash {
-    if (this.recurseGuard.has(tag)) return "";
+  put(base: Hash<B>, link: Hash<L>, tag: T, backRepo?: LinkRepo<L, B>, backTag?: string): this {
+    const rg = this.recurseGuard;
+    let rgv = rg.get(tag);
 
-    this.recurseGuard.add(tag);
+    if (!rgv--) return this;
+
+    rg.set(tag, rgv);
 
     const hash = commit(this.name, { Links: [{Base: base, Link: link, Tag: tag}] });
 
@@ -344,12 +412,17 @@ export class LinkRepo<B, L, T extends string = string> {
         repo.put(link, base, revTag);
       }
     }
+    if (this.selfLinks.has(tag)) {
+      for (let revTag of this.selfLinks.get(tag)) {
+        this.put(link, base, revTag);
+      }
+    }
     if (backRepo && backTag) {
       backRepo.put(link, base, backTag);
     }
 
-    this.recurseGuard.delete(tag);
-    return notError(hash);
+    rg.set(tag, ++rgv);
+    return this;
   }
 
   /**
@@ -361,7 +434,11 @@ export class LinkRepo<B, L, T extends string = string> {
    *  note that if the forward and backward tags are the same, this probably
    *  will not work due to the overzealous recursion guard.
    */
-  linkBack(tag: T, repo: LinkRepo<L, B, string>, backTag: string): this {
+  linkBack(tag: T, backTag?: T|string, repo?: LinkRepo<L, B, string>): this {
+    backTag = backTag || tag;
+    if (!repo) {
+      return this.internalLinkback(tag, <T>backTag);
+    }
     const entry = { repo, tag: backTag };
     if (this.backLinks.has(tag)) {
       let existing = this.backLinks.get(tag);
@@ -369,9 +446,24 @@ export class LinkRepo<B, L, T extends string = string> {
     } else {
       this.backLinks.set(tag, [entry]);
     }
+    this.recurseGuard.set(tag, 1);
     return this;
   }
 
+  private internalLinkback(fwd: T, back: T): this {
+    const mutual = fwd === back;
+    if (this.selfLinks.has(fwd)) {
+      this.selfLinks.get(fwd).push(back);
+    } else {
+      this.selfLinks.set(fwd, [back]);
+    }
+    if (mutual) {
+      this.recurseGuard.set(fwd, 2);
+    } else {
+      this.recurseGuard.set(fwd, 1).set(back, 1);
+    }
+    return this;
+  }
   private toLinks(base: Hash<B>, link: Hash<L>, tag: T): holochain.LinksEntry {
     return { Links: [{ Base: base, Link: link, Tag: tag }] }
   }
@@ -406,29 +498,35 @@ export class LinkRepo<B, L, T extends string = string> {
    * @param {T} tag the tag of the link to remove
    * @returns {LinkHash} but not really useful.  Expect to change.
    */
-  remove(base: Hash<B>, link: Hash<L>, tag: T): LinkHash {
+  remove(base: Hash<B>, link: Hash<L>, tag: T): this {
     let presentLink = this.toLinks(base, link, tag);
     let hash = notError<LinkHash>(makeHash(this.name, presentLink));
 
-    if (this.recurseGuard.has(tag)) {
-      return hash;
+    const rg = this.recurseGuard;
+    let rgv = rg.get(tag);
+    if (!rgv--) {
+      return this;
     }
 
-    if (get(hash) === HC.HashNotFound) return hash;
+    if (get(hash) === HC.HashNotFound) return this;
 
     presentLink.Links[0].LinkAction = HC.LinkAction.Del;
     hash = notError<LinkHash>(commit(this.name, presentLink));
 
-    this.recurseGuard.add(tag);
+    rg.set(tag, rgv);
 
     if (this.backLinks.has(tag)) {
       for (let {repo, tag: backTag} of this.backLinks.get(tag)) {
         repo.remove(link, base, backTag);
       }
     }
-
-    this.recurseGuard.delete(tag);
-    return hash;
+    if (this.selfLinks.has(tag)) {
+      for (let back of this.selfLinks.get(tag)) {
+        this.remove(link, base, back);
+      }
+    }
+    rg.set(tag, ++rgv);
+    return this;
   }
 
   /**
@@ -440,7 +538,7 @@ export class LinkRepo<B, L, T extends string = string> {
    * @param {holochain.Link} update The link to replace it with.
    * @returns {LinkHash} A hash that you can't use for much.  Expect to change.
    */
-  replace(old: holochain.Link, update: holochain.Link): LinkHash {
+  replace(old: holochain.Link, update: holochain.Link): this {
     let oldHash = this.getHash(old.Base, old.Link, <T>old.Tag);
     if (get(oldHash) === HC.HashNotFound) {
       return this.put(update.Base, update.Link, <T>update.Tag)
@@ -492,6 +590,8 @@ export class HoloObject<tE extends Object = {}> implements Named {
    */
   className: string;
 
+  private openCount: number = 0;
+  private openError: Error = null;
   private isCommitted: boolean = false;
   private hasChanged(): boolean {
     if (this.myHash) {
@@ -507,15 +607,18 @@ export class HoloObject<tE extends Object = {}> implements Named {
    * version will always be missing the entry type parameter you gave.  Merge it
    * with the superclass's entryType with an & expression.  See example.
    * @static
-   * @protected
+   * @abstract
    * @example static entryType: typeof Superclass.entryType & MyEntryType
    */
-  static entryType: {};
+  static entryType: object;
 
+  /**
+   * These are the default values that will be assigned to the entry of
+   */
   static entryDefaults: object = {};
 
-  static create(entryProps?: object): HoloObject {
-    let entry = {};
+  static create(entryProps?: typeof HoloObject.entryType): HoloObject {
+    let entry: typeof entryProps = {};
     Object.assign(entry, this.entryDefaults);
     if (entryProps) Object.assign(entry, entryProps);
     return new this(entry);
@@ -536,12 +639,12 @@ export class HoloObject<tE extends Object = {}> implements Named {
   protected myHash: Hash<this>;
 
   /**
-   * Returns the POD struct that is stored in the DHT. Do NOT modify any properties.
-   * this maybe shouldn't exist at all.
+   * Returns the POD struct that is stored in the DHT. Modifying the object
+   * will have no effect.
    * @returns {tE & typeof Superclass.entryType} the entry
    */
   get entry(): typeof HoloObject.entryType & tE {
-    return this.myEntry;
+    return Object.assign({}, this.myEntry);
   }
 
   /**
@@ -590,8 +693,7 @@ export class HoloObject<tE extends Object = {}> implements Named {
    * @throws {TypeError} if the entry doesn't pass the DHT's inspection
    */
   constructor(entry?: tE|null, hash?: Hash<object>) {
-    if (entry && hash) throw new Error(`can't use both entry & hash arguments`);
-    if (!entry && !hash) throw new Error(`use either entry or hash arguments; can't use both or none`)
+    if (!entry == !hash) throw new Error(`use either entry or hash arguments; can't use both or none`)
 
     if (entry) {
       this.myEntry = entry;
@@ -636,6 +738,7 @@ export class HoloObject<tE extends Object = {}> implements Named {
    * @returns {Hash<this>}
    */
   update(): Hash<this> {
+    if (!!this.openCount) return this.myHash;
     if (!this.isCommitted) {
       return this.commit();
     }
@@ -659,6 +762,48 @@ export class HoloObject<tE extends Object = {}> implements Named {
     }
     return this;
   }
+
+  open(mutator: (t: tE) => tE): this {
+    ++this.openCount;
+    let mutant: tE = Object.assign({}, this.myEntry),
+      error: Error = null;
+    try {
+      let r: tE = mutator(mutant);
+      if (r) {
+        this.myEntry = Object.assign({}, this.myEntry, r);
+      } else {
+        this.myEntry = Object.assign({}, this.myEntry, mutant);
+      }
+      if (!this.openCount) this.openError = null;
+      --this.openCount;
+    } catch (e) {
+      error = this.openError = e;
+    }
+
+    return this;
+  }
+
+  close(e: Error, fn?: (t: this) => void): boolean {
+    if (!!this.openError && this.openError !== e) return false;
+    if (!this.openCount) return false;
+    --this.openCount;
+    fn = fn || ((t) => { this.update(); });
+    try {
+      fn(this);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  portable(): CrudResponse<tE> {
+    return {
+      hash: this.hash,
+      entry: deepAssign({}, this.entry),
+      error: this.openError && deepAssign({}, this.openError),
+      type: this.className
+    };
+  }
 }
 
 /**
@@ -678,19 +823,48 @@ declare interface VfEntry {
  * @see HoloObject
  * @arg T Use this type argument to convey the entry type of a subclass.
  */
-export class VfObject<T = {}> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
+export class VfObject<T extends object = {}> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
   static entryType: VfEntry & typeof HoloObject.entryType;
   protected myEntry: VfEntry & typeof HoloObject.entryType & T;
   static className = "VfObject";
   className: string = "VfObject";
   static entryDefaults: VfEntry & typeof HoloObject.entryDefaults = {};
 
+  static create(entry: VfEntry & typeof HoloObject.entryType): VfObject {
+    return <VfObject> super.create(entry);
+  }
   static get(hash: Hash<VfObject>): VfObject {
     return <VfObject>super.get(hash);
   }
-
   constructor(entry: T|null, hash?: string) {
     super(entry, hash);
   }
 
+  get name(): string {
+    return this.myEntry.name;
+  }
+  set name(to: string) {
+    this.myEntry.name = to;
+  }
+
+  get image(): string {
+    return this.myEntry.image;
+  }
+  set image(to: string) {
+    this.myEntry.image = to;
+  }
+
+  get note(): string {
+    return this.myEntry.note;
+  }
+  set note(to:string) {
+    this.myEntry.note = to;
+  }
+
+  get url(): string {
+    return this.myEntry.url;
+  }
+  set url(to:string) {
+    this.myEntry.url = to;
+  }
 }

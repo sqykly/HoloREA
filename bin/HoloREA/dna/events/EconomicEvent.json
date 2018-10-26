@@ -36,15 +36,8 @@
       "then": { "$ref": "../common/QuantityValue" },
       "else": { "type": "number" }
     },
-    "start": {
-      "type": "string",
-      "format": "date",
-      "description": "when the event starts/started"
-    },
-    "duration": {
-      "type": "string",
-      "format": "date"
-    }
+    "start": { "$ref": "../common/Date" },
+    "duration": { "$ref": "../common/Date" }
   },
   "additionalProperties": { "$ref": "../common/VfObject" }
 }

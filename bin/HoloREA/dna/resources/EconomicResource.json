@@ -10,7 +10,8 @@
       "type": "string",
       "description": "A more concrete #EconomicResource upon which this resource is based."
     },
-    "currentQuantity": { "$ref": "../common/QuantityValue"},
+    "currentQuantity": { "$ref": "../common/QuantityValue" },
+    "currentLocation": { "$ref": "../common/Location" },
     "contains": {
       "type": "string",
       "description": "An #EconomicResource that contains this resource"
@@ -18,7 +19,9 @@
     "trackingIdentifier": {
       "type": "string",
       "description": "Something like a batch number"
-    }
+    },
+    "quantityLastCalculated": { "$ref": "../common/Date" }
   },
+  "required": ["currentQuantity", "resourceClassifiedAs", "quantityLastCalculated", "currentLocation"],
   "additionalProperties": { "$ref": "../common/VfObject" }
 }

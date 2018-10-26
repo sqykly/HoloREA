@@ -1,26 +1,40 @@
 import "../../../lib/ts/common";
 import { LinkRepo, VfObject, QuantityValue, Hash, QVlike } from "../../../lib/ts/common";
-import { EconomicEvent, Transfer, Process, Action } from "../events/events";
+import events from "../events/events";
+import agents from "../agents/agents";
 
-export class ResourceClassification extends VfObject {};
+type Action = events.Action;
+type EconomicEvent = events.EconomicEvent;
+type TransferClassification = events.TransferClassification;
+type Transfer = events.Transfer;
+const EventLinks: events.EventLinks = new LinkRepo(`EventLinks`);
+const XferClasses: events.Classifications = new LinkRepo(`Classifications`);
+type Agent = agents.Agent;
 
-export const ResourceClasses = new LinkRepo<
+
+class ResourceClassification extends VfObject {};
+
+const ResourceClasses = new LinkRepo<
   EconomicResource|ResourceClassification,
   EconomicResource|ResourceClassification,
   "classifiedAs"|"classifies">("ResourceClasses");
-ResourceClasses.linkBack("classifiedAs", ResourceClasses, "classifies")
-  .linkBack("classifies", ResourceClasses, "classifiedAs");
+ResourceClasses.linkBack("classifiedAs","classifies")
+  .linkBack("classifies", "classifiedAs");
 
 
-declare interface ErEntry {
+interface ErEntry {
   currentQuantity: QVlike;
-  resourceClassifiedAs: Hash<ResourceClassification>;
+  resourceClassifiedAs: string; //Hash<ResourceClassification>;
   underlyingResource?: Hash<EconomicResource>;
   contains?: Hash<EconomicResource>;
   trackingIdentifier?: string;
+  quantityLastCalculated?: number;
+  // TODO agent resource roles when they are established
+  owner: Hash<Agent>
 }
 
-export class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.entryType> {
+
+class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.entryType> {
   // <- mandatory overrides
   className:string = "EconomicResource";
   static className = "EconomicResource";
@@ -34,7 +48,8 @@ export class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfOb
   }
   static entryDefaults = Object.assign({}, VfObject.entryDefaults, {
     currentQuantity: {units: "", quantity: 0},
-    resourceClassifiedAs: ``
+    resourceClassifiedAs: `SomeKindOfResource`,
+    quantityLastCalculated: Date.now()
   });
   // mandatory overrides ->
 
@@ -47,14 +62,20 @@ export class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfOb
     return super.remove(msg);
   }
 
-  trace() {
+  trace(): Hash<EconomicEvent>[] {
     let links = TrackTrace.get(this.myHash, `affectedBy`);
-    let events = links.types<EconomicEvent>(EconomicEvent.className).data();
-    
-    // TODO
+    let eEvents = links.types<EconomicEvent>("EconomicEvent");
+    // I hate this a lot.
+    return <Hash<EconomicEvent>[]> call(`events`, `sortEvents`, {events: eEvents.hashes(), order: `up`, by: `end` });
   }
 }
 
-export const TrackTrace = new LinkRepo<EconomicResource|EconomicEvent, EconomicEvent|EconomicResource, "affects"|"affectedBy">("TrackTrace");
-TrackTrace.linkBack("affects", TrackTrace, "affectedBy")
-  .linkBack("affectedBy", TrackTrace, "affects");
+const TrackTrace = new LinkRepo<EconomicResource|EconomicEvent, EconomicEvent|EconomicResource, "affects"|"affectedBy">("TrackTrace");
+TrackTrace.linkBack("affects", "affectedBy")
+  .linkBack("affectedBy", "affects");
+
+namespace zome {
+  export type EconomicResource = typeof EconomicResource.entryType;
+  export type TrackTrace = typeof TrackTrace;
+}
+export default zome;

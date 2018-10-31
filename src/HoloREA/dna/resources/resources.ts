@@ -1,7 +1,7 @@
 import "../../../lib/ts/common";
 import { LinkRepo, VfObject, QuantityValue, Hash, QVlike } from "../../../lib/ts/common";
 import events from "../events/events";
-import agents from "../agents/agents";
+import agents, { AgentProperty } from "../agents/agents";
 
 type Action = events.Action;
 type EconomicEvent = events.EconomicEvent;
@@ -11,16 +11,79 @@ const EventLinks: events.EventLinks = new LinkRepo(`EventLinks`);
 const XferClasses: events.Classifications = new LinkRepo(`Classifications`);
 type Agent = agents.Agent;
 
+interface RcEntry {
+  /**
+   * New instances of the resource will have these units unless overriden on
+   * the instance itself.  Non-standard.
+   * @type {string}
+   */
+  defaultUnits: string;
+}
 
-class ResourceClassification extends VfObject {};
+/**
+ * Represents a category of resources.  For now, it merely provides the default unit
+ * for quantities of resources in this class.
+ * @extends HoloObject
+ */
+export class ResourceClassification<T = {}> extends VfObject<T & RcEntry & typeof VfObject.entryType> {
+  static className = "ResourceClassification";
+  className = "ResourceClassification";
+  static entryType: RcEntry & typeof VfObject.entryType;
+  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <RcEntry> {
+      defaultUnits: ''
+    });
 
-const ResourceClasses = new LinkRepo<
+  static get(hash: Hash<ResourceClassification>): ResourceClassification {
+    return <ResourceClassification> super.get(hash);
+  }
+  static create(entry: RcEntry & typeof VfObject.entryType): ResourceClassification {
+    return <ResourceClassification> super.create(entry);
+  }
+  constructor(entry?: T & RcEntry & typeof VfObject.entryType, hash?: Hash<ResourceClassification>) {
+    super(entry, hash);
+  }
+
+  instance(properties: typeof EconomicResource.entryType): EconomicResource {
+    let {units, quantity} = properties.currentQuantity,
+      my = this.myEntry;
+    if (!units) {
+      units = my.defaultUnits;
+    } else if (units !== my.defaultUnits) {
+      throw new TypeError(`Quantity of resources of class ${my.name || my.url} is expressed in ${my.defaultUnits}, not ${units}`);
+    }
+    return EconomicResource.create({
+      resourceClassifiedAs: this.hash,
+      currentQuantity: {units, quantity},
+      underlyingResource: properties.underlyingResource,
+      contains: properties.contains,
+      trackingIdentifier: properties.trackingIdentifier,
+      quantityLastCalculated: properties.quantityLastCalculated,
+      owner: properties.owner
+    });
+  }
+}
+
+
+export const ResourceClasses = new LinkRepo<
   EconomicResource|ResourceClassification,
   EconomicResource|ResourceClassification,
-  "classifiedAs"|"classifies">("ResourceClasses");
-ResourceClasses.linkBack("classifiedAs","classifies")
+  "classifiedAs"|"classifies"
+>("ResourceClasses");
+ResourceClasses
+  .linkBack("classifiedAs","classifies")
   .linkBack("classifies", "classifiedAs");
 
+export const ResourceRelationships = new LinkRepo<
+  EconomicResource,
+  EconomicResource,
+  "underlyingResource"|"contains"|"underlies"|"inside"
+>("ResourceRelationships");
+
+ResourceRelationships
+  .linkBack(`underlyingResource`, `underlies`)
+  .linkBack(`underlies`, `underlyingResource`)
+  .linkBack(`contains`, `inside`)
+  .linkBack(`inside`, `contains`);
 
 interface ErEntry {
   currentQuantity: QVlike;
@@ -28,30 +91,41 @@ interface ErEntry {
   underlyingResource?: Hash<EconomicResource>;
   contains?: Hash<EconomicResource>;
   trackingIdentifier?: string;
-  quantityLastCalculated?: number;
+  quantityLastCalculated: number;
   // TODO agent resource roles when they are established
   owner: Hash<Agent>
 }
 
-
-class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.entryType> {
-  // <- mandatory overrides
+export class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.entryType> {
+  // <mandatory overrides>
   className:string = "EconomicResource";
   static className = "EconomicResource";
   static entryType: typeof VfObject.entryType & ErEntry;
-  //protected myEntry: ErEntry & T & typeof VfObject.entryType;
+
   static get(hash: Hash<EconomicResource>): EconomicResource {
     return <EconomicResource> super.get(hash);
   }
-  constructor(entry: T & ErEntry & typeof VfObject.entryType | null, hash?: Hash<EconomicResource>) {
+
+  static create(entry: ErEntry & typeof VfObject.entryType): EconomicResource {
+    let it = super.create(entry);
+    if (entry.resourceClassifiedAs) {
+      ResourceClasses.put(it.hash, entry.resourceClassifiedAs, "classifiedAs");
+    }
+    if (entry.owner) {
+      AgentProperty.put(entry.owner, it.hash, "owns");
+    }
+    return <EconomicResource>it;
+  }
+  protected constructor(entry: T & ErEntry & typeof VfObject.entryType | null, hash?: Hash<EconomicResource>) {
     super(entry, hash);
   }
   static entryDefaults = Object.assign({}, VfObject.entryDefaults, {
-    currentQuantity: {units: "", quantity: 0},
-    resourceClassifiedAs: `SomeKindOfResource`,
-    quantityLastCalculated: Date.now()
+    currentQuantity: {units: '', quantity: 0},
+    resourceClassifiedAs: ``,
+    quantityLastCalculated: 0
   });
-  // mandatory overrides ->
+
+  // </mandatory overrides>
 
   remove(msg?: string): this {
     const my = this.myEntry;
@@ -68,14 +142,32 @@ class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.en
     // I hate this a lot.
     return <Hash<EconomicEvent>[]> call(`events`, `sortEvents`, {events: eEvents.hashes(), order: `up`, by: `end` });
   }
+
+
 }
 
-const TrackTrace = new LinkRepo<EconomicResource|EconomicEvent, EconomicEvent|EconomicResource, "affects"|"affectedBy">("TrackTrace");
+export const TrackTrace = new LinkRepo<EconomicResource|EconomicEvent, EconomicEvent|EconomicResource, "affects"|"affectedBy">("TrackTrace");
 TrackTrace.linkBack("affects", "affectedBy")
   .linkBack("affectedBy", "affects");
 
 namespace zome {
   export type EconomicResource = typeof EconomicResource.entryType;
+  export type ResourceClassification = typeof ResourceClassification.entryType;
   export type TrackTrace = typeof TrackTrace;
 }
 export default zome;
+
+// public <zome> functions
+
+/**
+ * Retrieves the hashes of all EconomicResource instances classified as given.
+ * @param {Hash<ResourceClassification>} classification the classification to
+ *  get instances of.
+ * @returns {Hash<EconomicResource>[]}
+ */
+export function getResourcesInClass(
+  {classification}:
+  {classification: Hash<ResourceClassification>}
+): Hash<EconomicResource>[] {
+  return ResourceClasses.get(classification, `classifies`).hashes();
+}

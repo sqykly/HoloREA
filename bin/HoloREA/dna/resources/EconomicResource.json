@@ -1,6 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
   "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/resources/EconomicResource",
+  "title": "EconomicResource",
   "properties": {
     "resourceClassifiedAs": {
       "type": "string",
@@ -18,9 +19,14 @@
     },
     "trackingIdentifier": {
       "type": "string",
-      "description": "Something like a batch number"
+      "description": "Something like a batch or serial number"
     },
-    "quantityLastCalculated": { "$ref": "../common/Date" }
+    "quantityLastCalculated": { "$ref": "../common/Date" },
+    "owner": {
+      "type": "string",
+      "description": "The #Agent that can use, trade, sell, or share this Resource",
+      "$comment": "This is a stand-in until custodianship is defined in ValueFlows"
+    }
   },
   "required": ["currentQuantity", "resourceClassifiedAs", "quantityLastCalculated", "currentLocation"],
   "additionalProperties": { "$ref": "../common/VfObject" }

@@ -1,6 +1,6 @@
 import resources from "../resources/resources";
 import agents from "../agents/agents"
-import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect } from "../../../lib/ts/common";
+import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf } from "../../../lib/ts/common";
 
 type Agent = agents.Agent;
 type EconomicResource = resources.EconomicResource;
@@ -14,7 +14,7 @@ export interface ActEntry {
   behavior: '+'|'-'|'0';
 }
 
-class Action<T = {}> extends VfObject<ActEntry & T & typeof VfObject.entryType> {
+export class Action<T = {}> extends VfObject<ActEntry & T & typeof VfObject.entryType> {
   className = "Action";
   static className = "Action";
   static entryType: ActEntry & typeof VfObject.entryType;
@@ -65,7 +65,7 @@ class Action<T = {}> extends VfObject<ActEntry & T & typeof VfObject.entryType> 
 
 interface ProcEntry {}
 
-class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryType> {
+export class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryType> {
   static className = "Process";
   className = "Process";
   static entryType: ProcEntry  & typeof VfObject.entryType;
@@ -88,7 +88,7 @@ class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryTyp
 
 interface XferClassEntry {}
 
-class TransferClassification<T = {}> extends VfObject<T & XferClassEntry & typeof VfObject.entryType> {
+export class TransferClassification<T = {}> extends VfObject<T & XferClassEntry & typeof VfObject.entryType> {
   static className = "TransferClassification";
   className = "TransferClassification";
   static entryType: XferClassEntry & typeof VfObject.entryType;
@@ -135,7 +135,7 @@ export interface XferEntry {
   outputs: Hash<EconomicEvent|Process>;
 }
 
-class Transfer<T = {}> extends VfObject<T & typeof VfObject.entryType & XferEntry> {
+export class Transfer<T = {}> extends VfObject<T & typeof VfObject.entryType & XferEntry> {
   className = "Transfer";
   static className = "Transfer";
   static entryType: XferEntry & typeof VfObject.entryType;
@@ -204,7 +204,7 @@ interface EeEntry {
   duration?: number;
 }
 
-class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entryType> {
+export class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entryType> {
   // begin mandatory overrides
   static className = "EconomicEvent";
   className = "EconomicEvent";
@@ -300,7 +300,8 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
     return !this.isComplete;
   }
 
-  set affects(hash: Hash<EconomicResource>) {
+  set affects(res: HoloThing<EconomicResource>) {
+    let hash = hashOf(res);
     const my = this.myEntry;
     if (my.affects && my.affects !== hash) {
       TrackTrace.remove(this.hash, my.affects, `affects`);
@@ -308,7 +309,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
     my.affects = hash;
     this.update();
   }
-  get affects(): Hash<EconomicResource> {
+  get affects(): HoloThing<EconomicResource> {
     return this.myEntry.affects;
   }
 
@@ -378,45 +379,42 @@ export interface Tracing {
 */
 
 
-function traceEvents(events: Hash<EconomicEvent>[]): Hash<Transfer>[] {
+export function traceEvents(events: Hash<EconomicEvent>[]): Hash<Transfer>[] {
   return trackTrace(events, `outputOf`);
 }
 
-function trackEvents(events: Hash<EconomicEvent>[]): Hash<Transfer>[] {
+export function trackEvents(events: Hash<EconomicEvent>[]): Hash<Transfer>[] {
   return trackTrace(events, `inputOf`);
 }
 
-function traceTransfers(xfers: Hash<Transfer>[]): Hash<EconomicEvent>[] {
+export function traceTransfers(xfers: Hash<Transfer>[]): Hash<EconomicEvent>[] {
   return trackTrace(xfers, `inputs`);
 }
 
-function trackTransfers(xfers: Hash<Transfer>[]): Hash<EconomicEvent>[] {
+export function trackTransfers(xfers: Hash<Transfer>[]): Hash<EconomicEvent>[] {
   return trackTrace(xfers, `outputs`);
 }
 
-function eventsStartedBefore({events, when}: TimeFilter): Hash<EconomicEvent>[] {
+export function eventsStartedBefore({events, when}: TimeFilter): Hash<EconomicEvent>[] {
   return filterByTime({events, when}, ((ev) => when > ev.start));
 }
 
-function eventsEndedBefore({events, when}: TimeFilter): Hash<EconomicEvent>[] {
+export function eventsEndedBefore({events, when}: TimeFilter): Hash<EconomicEvent>[] {
   return filterByTime({events, when}, ((ev) => ev.end < when));
 }
 
-function eventsStartedAfter({events, when}: TimeFilter): Hash<EconomicEvent>[] {
+export function eventsStartedAfter({events, when}: TimeFilter): Hash<EconomicEvent>[] {
   return filterByTime({events, when}, ((ev) => when < ev.start));
 }
 
-function eventsEndedAfter({events, when}: TimeFilter): Hash<EconomicEvent>[] {
+export function eventsEndedAfter({events, when}: TimeFilter): Hash<EconomicEvent>[] {
   return filterByTime({events, when}, ((ev) => ev.end > when));
 }
 
-function sortEvents(
+export function sortEvents(
   {events, by, order, start, end}:
   {events: Hash<EconomicEvent>[], order: "up"|"down", by: "start"|"end", start?: number, end?: number}
 ): Hash<EconomicEvent>[] {
-  // Filter first: M = N; O = M + Mlog M = Nlog N + N
-  // sort first: M = Nlog N; O = Nlog N + log M = Nlog N + (log N) + (log log N)
-  // sort first.  N is more than log N + log log N
   let objects = events.map((ev) => EconomicEvent.get(ev)),
     orderBy = by === "start" ?
       (ev:EconomicEvent) => ev.start :
@@ -438,7 +436,7 @@ function sortEvents(
   return objects.map((ev) => ev.hash);
 }
 
-type Subtotals = {
+export type Subtotals = {
   events: {
     event: CrudResponse<typeof EconomicEvent.entryType>,
     subtotals: {[k:string]: QVlike}
@@ -446,7 +444,7 @@ type Subtotals = {
   totals: {[k:string]: QVlike}
 };
 
-function eventSubtotals(hashes: Hash<EconomicEvent>[]): Subtotals {
+export function eventSubtotals(hashes: Hash<EconomicEvent>[]): Subtotals {
   const uniqueRes = new Set<Hash<EconomicResource>>();
   let events = hashes.map((h) => EconomicEvent.get(h));
   events.sort((a, b) => {
@@ -466,7 +464,7 @@ function eventSubtotals(hashes: Hash<EconomicEvent>[]): Subtotals {
     let item = {event: ev.portable(), subtotals: qvs},
       sign = ev.action.sign,
       quantity = ev.quantity.mul({units: ``, quantity: sign}),
-      res = ev.affects;
+      res = hashOf(ev.affects);
 
     qvs = Object.assign({}, qvs, { [res]: qvs[res].add(quantity) });
 
@@ -476,7 +474,7 @@ function eventSubtotals(hashes: Hash<EconomicEvent>[]): Subtotals {
   return {events: subs, totals: qvs};
 }
 
-function createEvent(init: typeof EconomicEvent.entryType): CrudResponse<typeof EconomicEvent.entryType> {
+export function createEvent(init: typeof EconomicEvent.entryType): CrudResponse<typeof EconomicEvent.entryType> {
   let it: EconomicEvent, err: Error;
   try {
     it = EconomicEvent.create(init);
@@ -490,7 +488,7 @@ function createEvent(init: typeof EconomicEvent.entryType): CrudResponse<typeof 
   };
 }
 
-function createTransfer(init: typeof Transfer.entryType): CrudResponse<typeof Transfer.entryType> {
+export function createTransfer(init: typeof Transfer.entryType): CrudResponse<typeof Transfer.entryType> {
   let it: Transfer, err: Error;
   try {
     it = Transfer.create(init);
@@ -504,7 +502,7 @@ function createTransfer(init: typeof Transfer.entryType): CrudResponse<typeof Tr
   };
 }
 
-function createTransferClass(init: typeof TransferClassification.entryType): CrudResponse<typeof TransferClassification.entryType> {
+export function createTransferClass(init: typeof TransferClassification.entryType): CrudResponse<typeof TransferClassification.entryType> {
   let it: TransferClassification, err: Error;
   try {
     it = TransferClassification.create(init);
@@ -518,7 +516,7 @@ function createTransferClass(init: typeof TransferClassification.entryType): Cru
   };
 }
 
-function createAction(init: typeof Action.entryType): CrudResponse<typeof Action.entryType> {
+export function createAction(init: typeof Action.entryType): CrudResponse<typeof Action.entryType> {
   let it: Action, err: Error;
 
   try {

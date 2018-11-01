@@ -4,6 +4,9 @@ import "./holochain-proto";
 // FIXME this is only used for testing.  remove when ready to ship
 // maybe it will be fine.  fingers crossed.
 // /FIXME
+export declare type Hash<T> = holochain.Hash;
+
+export type Dict<T> = {[key: string]: T};
 
 export type PhysicalLocation = string[];
 
@@ -53,11 +56,29 @@ export function deepAssign<T extends object, U extends object>(dest: T, src: U, 
   }
 }
 
+export type HoloThing<T extends object> = HoloObject<T> | CrudResponse<T> | Hash<T>;
+
+export function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
+  if (typeof thing == `string`) {
+    return thing;
+  } else {
+    return thing.hash;
+  }
+}
+
+export function entryOf<T extends object>(thing: HoloThing<T>): T {
+  if (typeof thing == `string`) {
+    return notError(get(thing));
+  } else {
+    return thing.entry;
+  }
+}
+
 /**
  * This is for type safety when you need assurance that get(Hash) will return the correct type.
  * But I don't think it's working; it all comes out strings.
  */
-export declare type Hash<T> = holochain.Hash;
+
 
 export interface QVlike {units: string, quantity: number};
 /**
@@ -351,7 +372,9 @@ export class LinkRepo<B, L, T extends string = string> {
   protected backLinks = new Map<T, { repo: LinkRepo<L, B, T|string>, tag: T|string }[]>();
   protected recurseGuard = new Map<T, number>();
   protected selfLinks = new Map<T, T[]>();
-
+  readonly BASE: B;
+  readonly LINK: L;
+  readonly TAGS: T;
   /**
    * Produce a LinkSet including all parameter-specified queries.
    * @param {Hash<B>} base this is the Base entry  whose outward links will
@@ -547,11 +570,15 @@ export class LinkRepo<B, L, T extends string = string> {
     this.remove(old.Base, old.Link, <T>old.Tag);
     return this.put(update.Base, update.Link, <T>update.Tag);
   }
+
+
 }
+
 
 interface Named {
   className: string;
 }
+
 
 /**
  * Abstraction to manage the relationship between the DHT, entry types, and the
@@ -610,12 +637,12 @@ export class HoloObject<tE extends Object = {}> implements Named {
    * @abstract
    * @example static entryType: typeof Superclass.entryType & MyEntryType
    */
-  static entryType: object;
+  static entryType: holochain.JsonEntry;
 
   /**
    * These are the default values that will be assigned to the entry of
    */
-  static entryDefaults: object = {};
+  static entryDefaults: holochain.JsonEntry = {};
 
   static create(entryProps?: typeof HoloObject.entryType): HoloObject {
     let entry: typeof entryProps = {};
@@ -630,7 +657,7 @@ export class HoloObject<tE extends Object = {}> implements Named {
    * @example protected myEntry: T & MyEntryType & typeof Superclass.entryType
    * @protected
    */
-  protected myEntry: tE;
+  protected myEntry: tE & holochain.JsonEntry;
 
   /**
    * myHash stores the hash of your entry.  Protected for tamper-proofing.
@@ -804,7 +831,50 @@ export class HoloObject<tE extends Object = {}> implements Named {
       type: this.className
     };
   }
+
+  /* Experimental (toggle comment by adding/removing slash) */
+  /*
+  readonly links: LinkDict<tE, this> = {};
+  protected updateLinks(values: LinkVals<tE>) {
+    let my = this.myEntry,
+      hash = this.myHash,
+      {links} = this,
+      key: string;
+
+    for (key of Object.keys(links)) {
+      let link = links[key],
+        tag = link.alias || key,
+        repo: LinkRepo<this, object> = link.repo,
+        old = values[key];
+      if (old && old !== my[key]) {
+        repo.remove(hash, old, tag).put(hash, values[key], tag);
+      }
+    }
+  }
+
 }
+
+type LinkDict<E, T = E> = {
+  [P in keyof E]?:
+    (P extends string ?
+      (E[P] extends Hash<infer L> ?
+        (E[P] extends { alias: infer A } ?
+          A extends string ? { alias: A, repo: LinkRepo<T, L, A> } : { repo: LinkRepo<T, L, P> }
+        : never)
+      : never)
+    : never)
+};
+
+type LinkVals<E> = {
+  [P in keyof E]?:
+    P extends string ?
+      E[P] extends Hash<infer L> ? Hash<L> : never
+    : never
+};
+
+/*/
+}
+/**/
 
 /**
  * VfEntry and VfObject are a base class for entities that have to do with VF.

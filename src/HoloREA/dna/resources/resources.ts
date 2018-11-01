@@ -171,3 +171,7 @@ export function getResourcesInClass(
 ): Hash<EconomicResource>[] {
   return ResourceClasses.get(classification, `classifies`).hashes();
 }
+
+export function getAffectingEvents({resource}: {resource: Hash<EconomicResource>}): Hash<EconomicEvent>[] {
+  return TrackTrace.get(resource, "affectedBy").types<EconomicEvent>("EconomicEvent").hashes();
+}

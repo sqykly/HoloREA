@@ -91,7 +91,6 @@ ResourceRelationships
 
 interface ErEntry {
   currentQuantity: QVlike;
-  currentLocation: PhysicalLocation;
   resourceClassifiedAs: Hash<ResourceClassification>; //Hash<ResourceClassification>;
   underlyingResource?: Hash<EconomicResource>;
   contains?: Hash<EconomicResource>;

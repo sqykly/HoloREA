@@ -19,7 +19,7 @@ export class Action<T = {}> extends VfObject<ActEntry & T & typeof VfObject.entr
   static className = "Action";
   static entryType: ActEntry & typeof VfObject.entryType;
   //protected myEntry: T & typeof Action.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <ProcEntry> {
+  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <ActEntry> {
       behavior: '0'
     });
 

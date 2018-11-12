@@ -57,7 +57,7 @@ export function createAgent(props?: typeof Agent.entryType): CrudResponse<typeof
 }
 
 
-export function getResources(
+export function getOwnedResources(
   {agents, types}: {agents: Hash<Agent>[], types?: Hash<resources.ResourceClassification>[]}
 ): {
   [agent: string]: { [classification: string]: Hash<resources.EconomicResource>[] }

@@ -1,6 +1,6 @@
 import resources from "../resources/resources";
 import agents from "../agents/agents"
-import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf } from "../../../lib/ts/common";
+import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError } from "../../../lib/ts/common";
 
 type Agent = agents.Agent;
 type EconomicResource = resources.EconomicResource;
@@ -344,6 +344,7 @@ namespace zome {
   export type eventsStartedAfter = typeof eventsStartedAfter;
   export type eventsEndedAfter = typeof eventsEndedAfter;
   export type sortEvents = typeof sortEvents;
+  export type resourceCreationEvent = typeof resourceCreationEvent;
 }
 
 export default zome;
@@ -474,6 +475,66 @@ export function eventSubtotals(hashes: Hash<EconomicEvent>[]): Subtotals {
   return {events: subs, totals: qvs};
 }
 
+// <fixtures>
+
+const fixtures = {
+  Action: {
+    Give: new Action({name: `Give`, behavior: '-'}).commit(),
+    Receive: new Action({name: `Receive`, behavior: '+'}).commit(),
+    Adjust: new Action({name: `Adjust`, behavior: '+'}).commit()
+  }
+};
+
+export function getFixtures(dontCare: object): typeof fixtures {
+  return fixtures;
+}
+
+// </fixures>
+export function resourceCreationEvent(
+  { resource, dates }: {
+    resource: resources.EconomicResource, dates?:{start: number, end?:number}
+  }
+): CrudResponse<zome.EconomicEvent> {
+  let adjustHash: Hash<Action> = fixtures.Action.Adjust;
+  let qv = resource.currentQuantity;
+  let start: number, end: number;
+  if (dates) {
+    start = dates.start;
+    end = dates.end || start + 1;
+  } else {
+    start = Date.now();
+    end = start + 1;
+  }
+  if (!qv.units) {
+    let resClass =
+      notError<resources.ResourceClassification>(get(resource.resourceClassifiedAs));
+    qv.units = resClass.defaultUnits;
+  }
+
+  let resHash: Hash<resources.EconomicResource> =
+    notError(commit(`EconomicResource`, resource));
+
+  // THIS ONLY WORKS IN A STRATEGY-2 RESOURCE (see mattermost rants)
+  // a strategy-1 resource is calculated forward, so the pre-event state MUST
+  // have quantity 0.
+  let entry: zome.EconomicEvent = {
+    action: adjustHash,
+    affects: resHash,
+    receiver: resource.owner,
+    provider: resource.owner,
+    affectedQuantity: qv,
+    start: start,
+    duration: end - start
+  };
+  let event = new EconomicEvent(entry);
+  return {
+    type: event.className,
+    hash: event.commit(),
+    entry: event.entry
+  }
+}
+
+// CRUD
 export function createEvent(init: typeof EconomicEvent.entryType): CrudResponse<typeof EconomicEvent.entryType> {
   let it: EconomicEvent, err: Error;
   try {

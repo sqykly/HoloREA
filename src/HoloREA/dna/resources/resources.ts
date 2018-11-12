@@ -1,5 +1,5 @@
 import "../../../lib/ts/common";
-import { LinkRepo, VfObject, QuantityValue, Hash, QVlike } from "../../../lib/ts/common";
+import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf } from "../../../lib/ts/common";
 import events from "../events/events";
 import agents, { AgentProperty } from "../agents/agents";
 
@@ -61,6 +61,10 @@ export class ResourceClassification<T = {}> extends VfObject<T & RcEntry & typeo
       owner: properties.owner
     });
   }
+
+  get defaultUnits(): string {
+    return this.myEntry.defaultUnits;
+  }
 }
 
 
@@ -87,7 +91,8 @@ ResourceRelationships
 
 interface ErEntry {
   currentQuantity: QVlike;
-  resourceClassifiedAs: string; //Hash<ResourceClassification>;
+  currentLocation: PhysicalLocation;
+  resourceClassifiedAs: Hash<ResourceClassification>; //Hash<ResourceClassification>;
   underlyingResource?: Hash<EconomicResource>;
   contains?: Hash<EconomicResource>;
   trackingIdentifier?: string;
@@ -107,14 +112,31 @@ export class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfOb
   }
 
   static create(entry: ErEntry & typeof VfObject.entryType): EconomicResource {
+    let rc = notError(ResourceClassification.get(entry.resourceClassifiedAs));
+
+    if (entry.currentQuantity) {
+      if (!entry.currentQuantity.units) {
+        entry.currentQuantity.units = rc.defaultUnits;
+      }
+    } else {
+      entry.currentQuantity = {units: rc.defaultUnits, quantity: 0};
+    }
+
     let it = super.create(entry);
-    if (entry.resourceClassifiedAs) {
-      ResourceClasses.put(it.hash, entry.resourceClassifiedAs, "classifiedAs");
+    if (rc) {
+      ResourceClasses.put(it.hash, rc.hash, "classifiedAs");
     }
     if (entry.owner) {
       AgentProperty.put(entry.owner, it.hash, "owns");
     }
-    return <EconomicResource>it;
+    if (entry.underlyingResource) {
+      ResourceRelationships.put(it.hash, entry.underlyingResource, "underlyingResource");
+    }
+    if (entry.contains) {
+      ResourceRelationships.put(it.hash, entry.contains, "contains");
+    }
+
+    return <EconomicResource> it;
   }
   protected constructor(entry: T & ErEntry & typeof VfObject.entryType | null, hash?: Hash<EconomicResource>) {
     super(entry, hash);
@@ -174,4 +196,67 @@ export function getResourcesInClass(
 
 export function getAffectingEvents({resource}: {resource: Hash<EconomicResource>}): Hash<EconomicEvent>[] {
   return TrackTrace.get(resource, "affectedBy").types<EconomicEvent>("EconomicEvent").hashes();
+}
+
+// CRUD
+
+export function createEconomicResource(
+  {properties: props, event: thing}: {
+    properties: zome.EconomicResource,
+    event: HoloThing<events.EconomicEvent>
+  }
+): CrudResponse<typeof EconomicResource.entryType> {
+  let it: EconomicResource, err: Error;
+  let event: events.EconomicEvent;
+  if (thing) {
+    event = entryOf(thing);
+  }
+  if (!event) {
+    let crud = <ReturnType<events.resourceCreationEvent>>
+      call(`events`, `resourceCreationEvent`, {
+        resource: props
+      });
+    if (crud.error) {
+      throw crud.error;
+    }
+    event = crud.entry;
+    let res = EconomicResource.get(event.affects);
+    // that's all we needed to do to sync up its links.
+    res.update();
+    return res.portable();
+  }
+
+  let resQv = props.currentQuantity;
+  let evQv = event.affectedQuantity;
+  if (resQv && evQv) {
+    if (resQv.units !== evQv.units) {
+      // TODO
+    }
+  }
+  try {
+    it = notError<EconomicResource>(EconomicResource.create(props));
+  } catch (e) {
+    err = e;
+  }
+  return {
+    error: err,
+    hash: err ? null : it.commit(),
+    entry: err ? null : it.entry,
+    type: err ? "error" : it.className
+  };
+}
+
+export function createResourceClassification(props?: typeof ResourceClassification.entryType): CrudResponse<typeof ResourceClassification.entryType> {
+  let it: ResourceClassification, err: Error;
+  try {
+    it = notError<ResourceClassification>(ResourceClassification.create(props));
+  } catch (e) {
+    err = e;
+  }
+  return {
+    error: err,
+    hash: err ? null : it.commit(),
+    entry: err ? null : it.entry,
+    type: err ? "error" : it.className
+  };
 }

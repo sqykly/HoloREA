@@ -4,12 +4,28 @@ import "./holochain-proto";
 // FIXME this is only used for testing.  remove when ready to ship
 // maybe it will be fine.  fingers crossed.
 // /FIXME
-export declare type Hash<T> = holochain.Hash;
 
+/**
+ * We aren't going to be able to pass real Maps around between zomes and agents.
+ * So old-school, morally wrong dictionary objects will have to do.
+ */
 export type Dict<T> = {[key: string]: T};
 
+/**
+ * I believe Location was taken.  Don't need any additional detail for now.
+ */
 export type PhysicalLocation = string[];
 
+/**
+ * I can write a good bisect of a sorted list in my sleep.  And I think I did,
+ * here.  Takes a sorted list of numbers and a number to compare them to, min.
+ * It returns an index in that array; all numbers with >= indexes are >= min,
+ * all numbers with < indexes are < min.  Runs in log N time, so if you are
+ * running filters related to your sort axis, this is going to be better.
+ * @param {number[]} array A list of numbers.
+ * @param {number} min the index returned is == the index of min, if it exists.
+ * @returns {number}
+ */
 export function bisect(array: number[], min: number): number {
   let b = 0, t = array.length;
   while (t > b) {
@@ -26,17 +42,37 @@ export function bisect(array: number[], min: number): number {
   return t;
 }
 
+/**
+ * For when you don't know what you want or need to pass between zomes.
+ * @interface
+ */
 export interface CrudResponse<T extends object> {
+  /** @prop {Error} error this error is why you can't have the other fields */
   error?: {
     name: string;
     message: string;
     stack?: string;
   };
+  /** @prop {Hash<T>} hash the hash of a T; if there is an entry, this is its hash */
   hash?: Hash<T>;
+  /** @prop {T} entry this is the T you asked for/gave */
   entry?: T;
+  /** @prop {string} type this is the name of T as specified in the DNA. */
   type?: string;
 }
 
+/**
+ * merges an object, src, into another object, dest.  It's like Object.assign,
+ * but it doesn't copy over inner objects.  Instead, it copies properties over,
+ * so that the inner object's properties are not all lost.
+ * @arg {class} T the type of dest (will be inferred)
+ * @arg {class} U the type of src (will be inferred)
+ * @param {T} dest This object will receive the fields and inner fields of the
+ *  rest of the arguments.
+ * @param {U} src This is the first object to have its properties copied to dest
+ * @param {object} [...] More objects to copy onto dest, in order.
+ * @returns {T & U}
+ */
 export function deepAssign<T extends object, U extends object>(dest: T, src: U, ...more: object[]): T & U {
   for (let p of Object.keys(src)) {
     let v: U[keyof U];
@@ -56,31 +92,98 @@ export function deepAssign<T extends object, U extends object>(dest: T, src: U, 
   }
 }
 
-export type HoloThing<T extends object> = HoloObject<T> | CrudResponse<T> | Hash<T>;
+/**
+ * For when you're REALLY unsure what you are getting from some other zome.
+ * @type
+ */
+export type HoloThing<T extends object> = HoloObject<T> | CrudResponse<T> | Hash<T> | T;
 
+function isCrud<T extends object>(thing: HoloThing<T>): thing is CrudResponse<T> {
+  if (typeof thing !== `object`) return false;
+  let resp = <CrudResponse<T>>thing;
+  return (
+    typeof resp.hash == `string` &&
+    (typeof resp.entry == `object` || typeof resp.type == `string`)
+  ) || (
+    typeof resp.entry == `object` && typeof resp.type == `string`
+  );
+}
+
+/**
+ * Gets the hash of an object, no matter what it is.
+ * @arg {interface} T the type of the object you want a hash of.
+ * @param {HoloThing<T>} thing You don't really know what this is.
+ * @returns {Hash<T>}
+ * @throws {Error} if thing really is a T, then it doesn't know its class name,
+ *  and without that, it can't be hashed.
+ */
 export function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
   if (typeof thing == `string`) {
     return thing;
-  } else {
+  } else if (thing instanceof HoloObject) {
     return thing.hash;
+  } else if (isCrud(thing)) {
+    if (!thing.hash) {
+      thing.hash = notError(makeHash(thing.type, thing.entry));
+    }
+    return thing.hash;
+  } else {
+    throw new Error(`hashOf can't hash ${thing} without a typename`);
   }
 }
 
+/**
+ * Get the actual data structure from something related, no matter what it is.
+ * @param {HoloThing<T>} thing It has something to do with a T, but you don't
+ *  really know what it is because you didn't read the documentation on that
+ *  exported zome function or bridge.
+ * @returns {T}
+ */
 export function entryOf<T extends object>(thing: HoloThing<T>): T {
   if (typeof thing == `string`) {
-    return notError(get(thing));
-  } else {
+    let got: holochain.CanError<T> = get(thing);
+    return isError(got) ? null : got;
+  } else if (thing instanceof HoloObject) {
     return thing.entry;
+  } else if (isCrud(thing)) {
+    if (!thing.entry) {
+      let entry = get(thing.hash);
+      if (!isError(entry)) thing.entry = entry;
+    }
+    return thing.entry;
+  } else {
+    return thing;
   }
+}
+
+/**
+ * Get a bunch of information related to something, whatever it is.
+ * @param {HoloThing<T>} thing - whatever that is.
+ * @returns {CrudResponse<T>}
+ */
+export function responseOf<T extends object>(thing: HoloThing<T>): CrudResponse<T> {
+  const response: CrudResponse<T> = { error: null, hash: null, entry: null }
+  try {
+    let hash = response.hash = hashOf(thing);
+    let entry = response.entry = entryOf(thing);
+  } catch (e) {
+    response.error = e;
+  }
+  return response;
 }
 
 /**
  * This is for type safety when you need assurance that get(Hash) will return the correct type.
  * But I don't think it's working; it all comes out strings.
  */
+export declare type Hash<T> = holochain.Hash;
 
-
+/**
+ * It's just as good as a QuantityValue as far as a real QV knows, and it can
+ * cross zomes or machines, but you can't do math on it by itself.
+ */
 export interface QVlike {units: string, quantity: number};
+
 /**
  * A pretty robust implementation of QuantityValue that will some day enable
  * unit conversions and derived units (e.g. Newtons = kg*m^2*s^2)

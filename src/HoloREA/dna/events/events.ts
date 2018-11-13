@@ -1,6 +1,6 @@
 import resources from "../resources/resources";
 import agents from "../agents/agents"
-import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError } from "../../../lib/ts/common";
+import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../../../lib/ts/common";
 
 type Agent = agents.Agent;
 type EconomicResource = resources.EconomicResource;
@@ -63,7 +63,9 @@ export class Action<T = {}> extends VfObject<ActEntry & T & typeof VfObject.entr
   }
 }
 
-interface ProcEntry {}
+interface ProcEntry {
+  name: string;
+}
 
 export class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryType> {
   static className = "Process";
@@ -86,7 +88,9 @@ export class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.e
   // methods
 }
 
-interface XferClassEntry {}
+interface XferClassEntry {
+  name: string;
+}
 
 export class TransferClassification<T = {}> extends VfObject<T & XferClassEntry & typeof VfObject.entryType> {
   static className = "TransferClassification";
@@ -366,6 +370,24 @@ function filterByTime({events, when}: TimeFilter, filter: (ev: EconomicEvent) =>
     .filter(filter)
     .map((ev) => ev.hash);
 }
+/*
+function toCrud<T extends HoloObject, U extends object>(
+  Ctor: HoloClass<T, U>,
+  {hash, entry}: {hash?: Hash<T>, entry?: U}
+): CrudResponse<U> {
+  let instance: T, error: Error = null;
+  try{
+    if (hash) {
+      instance = Ctor.get(hash);
+    } else {
+      instance = Ctor.create(entry);
+    }
+  } catch (e) {
+    error = e;
+  }
+  return instance.portable();
+}
+*/
 // </DRY>
 
 
@@ -380,42 +402,62 @@ export interface Tracing {
 */
 
 
-export function traceEvents(events: Hash<EconomicEvent>[]): Hash<Transfer>[] {
-  return trackTrace(events, `outputOf`);
+export function traceEvents(events: Hash<EconomicEvent>[]): CrudResponse<zome.Transfer>[] {
+  return trackTrace(events, `outputOf`).map((hash) => {
+    let instance = Transfer.get(hash);
+    return instance.portable();
+  });
 }
 
-export function trackEvents(events: Hash<EconomicEvent>[]): Hash<Transfer>[] {
-  return trackTrace(events, `inputOf`);
+export function trackEvents(events: Hash<EconomicEvent>[]): CrudResponse<zome.Transfer>[] {
+  return trackTrace(events, `inputOf`).map((hash) => {
+    let instance = Transfer.get(hash);
+    return instance.portable();
+  });
 }
 
-export function traceTransfers(xfers: Hash<Transfer>[]): Hash<EconomicEvent>[] {
-  return trackTrace(xfers, `inputs`);
+export function traceTransfers(xfers: Hash<Transfer>[]): CrudResponse<zome.EconomicEvent>[] {
+  return trackTrace(xfers, `inputs`).map((hash) => {
+    let instance = EconomicEvent.get(hash);
+    return instance.portable();
+  });
 }
 
-export function trackTransfers(xfers: Hash<Transfer>[]): Hash<EconomicEvent>[] {
-  return trackTrace(xfers, `outputs`);
+export function trackTransfers(xfers: Hash<Transfer>[]): CrudResponse<zome.EconomicEvent>[] {
+  return trackTrace(xfers, `outputs`).map((hash) => {
+    let instance = EconomicEvent.get(hash);
+    return instance.portable();
+  });
 }
 
-export function eventsStartedBefore({events, when}: TimeFilter): Hash<EconomicEvent>[] {
-  return filterByTime({events, when}, ((ev) => when > ev.start));
+export function eventsStartedBefore({events, when}: TimeFilter): CrudResponse<zome.EconomicEvent>[] {
+  return filterByTime({events, when}, ((ev) => when > ev.start)).map(hash => {
+    return EconomicEvent.get(hash).portable();
+  });
 }
 
-export function eventsEndedBefore({events, when}: TimeFilter): Hash<EconomicEvent>[] {
-  return filterByTime({events, when}, ((ev) => ev.end < when));
+export function eventsEndedBefore({events, when}: TimeFilter): CrudResponse<zome.EconomicEvent>[] {
+  return filterByTime({events, when}, ((ev) => ev.end < when)).map(hash => {
+    return EconomicEvent.get(hash).portable();
+  });
 }
 
-export function eventsStartedAfter({events, when}: TimeFilter): Hash<EconomicEvent>[] {
-  return filterByTime({events, when}, ((ev) => when < ev.start));
+export function eventsStartedAfter({events, when}: TimeFilter): CrudResponse<zome.EconomicEvent>[] {
+  return filterByTime({events, when}, ((ev) => when < ev.start)).map(hash => {
+    return EconomicEvent.get(hash).portable();
+  });
 }
 
-export function eventsEndedAfter({events, when}: TimeFilter): Hash<EconomicEvent>[] {
-  return filterByTime({events, when}, ((ev) => ev.end > when));
+export function eventsEndedAfter({events, when}: TimeFilter): CrudResponse<zome.EconomicEvent>[] {
+  return filterByTime({events, when}, ((ev) => ev.end > when)).map(hash => {
+    return EconomicEvent.get(hash).portable();
+  });
 }
 
 export function sortEvents(
   {events, by, order, start, end}:
   {events: Hash<EconomicEvent>[], order: "up"|"down", by: "start"|"end", start?: number, end?: number}
-): Hash<EconomicEvent>[] {
+): CrudResponse<zome.EconomicEvent>[] {
   let objects = events.map((ev) => EconomicEvent.get(ev)),
     orderBy = by === "start" ?
       (ev:EconomicEvent) => ev.start :
@@ -434,19 +476,34 @@ export function sortEvents(
     objects = objects.slice(0, i);
   }
   if (order === "down") objects = objects.reverse();
-  return objects.map((ev) => ev.hash);
+  return objects.map((ev) => ev.portable());
 }
 
+/**
+ * A structure that details the event and state history of a group of resources
+ * @interface
+ * @member {object[]} events
+ * @member {CrudResponse<EconomicEvent>} events[].event  The event that caused
+ *  a state change.
+ * @member {Dict<QVlike>} events[].subtotals using the hash of a resource as a key, the
+ *  values are QuantityValue-like structs that reflect the state of that resource
+ *  before the event occurred.
+ * @member {Dict<QVlike>} totals The keys of all resources store the QVlike
+ *  state of each resource after all the listed events (and previous)
+ */
 export type Subtotals = {
   events: {
     event: CrudResponse<typeof EconomicEvent.entryType>,
     subtotals: {[k:string]: QVlike}
-  }[],
-  totals: {[k:string]: QVlike}
+  }[];
+  resources: Hash<resources.EconomicResource>[];
+  totals: {[k:string]: QVlike};
 };
 
 export function eventSubtotals(hashes: Hash<EconomicEvent>[]): Subtotals {
   const uniqueRes = new Set<Hash<EconomicResource>>();
+  let resourceHashes: Hash<resources.EconomicResource>[] = [];
+
   let events = hashes.map((h) => EconomicEvent.get(h));
   events.sort((a, b) => {
     return b.end - a.end;
@@ -459,6 +516,7 @@ export function eventSubtotals(hashes: Hash<EconomicEvent>[]): Subtotals {
   let qvs: {[k:string]: QuantityValue};
   uniqueRes.forEach((ur) => {
     qvs[ur] = new QuantityValue({units: ``, quantity: 0});
+    resourceHashes.push(ur);
   });
 
   let subs = events.map((ev) => {
@@ -472,7 +530,7 @@ export function eventSubtotals(hashes: Hash<EconomicEvent>[]): Subtotals {
     return item;
   });
 
-  return {events: subs, totals: qvs};
+  return {events: subs, totals: qvs, resources: resourceHashes};
 }
 
 // <fixtures>
@@ -482,6 +540,11 @@ const fixtures = {
     Give: new Action({name: `Give`, behavior: '-'}).commit(),
     Receive: new Action({name: `Receive`, behavior: '+'}).commit(),
     Adjust: new Action({name: `Adjust`, behavior: '+'}).commit()
+  },
+  TransferClassification: {
+    Stub: new TransferClassification({
+      name: `Transfer Classification Stub`
+    })
   }
 };
 

@@ -251,7 +251,8 @@ Exists nominally.  Use the inherited properties or the location to make it uniqu
 
 **Properties**
 - (optional) [`PhysicalLocation`] `primaryLocation`: Where is this agent, usually?
-- **[link]** <-= owns: [`EconomicResource`] Things the agent owns.  _This
+- `string name`: inherited from [`VfObject`], required here.
+- **[link]** `<-= owns: `[`EconomicResource`] Things the agent owns.  _This
 terminology is deprecated and will change when VF defines Agent Resource Roles._
 
 ### `createAgent`: `function`
@@ -290,7 +291,7 @@ A categorization of resources.  Mostly nominal.
 
 **Properties**
 - `string` `defaultUnits`: a resource instance will have these units by default.
-- **[link]** classifies -= resourceClassifiedAs: [`EconomicResource`].  All resource
+- **[link]** `classifies -= resourceClassifiedAs: `[`EconomicResource`].  All resource
 instances that are classified as this.
 
 ### `EconomicResource`: [class] `extends` [`VfObject`]
@@ -303,13 +304,13 @@ Represents an observed quantity of some resource.
 
 - [`Date`] `quantityLastCalculated`: The `currentQuantity` is from this moment.  If there are events that affect it more recently, the `currentQuantity` is no longer valid.  Any method returning a resource will check on this, so don't worry about it.
 
-- **aliased [link]** resourceClassifiedAs =- classifies: [`ResourceClassification`].  The
+- **aliased [link]** `resourceClassifiedAs =- classifies: `[`ResourceClassification`].  The
 class that defines the resource.  Or it will, there's not much to it right now.
 
-- **aliased [link]** underlyingResource =- underlies: a more concrete parent of this
+- **aliased [link]** `underlyingResource =- underlies`: a more concrete parent of this
 resource.  Implemented only nominally.
 
-- **aliased [link]** contains -= inside.  Not useful at this time.
+- **aliased [link]** `contains -= inside`.  Not useful at this time.
 
 - (optional) `string` `trackingIdentifier`: An identifier for tracking.  Like a serial number or batch number.
 
@@ -346,7 +347,7 @@ Create a resource through an event.
       the hash of an action with `behavior: '+'`.  In terms of fixtures as of
       11/12/18, from [`events/getFixtures`] `.Action.Receive` or `.Action.Adjust`
       are what you are looking for.  If left blank, it will default to `Adjust`.
-- returns: [`CrudResponse`](#crudresponset-class)`<`[`EconomicResource`](#economicresource-class-extends-vfobject)`>`
+- returns: [`CrudResponse`]`<`[`EconomicResource`]`>`
   - The event seen in this structure as `affectedBy` has already been created; do not run over to [`createEvent`] and make another.
 
 Alternatively, consider using [`resourceCreationEvent`], which is more robust in
@@ -376,7 +377,15 @@ Get the hashes of all events that have affected a single resource.
 This doesn't do anything yet.
 
 **Properties**
-- **link** classifies -= classifiedAs: [`Transfer`]
+- **link** `classifies -= classifiedAs: `[`Transfer`]
+- `string name`: inherited from [`VfObject`], but required, not optional, here.
+This is the case because a `TransferClassification` carries no other information
+to identify it with a hash.
+
+**Fixtures**
+- `Stub`: Since, as of 11/13/18, a `TransferClassification` serves
+no purpose except being required to make a [`Transfer`], the `Stub`
+fixture can be used as the classification of any transfer.
 
 ### `Transfer`: [class] `extends` [`VfObject`]
 [`Transfer`]: #transfer-class-extends-vfobject
@@ -385,12 +394,20 @@ A directed flow of resources connecting processes and events to each other.
 Doesn't really do much right now.
 
 **Properties**
-- `transferClassifiedAs` **aliased link** classifiedAs =- classifies [`TransferClassification`]:
+- `transferClassifiedAs` **aliased link** `classifiedAs =- classifies` [`TransferClassification`]:
 This is how you will know what kind of transfer this is.
-- **aliased link** inputs -- inputOf [`EconomicEvent`]`|Process`
-- **aliased link** outputs -- outputOf [`EconomicEvent`]`|Process`
+- **aliased link** `inputs -- inputOf` [`EconomicEvent`]`|Process`
+- **aliased link** `outputs -- outputOf` [`EconomicEvent`]`|Process`
 
-See [`createTransfer`]
+**See**
+- Creation
+  - [`createTransfer`]
+- Reports
+  - [`traceTransfers`]
+  - [`trackTransfers`]
+  - [`traceEvents`]
+  - [`trackEvents`]
+
 
 ### `Action`: [class] `extends` [`VfObject`]
 [`Action`]: #action-class-extends-vfobject
@@ -400,7 +417,7 @@ A categorization of how an event can affect a resource.
 **Properties**
 - `'+'|'0'|'-'` `behavior`: does this action increase, not affect, or decrease a
 resource's quantity?
-- **link** actionOf -= action [`EconomicEvent`]
+- **link** `actionOf -= action` [`EconomicEvent`]
 
 **Fixtures** _11/12/18_
 - `Action` `Give`: Give something away out of your stock.
@@ -416,69 +433,260 @@ See [`createAction`].
 An observed event that happened.
 
 **Properties**
-- **aliased link** `action` =- actionOf: [`Action`].  What kind of event is this?
-- **aliased link** `inputOf` -- inputs: [`Transfer`]
-- **aliased link** `outputOf` -- outputs: [`Transfer`]
-- **aliased link** `affects` =- affectedBy: [`EconomicResource`].  The resource
+- **aliased link** `action =- actionOf`: [`Action`].  What kind of event is this?
+- **aliased link** `inputOf -- inputs`: [`Transfer`]
+- **aliased link** `outputOf -- outputs`: [`Transfer`]
+- **aliased link** `affects =- affectedBy`: [`EconomicResource`].  The resource
 that this event modifies.
 - [`Hash`]`<`[`Agent`]`>` `provider`: The agent providing a resource.
 - [`Hash`]`<`[`Agent`]`>` `receiver`: The agent receiving the resource.
 - [`QuantityValue`] `affectedQuantity`: How much of the `affects` resource was
 gained or lost?
-- [`Hash`] `scope`
+- [`Hash`] `scope`: doesn't do anything yet.
 - [`Date`] `start`: when the event began.  Use 0 if it hasn't begun (or wait)
-- [`Date`] `duration`: how long did it take?  Use 1, not 0 for an instantaneous
+- [`Date`] `duration`: how long did it take?  Use 1, not 0, for an instantaneous
 event.  Use 0 if the event is not yet complete.
 
-### `createTransferClass`: `function`
-***TODO***
+**See**
+- Creating
+  - [`createEvent`]
+  - [`resourceCreationEvent`]
+- Sort and filter
+  - [`sortEvents`]
+  - [`eventsStartedAfter`]
+  - [`eventsStartedBefore`]
+  - [`eventsEndedAfter`]
+  - [`eventsEndedBefore`]
+- Reports
+  - [`eventSubtotals`]
+  - [`traceEvents`]
+  - [`trackEvents`]
+  - [`traceTransfers`]
+  - [`trackTransfers`]
 
-### `createTransfer`: `function`
-**_TODO_**
+### `Subtotals` struct
+[`Subtotals`]: #subtotals-struct
+
+The format of a record of past and present states of an [`EconomicResource`].
+
+**Properties**
+
+- dictionary [`QuantityValue`]` totals[`[`Hash`]`<`[`EconomicResource`]`>]`:
+the final quantity of each requested resource after all events in `events` are complete (and any previous events)
+- object array `events`
+  - [`CrudResponse`]`<`[`EconomicEvent`]`>` `event`: The event that causes this
+  change of states.
+  - dictionary [`QuantityValue`] `subtotals[`[`Hash`]`<`[`EconomicResource`]`>]`:
+  the state of each requested resource before `event` happened.
+- [`Hash`]`<`[`EconomicResource`]`> resources[]` A list of the resource hashes that this [`Subtotals`] is concerned with.
+
+See [`eventSubtotals`].
+
+### `TimeFilter` struct
+[`TimeFilter`]: #timefilter-struct
+
+An argument object pattern used when filtering events by time.
+
+**Properties**
+
+- [`Hash`]`<`[`EconomicEvent`]`> events[]`: The events to be filtered.
+- [`Date`]` when`: A time that will partition the `events` according to the
+specific filtering function
+
+See
+- [`eventsEndedAfter`]
+- [`eventsEndedBefore`]
+- [`eventsStartedAfter`]
+- [`eventsStartedBefore`]
+
+### `createTransferClass` `function`
+[`createTransferClass`]: #createtransferclass-function
+
+Create a new transfer class.  It doesn't do much yet, but you still need one.
+- To [call]: POST /events/createTransferClass/
+- Argument: [`TransferClassification`] The desired properties.
+- Returns: [`CrudResponse`]`<`[`TransferClassification`]`>` the new object.
 
 
-### `createAction`: `function`
-**_TODO_**
+### `createTransfer` `function`
+[`createTransfer`]: #createtransfer-function
 
+Creates a new Transfer object.  Don't forget to bring the hash of a
+[`TransferClassification`]!
+
+- To [call],  POST /events/createTransfer
+- Argument [`Transfer`] Properties the object should have.
+- Returns [`CrudResponse`]`<`[`Transfer`]`>` a new transfer object
+
+### `createAction` `function`
+[`createAction`]: #createaction-function
+
+Creates an [`Action`].  You will need one to create an [`EconomicEvent`].
+Use this function if none of the fixtures in [`events.getFixtures`] suits your
+needs.
+
+- To [call] POST /events/createAction
+- Argument [`Action`] The properties the object should have.
+- Returns [`CrudResponse`]`<`[`Action`]`>` The new object
 
 ### `createEvent`: `function`
-**_TODO_**
+[`createEvent`]: #createevent-function
+
+Creates an event object.  Have the [`Action`], [`Transfer`], [`EconomicResource`],
+and [`Agent`] hashes ready.
+
+- To [call] POST /events/createEvent
+- Argument [`EconomicEvent`] the properties the event should have.
+  - [`Hash`]`<`[`Action`]`> action`: this **must** exist and be included.
+  - [`Hash`]`<`[`EconomicResource`]`> affects`: this **must** exist beforehand
+  and **must** be included.  If the event should create a new resource, do not
+  use this function.
+  - [`Hash`]`<`[`Agent`]`>`: **mandatory**
+    - `provider`
+    - `receiver`
+  - [`Hash`]`<`[`Transfer`]`>`: Not required, but if you don't include them,
+  you can't do it later.
+    - `inputOf`
+    - `outputOf`
+  - [`QuantityValue`] `affectedQuantity`: not strictly required, but if left out,
+  it defaults to 0, which means the event will have no effect.
+- Returns [`CrudResponse`]`<`[`EconomicEvent`]`>` The new event object.
+
+### `traceEvents` `function`
+[`traceEvents`]: #traceEvents-function
+
+Query a set of events and retrieve the transfers that were their inputs.
+
+- To [call], POST /events/traceEvents/
+- Argument [`Hash`]`<`[`EconomicEvent`]`>[]`: the events you would like to trace
+- Returns [`CrudResponse`]`<`[`Transfer`]`>[]`: the transfers that trace those
+events.
 
 
-### `traceEvents`: `function`
-**_TODO_**
+### `trackEvents` `function`
+[`trackEvents`]: #trackevents-function
+
+Query a set of events and retrieve the transfers that are their outputs
+
+- To [call], POST /events/trackEvents/
+- Argument [`Hash`]`<`[`EconomicEvent`]`>[]`: a list of events to query
+- Returns [`CrudResponse`]`<`[`Transfer`]`>[]`: the transfers that track the
+events
 
 
-### `trackEvents`: `function`
-**_TODO_**
+### `traceTransfers` `function`
+[`traceTransfers`]: #traceTransfers-function
+
+Query a set of transfers and retrieve the events (some day processes too) that
+are their inputs.
+
+- To [call], POST /events/traceTransfers/
+- Argument [`Hash`]`<`[`Transfer`]`>[]`: the transfers to trace
+- Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]`: the events that were inputs
+of the transfers.
+
+### `trackTransfers` `function`
+[`trackTransfers`]: #tracktransfers-function
+
+Query a set of transfers to follow their outputs.
+
+- To [call], POST /events/trackTransfers/
+- Argument [`Hash`]`<`[`Transfer`]`>[]` The transfers to track
+- Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]` The events that are the
+outputs of the given transfers.
+
+### `sortEvents` `function`
+[`sortEvents`]: #sortevents-function
+
+Order the events given by their start or end date.
+
+- To [call], POST /events/sortEvents/
+- Argument `object`
+  - [`Hash`]`<`[`EconomicEvent`]`> events[]`: The events to be sorted.
+  - `string by`
+    - `"start"`: sorts by start date.
+    - `"end"`: sorts by end date.
+  - `string order`
+    - `"up"`: earlier events first.
+    - `"down"`: most recent events first.
+  - (optional) [`Date`]` start`: filter out events before this time.
+  - (optional) [`Date`]` end`: filter out events after this time.
+- Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]` The events in the specified
+order, excluding filter-out elements.
 
 
-### `traceTransfers`: `function`
-**_TODO_**
+### `eventsStartedBefore` `function`
+[`eventsStartedBefore`]: #eventsstartedbefore-function
 
+Filter a set of events down to those started before a time of your choice.
 
-### `trackTransfers`: `function`
-**_TODO_**
+- To [call], POST /events/eventsStartedBefore
+- Argument [`TimeFilter`] The events and the time to filter the start date under
+- Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]` events in `events` that started
+before `when`
 
+### `eventsStartedAfter` `function`
+[`eventsStartedAfter`]: #eventsstartedafter-function
 
-### `sortEvents`: `function`
-**_TODO_**
+Filter a set of events down to those started after a time of your choice.
 
+- To [call], POST /events/eventsStartedAfter
+- Argument [`TimeFilter`] The events and the time to filter the start date after
+- Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]` events in `events` that started
+after `when`.
 
-### `eventsStartedBefore`: `function`
-**_TODO_**
+### `eventsEndedBefore` `function`
+[`eventsEndedBefore`]: #eventsendedbefore-function
 
+Filter a set of events down to those ended before a time of your choice.
 
-### `eventsStartedAfter`: `function`
-**_TODO_**
+- To [call], POST /events/eventsEndedBefore
+- Argument [`TimeFilter`] The events and the time to filter the end date before
+- Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]` events in `events` that ended
+before `when`.
 
+### `eventsEndedAfter` `function`
+[`eventsEndedAfter`]: #eventsendedafter-function
 
-### `eventsEndedBefore`: `function`
-**_TODO_**
+Filter a set of events down to those ended after a time of your choice.
 
+- To [call], POST /events/eventsEndedAfter
+- Argument [`TimeFilter`] The events and the time to filter the end date after
+- Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]` events in `events` that ended
+after `when`.
 
-### `eventsEndedAfter`: `function`
-**_TODO_**
+### `eventSubtotals` `function`
+[`eventSubtotals`]: #eventsubtotals-function
 
-### `eventSubtotals`: `function`
-**_TODO_**
+For a set of events, construct a table detailing the state of the resources when
+the events occurred and the effect they had on that state.  Only resources affected
+by the events are shown are traced.
+
+- To [call], POST /events/eventSubtotals
+- Argument [`Hash`]`<`[`EconomicEvent`]`>[]` These events will appear as rows
+in the table.
+- Returns [`Subtotals`] A table showing how the given events have affected their
+resources over time.
+
+### `resourceCreationEvent` `function`
+[`resourceCreationEvent`]: #resourcecreationevent-function
+
+Creates a resource and an event to account for its existence.
+
+- To [call] POST /events/resourceCreationEvent
+- Argument `object`
+  - [`EconomicResource`] `resource`: The resource that should be
+  created along with the event.
+    - `resourceClassifiedAs`: This must
+    not be left blank.
+    - `currentQuantity`
+      - `units`: can be left blank, and the classification's default
+      units will be used.
+      - `quantity`: must not be 0.
+    - `owner`: must not be left blank.
+  - (optional) `object` [`times`]: defaults to now.
+    - [`Date`] `start`: when the event started
+    - (optional) [`Date`] `end`: when the event ended.  Defaults to 1
+    ms after it started.
+- Returns [`CrudResponse`]`<`[`EconomicEvent`]`>`: The event that has
+now created the resource.

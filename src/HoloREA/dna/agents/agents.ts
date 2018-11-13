@@ -7,6 +7,7 @@ import resources from "../resources/resources";
 
 interface AgentEntry {
   primaryLocation: PhysicalLocation;
+  name: string;
 }
 
 class Agent<T = {}> extends VfObject<T & AgentEntry & typeof VfObject.entryType> {
@@ -30,7 +31,34 @@ class Agent<T = {}> extends VfObject<T & AgentEntry & typeof VfObject.entryType>
 
 }
 
+interface ScopeEntry {
+  agent: Hash<Agent>
+}
+
+class Scope<T = {}> extends HoloObject<T & ScopeEntry & typeof HoloObject.entryType> {
+  static className = "Scope";
+  className = "Scope";
+  static entryType: ScopeEntry & typeof HoloObject.entryType;
+  static entryDefaults = Object.assign({}, HoloObject.entryDefaults, <ScopeEntry> {
+      property: defaultValue
+    });
+
+  static get(hash: Hash<Scope>): Scope {
+    return <Scope> super.get(hash);
+  }
+  static create(entry: ScopeEntry & typeof HoloObject.entryType): Scope {
+    return <Scope> super.create(entry);
+  }
+  constructor(entry?: T & ScopeEntry & typeof HoloObject.entryType, hash?: Hash<Scope>) {
+    super(entry, hash);
+  }
+
+
+}
+
+
 export const AgentProperty = new LinkRepo<Agent, resources.EconomicResource, "owns">("AgentProperty");
+export const Scopes
 
 namespace zome {
   export type Agent = typeof Agent.entryType;

@@ -12,6 +12,11 @@ import "./holochain-proto";
 export type Dict<T> = {[key: string]: T};
 
 /**
+ * Some dicts need both a key type and a value type.
+ */
+export type Catalog<K extends string, T> = {[key: string]: T}
+
+/**
  * I believe Location was taken.  Don't need any additional detail for now.
  */
 export type PhysicalLocation = string[];
@@ -177,6 +182,14 @@ export function responseOf<T extends object>(thing: HoloThing<T>): CrudResponse<
  * But I don't think it's working; it all comes out strings.
  */
 export declare type Hash<T> = holochain.Hash;
+
+export type HoloClass<T,U> = (new (o:U, h:Hash<T>) => T) &
+  {
+    create: (o:U) => T,
+    get: (h:Hash<T>) => T,
+    className: string,
+    entryType: U
+  };
 
 /**
  * It's just as good as a QuantityValue as far as a real QV knows, and it can
@@ -449,10 +462,13 @@ export class LinkSet<B, L, Tags extends string = string, T = B> extends Array<ho
   }
 }
 
+interface Tag<B,L, T extends string> {
+  tag: T,
+  repo: LinkRepo<B,L,T>
+}
 
 /**
- * LinkRepo encapsulates all kinds of links.  There should be exactly one per
- * Links type Entry in DNA.json.  I name them like NormalClasses because they
+ * LinkRepo encapsulates all kinds of links.  I name them like NormalClasses when they
  * are encapsulating a whole entry type.  Used for keeping track of reciprocal
  * links, managing DHT interactions that are otherwise nuanced, producing
  * LinkSet objects, maintaining type-safe Hash types, and defending against
@@ -472,12 +488,22 @@ export class LinkRepo<B, L, T extends string = string> {
    *  represent.
    */
   constructor (protected name: string) {}
-  protected backLinks = new Map<T, { repo: LinkRepo<L, B, T|string>, tag: T|string }[]>();
+
+  protected backLinks = new Map<T, Tag<L|B,B|L, T|string>[]>();
   protected recurseGuard = new Map<T, number>();
   protected selfLinks = new Map<T, T[]>();
+  protected predicates = new Map<
+    T,
+    { query: Tag<L|B, B|L, T|string>, dependent: Tag<L|B, B|L, T|string> }[]
+  >();
+  protected exclusive = new Set<T>();
   readonly BASE: B;
   readonly LINK: L;
   readonly TAGS: T;
+
+  tag<Ts extends T>(t: Ts): Tag<B, L, T> {
+    return { tag: t, repo: this };
+  }
   /**
    * Produce a LinkSet including all parameter-specified queries.
    * @param {Hash<B>} base this is the Base entry  whose outward links will
@@ -530,7 +556,16 @@ export class LinkRepo<B, L, T extends string = string> {
 
     rg.set(tag, rgv);
 
+    if (this.exclusive.has(tag)) {
+      this.get(base, tag).removeAll();
+    }
+
+    if (this.predicates.has(tag)) {
+      this.addPredicate(tag, base, link);
+    }
+
     const hash = commit(this.name, { Links: [{Base: base, Link: link, Tag: tag}] });
+
 
     if (this.backLinks.has(tag)) {
       for (let backLink of this.backLinks.get(tag)) {
@@ -557,8 +592,7 @@ export class LinkRepo<B, L, T extends string = string> {
    * @param {T} tag the tag that will trigger the reciprocal to be put().
    * @param {LinkRepo<L,B,string>} repo The repo that will contain the reciprocal.
    * @param {string} backTag the tag that will be used for the reciprocal link.
-   *  note that if the forward and backward tags are the same, this probably
-   *  will not work due to the overzealous recursion guard.
+   * @returns {ThisType}
    */
   linkBack(tag: T, backTag?: T|string, repo?: LinkRepo<L, B, string>): this {
     backTag = backTag || tag;
@@ -574,6 +608,53 @@ export class LinkRepo<B, L, T extends string = string> {
     }
     this.recurseGuard.set(tag, 1);
     return this;
+  }
+  // box example:
+  // B -contains A: for N insideOf B { N -nextTo A; A -nextTo N }
+  // TODO: repo should default to this, right?
+  predicate<T2 extends string = T, T3 extends string = T>(
+    triggerTag: T,
+    query: { tag: T2, repo: LinkRepo<L|B, B|L, T2|T> },
+    dependent: { tag: T3, repo: LinkRepo<L|B, B|L, T3|T> }
+  ): this {
+    let {predicates} = this;
+    if (!query.repo) query.repo = this;
+    if (!dependent.repo) dependent.repo = this;
+
+    if (predicates.has(triggerTag)) {
+      predicates.get(triggerTag).push({query, dependent});
+    } else {
+      predicates.set(triggerTag, [{query, dependent}]);
+    }
+
+    return this;
+  }
+
+  singular(tag: T): this {
+    this.exclusive.add(tag);
+    return this;
+  }
+
+  private addPredicate(trigger: T, subj: Hash<B>, obj: Hash<L>) {
+    const triggered = this.predicates.get(trigger);
+
+    for (let {query, dependent} of triggered) {
+      let queried = query.repo.get(subj, query.tag).hashes();
+      for (let q of queried) {
+        dependent.repo.put(q, obj, dependent.tag);
+      }
+    }
+  }
+
+  private removePredicate(trigger: T, subj: Hash<B>, obj: Hash<L>) {
+    const triggered = this.predicates.get(trigger);
+
+    for (let {query, dependent} of triggered) {
+      let queried = query.repo.get(subj, query.tag).hashes();
+      for (let q of queried) {
+        dependent.repo.remove(q, obj, dependent.tag);
+      }
+    }
   }
 
   private internalLinkback(fwd: T, back: T): this {
@@ -651,6 +732,10 @@ export class LinkRepo<B, L, T extends string = string> {
         this.remove(link, base, back);
       }
     }
+    if (this.predicates.has(tag)) {
+      this.removePredicate(tag, base, link);
+    }
+
     rg.set(tag, ++rgv);
     return this;
   }

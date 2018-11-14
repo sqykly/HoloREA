@@ -28,47 +28,20 @@ class Agent<T = {}> extends VfObject<T & AgentEntry & typeof VfObject.entryType>
     super(entry, hash);
   }
 
-
 }
 
-interface ScopeEntry {
-  agent: Hash<Agent>
-}
-
-class Scope<T = {}> extends HoloObject<T & ScopeEntry & typeof HoloObject.entryType> {
-  static className = "Scope";
-  className = "Scope";
-  static entryType: ScopeEntry & typeof HoloObject.entryType;
-  static entryDefaults = Object.assign({}, HoloObject.entryDefaults, <ScopeEntry> {
-      property: defaultValue
-    });
-
-  static get(hash: Hash<Scope>): Scope {
-    return <Scope> super.get(hash);
-  }
-  static create(entry: ScopeEntry & typeof HoloObject.entryType): Scope {
-    return <Scope> super.create(entry);
-  }
-  constructor(entry?: T & ScopeEntry & typeof HoloObject.entryType, hash?: Hash<Scope>) {
-    super(entry, hash);
-  }
-
-
-}
-
-
-export const AgentProperty = new LinkRepo<Agent, resources.EconomicResource, "owns">("AgentProperty");
-export const Scopes
+const AgentProperty = new LinkRepo<Agent, resources.EconomicResource, "owns">("AgentProperty");
 
 namespace zome {
   export type Agent = typeof Agent.entryType;
+  export type AgentProperty = typeof AgentProperty;
 }
 
 export default zome;
 
 // <zome> public functions
 
-export function createAgent(props?: typeof Agent.entryType): CrudResponse<typeof Agent.entryType> {
+function createAgent(props?: typeof Agent.entryType): CrudResponse<typeof Agent.entryType> {
   let it: Agent, err: Error;
   try {
     it = notError<Agent>(Agent.create(props));
@@ -85,7 +58,7 @@ export function createAgent(props?: typeof Agent.entryType): CrudResponse<typeof
 }
 
 
-export function getOwnedResources(
+function getOwnedResources(
   {agents, types}: {agents: Hash<Agent>[], types?: Hash<resources.ResourceClassification>[]}
 ): {
   [agent: string]: { [classification: string]: Hash<resources.EconomicResource>[] }

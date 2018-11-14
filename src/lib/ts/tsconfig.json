@@ -1,13 +1,15 @@
 {
   "compilerOptions": {
-   	"outDir": "../bin/",
+   	"outDir": "../../build/staging",
    	"rootDir": "./",
    	"allowJs": false,
     "target": "es5",
     "lib" : ["es5", "es6"],
     "types": [],
-    "newLine" : "lf",
-    "module": "UMD"
+    "newLine": "lf",
+    "modules": "None"
   },
-  "exclude" : ["./tests/"]
+  "files": [
+    "common.ts"
+  ]
 }

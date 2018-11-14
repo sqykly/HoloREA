@@ -1,16 +1,55 @@
-import "../../../lib/ts/common";
-import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf } from "../../../lib/ts/common";
+import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf } from "../../../lib/ts/common";
 import events from "../events/events";
-import agents, { AgentProperty } from "../agents/agents";
+import agents from "../agents/agents";
 
-type Action = events.Action;
-type EconomicEvent = events.EconomicEvent;
-type TransferClassification = events.TransferClassification;
-type Transfer = events.Transfer;
+// <links>
+// <imported from events>
 const EventLinks: events.EventLinks = new LinkRepo(`EventLinks`);
-const XferClasses: events.Classifications = new LinkRepo(`Classifications`);
-type Agent = agents.Agent;
+EventLinks.linkBack("inputs", "inputOf")
+  .linkBack("outputs", "outputOf")
+  .linkBack("inputOf", "inputs")
+  .linkBack("outputOf", "outputs")
+  .linkBack("action", "actionOf")
+  .linkBack("actionOf", "action");
 
+const XferClasses: events.Classifications = new LinkRepo(`Classifications`);
+XferClasses.linkBack("classifiedAs", "classifies")
+  .linkBack("classifies", "classifiedAs");
+
+// </imported from agents/>
+
+const AgentProperty: agents.AgentProperty = new LinkRepo(`AgentProperty`);
+
+// </imported>
+
+// <own> links
+const ResourceClasses = new LinkRepo<
+  EconomicResource|ResourceClassification,
+  EconomicResource|ResourceClassification,
+  "classifiedAs"|"classifies"
+>("ResourceClasses");
+ResourceClasses
+  .linkBack("classifiedAs","classifies")
+  .linkBack("classifies", "classifiedAs");
+
+const ResourceRelationships = new LinkRepo<
+  EconomicResource,
+  EconomicResource,
+  "underlyingResource"|"contains"|"underlies"|"inside"
+>("ResourceRelationships");
+ResourceRelationships
+  .linkBack(`underlyingResource`, `underlies`)
+  .linkBack(`underlies`, `underlyingResource`)
+  .linkBack(`contains`, `inside`)
+  .linkBack(`inside`, `contains`);
+
+const TrackTrace = new LinkRepo<EconomicResource|events.EconomicEvent, events.EconomicEvent|EconomicResource, "affects"|"affectedBy">("TrackTrace");
+TrackTrace.linkBack("affects", "affectedBy")
+  .linkBack("affectedBy", "affects");
+
+// </own> </links>
+
+// <classes>
 interface RcEntry {
   /**
    * New instances of the resource will have these units unless overriden on
@@ -68,26 +107,6 @@ export class ResourceClassification<T = {}> extends VfObject<T & RcEntry & typeo
 }
 
 
-export const ResourceClasses = new LinkRepo<
-  EconomicResource|ResourceClassification,
-  EconomicResource|ResourceClassification,
-  "classifiedAs"|"classifies"
->("ResourceClasses");
-ResourceClasses
-  .linkBack("classifiedAs","classifies")
-  .linkBack("classifies", "classifiedAs");
-
-export const ResourceRelationships = new LinkRepo<
-  EconomicResource,
-  EconomicResource,
-  "underlyingResource"|"contains"|"underlies"|"inside"
->("ResourceRelationships");
-
-ResourceRelationships
-  .linkBack(`underlyingResource`, `underlies`)
-  .linkBack(`underlies`, `underlyingResource`)
-  .linkBack(`contains`, `inside`)
-  .linkBack(`inside`, `contains`);
 
 interface ErEntry {
   currentQuantity: QVlike;
@@ -97,10 +116,10 @@ interface ErEntry {
   trackingIdentifier?: string;
   quantityLastCalculated: number;
   // TODO agent resource roles when they are established
-  owner: Hash<Agent>
+  owner: Hash<agents.Agent>
 }
 
-export class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.entryType> {
+class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.entryType> {
   // <mandatory overrides>
   className:string = "EconomicResource";
   static className = "EconomicResource";
@@ -157,26 +176,43 @@ export class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfOb
     return super.remove(msg);
   }
 
-  trace(): Hash<EconomicEvent>[] {
+  trace(): Hash<events.EconomicEvent>[] {
     let links = TrackTrace.get(this.myHash, `affectedBy`);
-    let eEvents = links.types<EconomicEvent>("EconomicEvent");
+    let eEvents = links.types<events.EconomicEvent>("EconomicEvent");
     // I hate this a lot.
-    return <Hash<EconomicEvent>[]> call(`events`, `sortEvents`, {events: eEvents.hashes(), order: `up`, by: `end` });
+    return <Hash<events.EconomicEvent>[]> call(`events`, `sortEvents`, {events: eEvents.hashes(), order: `up`, by: `end` });
   }
 
-
+  get currentQuantity(): QuantityValue {
+    return new QuantityValue(this.myEntry.currentQuantity);
+  }
+  set currentQuantity(to: QuantityValue) {
+    let {units, quantity} = to;
+    this.myEntry.currentQuantity = {units, quantity};
+  }
 }
+// </classes>
 
-export const TrackTrace = new LinkRepo<EconomicResource|EconomicEvent, EconomicEvent|EconomicResource, "affects"|"affectedBy">("TrackTrace");
-TrackTrace.linkBack("affects", "affectedBy")
-  .linkBack("affectedBy", "affects");
-
+// <export>
 namespace zome {
   export type EconomicResource = typeof EconomicResource.entryType;
   export type ResourceClassification = typeof ResourceClassification.entryType;
   export type TrackTrace = typeof TrackTrace;
+  export type ResourceClasses = typeof ResourceClasses;
+  export type ResourceRelationships = typeof ResourceRelationships;
 }
 export default zome;
+// </export>
+
+// <fixtures>
+const fixtures = {
+  ResourceClassification: {
+    Currency: new ResourceClassification({name: `Currency`, defaultUnits: ``}),
+    Work: new ResourceClassification({name: `Work`, defaultUnits: `hours`}),
+    Idea: new ResourceClassification({name: `Idea`, defaultUnits: `citations`})
+  }
+}
+// </fixtures>
 
 // public <zome> functions
 
@@ -186,20 +222,20 @@ export default zome;
  *  get instances of.
  * @returns {Hash<EconomicResource>[]}
  */
-export function getResourcesInClass(
+function getResourcesInClass(
   {classification}:
   {classification: Hash<ResourceClassification>}
 ): Hash<EconomicResource>[] {
   return ResourceClasses.get(classification, `classifies`).hashes();
 }
 
-export function getAffectingEvents({resource}: {resource: Hash<EconomicResource>}): Hash<EconomicEvent>[] {
-  return TrackTrace.get(resource, "affectedBy").types<EconomicEvent>("EconomicEvent").hashes();
+function getAffectingEvents({resource}: {resource: Hash<EconomicResource>}): Hash<events.EconomicEvent>[] {
+  return TrackTrace.get(resource, "affectedBy").types<events.EconomicEvent>("EconomicEvent").hashes();
 }
 
 // CRUD
 
-export function createEconomicResource(
+function createEconomicResource(
   {properties: props, event: thing}: {
     properties: zome.EconomicResource,
     event: HoloThing<events.EconomicEvent>
@@ -216,7 +252,12 @@ export function createEconomicResource(
         resource: props
       });
     if (crud.error) {
-      throw crud.error;
+      return {
+        error: crud.error,
+        entry: null,
+        type: `Error`,
+        hash: ``
+      };
     }
     event = crud.entry;
     let res = EconomicResource.get(event.affects);
@@ -229,11 +270,25 @@ export function createEconomicResource(
   let evQv = event.affectedQuantity;
   if (resQv && evQv) {
     if (resQv.units !== evQv.units) {
-      // TODO
+      if (!resQv.units && resQv.quantity === 0) {
+        resQv.quantity = evQv.quantity;
+        resQv.units = evQv.units;
+      } else if (!evQv.units && evQv.quantity === 0) {
+        evQv.units = resQv.units;
+        evQv.quantity = resQv.quantity;
+      } else {
+        err = new TypeError(`Can't create resource in ${resQv.units} from event in ${evQv.units}`);
+      }
+    }
+    if (!err) {
+      props.currentQuantity = resQv;
+      event.affectedQuantity = evQv;
     }
   }
-  try {
+  if (!err) try {
     it = notError<EconomicResource>(EconomicResource.create(props));
+    event.affects = it.hash;
+    call(`events`, `createEconomicResource`, event);
   } catch (e) {
     err = e;
   }
@@ -245,7 +300,7 @@ export function createEconomicResource(
   };
 }
 
-export function createResourceClassification(props?: typeof ResourceClassification.entryType): CrudResponse<typeof ResourceClassification.entryType> {
+function createResourceClassification(props?: typeof ResourceClassification.entryType): CrudResponse<typeof ResourceClassification.entryType> {
   let it: ResourceClassification, err: Error;
   try {
     it = notError<ResourceClassification>(ResourceClassification.create(props));
@@ -259,3 +314,40 @@ export function createResourceClassification(props?: typeof ResourceClassificati
     type: err ? "error" : it.className
   };
 }
+
+function getFixtures(dontCare: {}): typeof fixtures {
+  return fixtures;
+}
+
+function affect({resource, quantity}:{
+  resource: HoloThing<zome.EconomicResource>,
+  quantity: QVlike
+}): CrudResponse<zome.EconomicResource> {
+  let err: Error, hash: Hash<zome.EconomicResource>, res:EconomicResource;
+  try {
+    res = EconomicResource.get(hashOf(resource));
+    hash = res.open((entry) => {
+      let current = res.currentQuantity.add(quantity);
+      res.currentQuantity = current;
+      return entry;
+    }).update();
+  } catch (e) {
+    err = e;
+  }
+
+  return {
+    error: err,
+    hash: hash || (res && res.hash) || '',
+    entry: (res && res.entry) || entryOf(resource),
+    type: (res && res.className) || `Who knows what this thing is?!`
+  };
+}
+
+// </zome>
+
+// <callbacks>
+function genesis() {
+  return true;
+}
+
+// </callbacks>

@@ -1,14 +1,10 @@
-//* IMPORTS
+/* IMPORTS
 import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf } from "../../../lib/ts/common";
 import events from "../events/events";
 import agents from "../agents/agents";
 /*/
 /**/
 
-/* TYPE-SCOPE
-import "../common"
-/*/
-/**/
 // <links>
 // <imported from events>
 const EventLinks: events.EventLinks = new LinkRepo(`EventLinks`);
@@ -207,15 +203,16 @@ class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.en
 // </classes>
 
 // <export>
-//* EXPORT
-namespace resources {
+
+namespace zome {
   export type EconomicResource = typeof EconomicResource.entryType;
   export type ResourceClassification = typeof ResourceClassification.entryType;
   export type TrackTrace = typeof TrackTrace;
   export type ResourceClasses = typeof ResourceClasses;
   export type ResourceRelationships = typeof ResourceRelationships;
 }
-export default resources;
+/* IMPORT
+export default zome;
 /*/
 /**/
 
@@ -254,7 +251,7 @@ function getAffectingEvents({resource}: {resource: Hash<EconomicResource>}): Has
 
 function createEconomicResource(
   {properties: props, event: thing}: {
-    properties: resources.EconomicResource,
+    properties: zome.EconomicResource,
     event: HoloThing<events.EconomicEvent>
   }
 ): CrudResponse<typeof EconomicResource.entryType> {
@@ -337,10 +334,10 @@ function getFixtures(dontCare: {}): typeof fixtures {
 }
 
 function affect({resource, quantity}:{
-  resource: HoloThing<resources.EconomicResource>,
+  resource: HoloThing<zome.EconomicResource>,
   quantity: QVlike
-}): CrudResponse<resources.EconomicResource> {
-  let err: Error, hash: Hash<resources.EconomicResource>, res:EconomicResource;
+}): CrudResponse<zome.EconomicResource> {
+  let err: Error, hash: Hash<zome.EconomicResource>, res:EconomicResource;
   try {
     res = EconomicResource.get(hashOf(resource));
     hash = res.open((entry) => {

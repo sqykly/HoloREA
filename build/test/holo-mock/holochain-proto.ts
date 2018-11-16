@@ -13,7 +13,7 @@ enum ErrorHandling {
 
 export namespace holochain {
   interface ZomeConfig {
-    ErrorHandling: "returnErrorValue"|"throwErrors";
+    ErrorHandling: ErrorHandling;
   }
 
   interface ZomeSpec {
@@ -33,7 +33,7 @@ export namespace holochain {
     }[];
   }
 
-  let zome: ZomeSpec;
+  let zome: ZomeSpec = {};
   // wacky things to throw.
   export class HolochainError extends Error {
 
@@ -48,11 +48,15 @@ export namespace holochain {
   }
 
   class NotFound extends HolochainError {
+    private static singleton: NotFound;
     constructor() {
       super(new RangeError(`hash type, just can't find that thing`));
+      if (NotFound.singleton) return NotFound.singleton;
+      NotFound.singleton = this;
     }
   }
 
+  export type HashNotFound = NotFound;
   export const HashNotFound = new NotFound();
 
   export type CanError<T> = HolochainError|T;
@@ -76,7 +80,233 @@ export namespace holochain {
     }
   }
 
+  export enum LinkAction { None, Add, Del }
+  type Hash = string;
+	type Signature = string;
+	//type HolochainError = object;
+	type PackageRequest = object;
 
+  // ADDED single-instance types in the HC object
+  //type HashNotFound = any;
+
+  // ADDED enum properties in the HC object
+  // property of HC.LinkAction
+  //type LinkAction = any;
+  // property of HC.Status; can be combined with + operator
+  type StatusMaskValue = number;
+  // property of HC.GetMask; can be combined with + operator
+  type GetMaskValue = number;
+  // property of HC.PkgReq
+  // todo: can they be combined?
+  type PkgReqValue = any;
+  // property of HC.Bridge
+  type BridgeSide = any;
+  // property of HC.SysEntryType
+  type SysEntry = any;
+  // property of HC.BundleCancel.Reason
+  type BundleCancelReason = any;
+  // property of HC.BundleCancel.Response
+  type BundleCancelResponse = any;
+
+  // ADDED entries can be strings, "JSON" entries, or arrays of links wrapped in {Links:[]}
+  type StringEntry = string;
+  type JsonEntry = object;
+  // a linksEntry.Links[] has properties we might as well know...
+  interface Link {
+    Base: Hash;
+    Link: Hash;
+    Tag: string;
+    LinkAction?: holochain.LinkAction;
+  }
+  // link arrays are wrapped in an object
+  interface LinksEntry {
+    Links: Link[];
+  }
+  type EntryData = StringEntry | JsonEntry | LinksEntry;
+
+  // ADDED a lot of the API functions can return errors, too.
+  type CanError<T> = T | HolochainError;
+
+  // ADDED but not sure I want it as it could force an inconvenient cast
+  type Arguments = string | object;
+
+  // ADDED an options interface for get() to ensure the proper enums are used.
+  interface GetOptions {
+    StatusMask?: StatusMaskValue;
+    GetMask?: GetMaskValue;
+    Local?: boolean;
+    Bundle?: boolean;
+  }
+
+  // ADDED an options interface for getLinks()
+  interface LinksOptions {
+    Load?: boolean;
+    StatusMask?: StatusMaskValue;
+  }
+
+  // ADDED an options interface for updateAgent()
+  interface UpdateAgentOptions {
+    Revocation: string;
+    Identity: string;
+  }
+
+  // ADDED an options interface for query().  Might not be useful as the docs
+  // are not clear on what is optional, what defaults are, etc.
+  interface QueryOptions {
+    Return?: {
+      Entries?: boolean;
+      Hashes?: boolean;
+      Headers?: boolean;
+    }
+    Constrain?: {
+      EntryTypes?: string[];
+      Contains?: string;
+      Equals?: string;
+      Matches?: RegExp;
+      Count?: number;
+      Page?: number;
+    }
+    Order?: {
+      Ascending?: boolean;
+    }
+    Bundle?: boolean;
+  }
+
+  // ADDED an options interface for send()
+  interface SendOptions {
+    Callback: {
+      Function: string;
+      ID: string;
+    }
+  }
+
+	interface Header {
+	  Type: string;
+	  Time: string;
+	  HeaderLink: Hash;
+	  EntryLink: Hash;
+	  TypeLink: Hash;
+	  Sig: Signature;
+	  Change: Hash;
+	}
+
+  interface GetResponse {
+
+    // REPLACED Entry?: any;
+    Entry?: EntryData;
+	  EntryType?: string;
+	  Sources?: Hash[];
+	}
+
+	interface GetLinksResponse {
+	  Hash: Hash;
+
+    // REPLACED Entry?: any;
+    Entry?: EntryData;
+
+	  EntryType?: string;
+	  Tag?: string;
+	  Source?: Hash;
+	}
+
+  interface QueryResponse {
+
+    // REPLACED Hash?: string
+    Hash?: Hash;
+
+    // REPLACED Entry?: any
+	  Entry?: EntryData;
+
+	  Header?: Header
+	}
+
+  // ADDED the actual result of query() is an array of Hashes, Entries, Headers, or QueryResponse
+  type QueryResult = Hash[] | EntryData[] | Header[] | QueryResponse[];
+
+	interface BridgeStatus {
+	  Side: number;
+	  CalleeName?: string;
+	  CalleeApp?: Hash;
+	  Token?: string;
+	}
+  interface HolochainSystemGlobals {
+	  Version: string;
+
+    // REPLACED HashNotFound: any;
+	  HashNotFound: HashNotFound;
+
+    // REPLACED Status: any;
+	  Status: {
+      Live: StatusMaskValue;
+      Deleted: StatusMaskValue;
+      Rejected: StatusMaskValue;
+      Any: StatusMaskValue;
+    }
+
+    // REPLACED GetMask: any;
+	  GetMask: {
+      Default: GetMaskValue;
+      Entry: GetMaskValue;
+      EntryType: GetMaskValue;
+      Sources: GetMaskValue;
+      All: GetMaskValue;
+    }
+
+    // REPLACED LinkAction: any;
+	  LinkAction: {
+      Add: LinkAction;
+      Del: LinkAction;
+    }
+
+    // REPLACED PkgReq: any;
+	  PkgReq: {
+      Chain: PkgReqValue;
+      ChainOpt: PkgReqValue;
+      EntryTypes: PkgReqValue;
+    }
+
+    // REPLACED Bridge: any;
+	  Bridge: {
+      From: BridgeSide;
+      To: BridgeSide;
+    }
+
+    // REPLACED SysEntryType: any;
+	  SysEntryType: {
+      DNA: SysEntry;
+      Agent: SysEntry;
+      Key: SysEntry;
+      Headers: SysEntry;
+      Del: SysEntry;
+    }
+
+    // REPLACED BundleCancel: any;
+	  BundleCancel: {
+      Reason: {
+        User: BundleCancelReason;
+        Timeout: BundleCancelReason;
+      }
+      Response: {
+        Commit: BundleCancelResponse;
+        OK: BundleCancelResponse;
+      }
+    }
+	}
+
+	interface HolochainAppGlobals {
+	  Name: string;
+	  DNA: {
+	    Hash: Hash;
+	  };
+	  Key: {
+	    Hash: Hash;
+	  }
+	  Agent: {
+	    Hash: Hash;
+	    TopHash: Hash;
+	    String: string;
+	  }
+	}
 }
 
 type CanError<T> = Error | T;
@@ -89,7 +319,8 @@ namespace DHT {
   const HashNotFound = holochain.HashNotFound;
   const HolochainError = holochain.HolochainError;
   const holoThrow = holochain.holoThrow;
-  enum LinkActions { None, Add, Del };
+  type LinkAction = holochain.LinkAction;
+  const LinkActions = holochain.LinkAction;
   const SOURCE = `fake holochain`
 
   abstract class EntryClass {
@@ -113,7 +344,7 @@ namespace DHT {
     Base: string;
     Link: string;
     Tag: string;
-    LinkAction?: LinkActions;
+    LinkAction?: LinkAction;
   }
   export interface Link {
     Base: string;
@@ -288,7 +519,7 @@ namespace DHT {
 
         case `links`:
           proto = <LinksEntryClass> proto;
-          record = new LinksEntryClass;
+          record = new LinksEntryClass();
 
 
           let link:UserLink = (<UserLink>entry),
@@ -317,7 +548,7 @@ namespace DHT {
           }
 
 
-          if (whatDo != LinkActions.Del) {
+          if (whatDo !== LinkActions.Del) {
             let hash = record.hash();
             record.next = this.pushLink(link.Base, link.Tag, hash);
             all.set(hash, record);
@@ -333,6 +564,7 @@ namespace DHT {
                 targ = this.findEntry(entry.data.Link);
               if (isError(base)) return false;
               if (isError(targ)) return false;
+              // do some maintainance while we are here.
               entry.data.Base = base;
               entry.data.Link = targ;
               if (base == data.Base && targ == data.Link && entry.data.Tag == data.Tag) {
@@ -538,235 +770,11 @@ export function remove(hash: string, message: string): CanError<string> {
 }
 
 export namespace holochain {
-  type Hash = string;
-	type Signature = string;
-	type HolochainError = object;
-	type PackageRequest = object;
 
-  // ADDED single-instance types in the HC object
-  type HashNotFound = any;
-
-  // ADDED enum properties in the HC object
-  // property of HC.LinkAction
-  type LinkAction = any;
-  // property of HC.Status; can be combined with + operator
-  type StatusMaskValue = number;
-  // property of HC.GetMask; can be combined with + operator
-  type GetMaskValue = number;
-  // property of HC.PkgReq
-  // todo: can they be combined?
-  type PkgReqValue = any;
-  // property of HC.Bridge
-  type BridgeSide = any;
-  // property of HC.SysEntryType
-  type SysEntry = any;
-  // property of HC.BundleCancel.Reason
-  type BundleCancelReason = any;
-  // property of HC.BundleCancel.Response
-  type BundleCancelResponse = any;
-
-  // ADDED entries can be strings, "JSON" entries, or arrays of links wrapped in {Links:[]}
-  type StringEntry = string;
-  type JsonEntry = object;
-  // a linksEntry.Links[] has properties we might as well know...
-  interface Link {
-    Base: Hash;
-    Link: Hash;
-    Tag: string;
-    LinkAction?: LinkAction;
-  }
-  // link arrays are wrapped in an object
-  interface LinksEntry {
-    Links: Link[];
-  }
-  type EntryData = StringEntry | JsonEntry | LinksEntry;
-
-  // ADDED a lot of the API functions can return errors, too.
-  type CanError<T> = T | HolochainError;
-
-  // ADDED but not sure I want it as it could force an inconvenient cast
-  type Arguments = string | object;
-
-  // ADDED an options interface for get() to ensure the proper enums are used.
-  interface GetOptions {
-    StatusMask?: StatusMaskValue;
-    GetMask?: GetMaskValue;
-    Local?: boolean;
-    Bundle?: boolean;
-  }
-
-  // ADDED an options interface for getLinks()
-  interface LinksOptions {
-    Load?: boolean;
-    StatusMask?: StatusMaskValue;
-  }
-
-  // ADDED an options interface for updateAgent()
-  interface UpdateAgentOptions {
-    Revocation: string;
-    Identity: string;
-  }
-
-  // ADDED an options interface for query().  Might not be useful as the docs
-  // are not clear on what is optional, what defaults are, etc.
-  interface QueryOptions {
-    Return?: {
-      Entries?: boolean;
-      Hashes?: boolean;
-      Headers?: boolean;
-    }
-    Constrain?: {
-      EntryTypes?: string[];
-      Contains?: string;
-      Equals?: string;
-      Matches?: RegExp;
-      Count?: number;
-      Page?: number;
-    }
-    Order?: {
-      Ascending?: boolean;
-    }
-    Bundle?: boolean;
-  }
-
-  // ADDED an options interface for send()
-  interface SendOptions {
-    Callback: {
-      Function: string;
-      ID: string;
-    }
-  }
-
-	interface Header {
-	  Type: string;
-	  Time: string;
-	  HeaderLink: Hash;
-	  EntryLink: Hash;
-	  TypeLink: Hash;
-	  Sig: Signature;
-	  Change: Hash;
-	}
-
-  interface GetResponse {
-
-    // REPLACED Entry?: any;
-    Entry?: EntryData;
-	  EntryType?: string;
-	  Sources?: Hash[];
-	}
-
-	interface GetLinksResponse {
-	  Hash: Hash;
-
-    // REPLACED Entry?: any;
-    Entry?: EntryData;
-
-	  EntryType?: string;
-	  Tag?: string;
-	  Source?: Hash;
-	}
-
-  interface QueryResponse {
-
-    // REPLACED Hash?: string
-    Hash?: Hash;
-
-    // REPLACED Entry?: any
-	  Entry?: EntryData;
-
-	  Header?: Header
-	}
-
-  // ADDED the actual result of query() is an array of Hashes, Entries, Headers, or QueryResponse
-  type QueryResult = Hash[] | EntryData[] | Header[] | QueryResponse[];
-
-	interface BridgeStatus {
-	  Side: number;
-	  CalleeName?: string;
-	  CalleeApp?: Hash;
-	  Token?: string;
-	}
 
 
 	/*=====  End of Holochain Data Types  ======*/
 
 
-	interface HolochainSystemGlobals {
-	  Version: string;
 
-    // REPLACED HashNotFound: any;
-	  HashNotFound: HashNotFound;
-
-    // REPLACED Status: any;
-	  Status: {
-      Live: StatusMaskValue;
-      Deleted: StatusMaskValue;
-      Rejected: StatusMaskValue;
-      Any: StatusMaskValue;
-    }
-
-    // REPLACED GetMask: any;
-	  GetMask: {
-      Default: GetMaskValue;
-      Entry: GetMaskValue;
-      EntryType: GetMaskValue;
-      Sources: GetMaskValue;
-      All: GetMaskValue;
-    }
-
-    // REPLACED LinkAction: any;
-	  LinkAction: {
-      Add: LinkAction;
-      Del: LinkAction;
-    }
-
-    // REPLACED PkgReq: any;
-	  PkgReq: {
-      Chain: PkgReqValue;
-      ChainOpt: PkgReqValue;
-      EntryTypes: PkgReqValue;
-    }
-
-    // REPLACED Bridge: any;
-	  Bridge: {
-      From: BridgeSide;
-      To: BridgeSide;
-    }
-
-    // REPLACED SysEntryType: any;
-	  SysEntryType: {
-      DNA: SysEntry;
-      Agent: SysEntry;
-      Key: SysEntry;
-      Headers: SysEntry;
-      Del: SysEntry;
-    }
-
-    // REPLACED BundleCancel: any;
-	  BundleCancel: {
-      Reason: {
-        User: BundleCancelReason;
-        Timeout: BundleCancelReason;
-      }
-      Response: {
-        Commit: BundleCancelResponse;
-        OK: BundleCancelResponse;
-      }
-    }
-	}
-
-	interface HolochainAppGlobals {
-	  Name: string;
-	  DNA: {
-	    Hash: Hash;
-	  };
-	  Key: {
-	    Hash: Hash;
-	  }
-	  Agent: {
-	    Hash: Hash;
-	    TopHash: Hash;
-	    String: string;
-	  }
-	}
 }

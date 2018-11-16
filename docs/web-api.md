@@ -182,7 +182,7 @@ it is never stored and thus never relies on the holochain API functions.
 
 Alias for `unsigned integer`.  The number of milliseconds since January 1, 1970.  Not useful to humans, but easy to compare and calculate differences on, so this is how it's stored internally.  Convert it to a real date using:
 
-    realDate = new Date(wackyIntegerDate);
+    realDate = new Date().setTime(wackyIntegerDate);
 
 ### `PhysicalLocation` type
 [`PhysicalLocation`]: #physicallocation-type

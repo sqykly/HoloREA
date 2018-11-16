@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "typeRoots": ["./agents", "./resources", "./events", "./common"],
+    "newLine" : "lf",
+    "module": "None",
+    "downlevelIteration": true,
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true,
+    "target": "ES5"
+  }
+}

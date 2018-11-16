@@ -1,10 +1,8 @@
-//* IMPORT
+/* IMPORT
 import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../../../lib/ts/common";
 import resources from "../resources/resources";
 /*/
 /**/
-
-
 
 /**
  * A Holo-zome defining functions that deal with agents, relationships, and locations
@@ -37,14 +35,12 @@ class Agent<T = {}> extends VfObject<T & AgentEntry & typeof VfObject.entryType>
 
 const AgentProperty = new LinkRepo<Agent, resources.EconomicResource, "owns">("AgentProperty");
 
-//* EXPORT
-
-namespace agents {
-  type Agent = typeof Agent.entryType;
-  type AgentProperty = typeof AgentProperty;
+namespace zome {
+  export type Agent = typeof Agent.entryType;
+  export type AgentProperty = typeof AgentProperty;
 }
-
-export default agents;
+/* IMPORT
+export default zome;
 /*/
 /**/
 

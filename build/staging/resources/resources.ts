@@ -1,8 +1,5 @@
-//* IMPORT
 import "./es6";
 import "./holochain-proto";
-/*/
-/**/
 
 // FIXME this is only used for testing.  remove when ready to ship
 // maybe it will be fine.  fingers crossed.
@@ -12,20 +9,17 @@ import "./holochain-proto";
  * We aren't going to be able to pass real Maps around between zomes and agents.
  * So old-school, morally wrong dictionary objects will have to do.
  */
-//* EXPORT
-export /**/type Dict<T> = {[key: string]: T};
+export type Dict<T> = {[key: string]: T};
 
 /**
  * Some dicts need both a key type and a value type.
  */
-//* EXPORT
-export /**/type Catalog<K extends string, T> = {[key: string]: T}
+export type Catalog<K extends string, T> = {[key: string]: T}
 
 /**
  * I believe Location was taken.  Don't need any additional detail for now.
  */
-//* EXPORT
-export /**/type PhysicalLocation = string[];
+export type PhysicalLocation = string[];
 
 /**
  * I can write a good bisect of a sorted list in my sleep.  And I think I did,
@@ -37,8 +31,7 @@ export /**/type PhysicalLocation = string[];
  * @param {number} min the index returned is == the index of min, if it exists.
  * @returns {number}
  */
-//* EXPORT
-export /**/function bisect(array: number[], min: number): number {
+export function bisect(array: number[], min: number): number {
   let b = 0, t = array.length;
   while (t > b) {
     let i = (t + b) >> 1,
@@ -58,8 +51,7 @@ export /**/function bisect(array: number[], min: number): number {
  * For when you don't know what you want or need to pass between zomes.
  * @interface
  */
-//* EXPORT
-export /**/interface CrudResponse<T extends object> {
+export interface CrudResponse<T extends object> {
   /** @prop {Error} error this error is why you can't have the other fields */
   error?: {
     name: string;
@@ -86,8 +78,7 @@ export /**/interface CrudResponse<T extends object> {
  * @param {object} [...] More objects to copy onto dest, in order.
  * @returns {T & U}
  */
-//* EXPORT
-export /**/function deepAssign<T extends object, U extends object>(dest: T, src: U, ...more: object[]): T & U {
+export function deepAssign<T extends object, U extends object>(dest: T, src: U, ...more: object[]): T & U {
   for (let p of Object.keys(src)) {
     let v: U[keyof U];
     if (typeof src[p] == `object`) {
@@ -110,8 +101,7 @@ export /**/function deepAssign<T extends object, U extends object>(dest: T, src:
  * For when you're REALLY unsure what you are getting from some other zome.
  * @type
  */
-//* EXPORT
-export /**/type HoloThing<T extends object> = HoloObject<T> | CrudResponse<T> | Hash<T> | T;
+export type HoloThing<T extends object> = HoloObject<T> | CrudResponse<T> | Hash<T> | T;
 
 function isCrud<T extends object>(thing: HoloThing<T>): thing is CrudResponse<T> {
   if (typeof thing !== `object`) return false;
@@ -132,8 +122,7 @@ function isCrud<T extends object>(thing: HoloThing<T>): thing is CrudResponse<T>
  * @throws {Error} if thing really is a T, then it doesn't know its class name,
  *  and without that, it can't be hashed.
  */
-//* EXPORT
-export /**/function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
+export function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
   if (typeof thing == `string`) {
     return thing;
   } else if (thing instanceof HoloObject) {
@@ -155,8 +144,7 @@ export /**/function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
  *  exported zome function or bridge.
  * @returns {T}
  */
-//* EXPORT
-export /**/function entryOf<T extends object>(thing: HoloThing<T>): T {
+export function entryOf<T extends object>(thing: HoloThing<T>): T {
   if (typeof thing == `string`) {
     let got: holochain.CanError<T> = get(thing);
     return isError(got) ? null : got;
@@ -178,8 +166,7 @@ export /**/function entryOf<T extends object>(thing: HoloThing<T>): T {
  * @param {HoloThing<T>} thing - whatever that is.
  * @returns {CrudResponse<T>}
  */
-//* EXPORT
-export /**/function responseOf<T extends object>(thing: HoloThing<T>): CrudResponse<T> {
+export function responseOf<T extends object>(thing: HoloThing<T>): CrudResponse<T> {
   const response: CrudResponse<T> = { error: null, hash: null, entry: null }
   try {
     let hash = response.hash = hashOf(thing);
@@ -194,11 +181,9 @@ export /**/function responseOf<T extends object>(thing: HoloThing<T>): CrudRespo
  * This is for type safety when you need assurance that get(Hash) will return the correct type.
  * But I don't think it's working; it all comes out strings.
  */
-//* EXPORT
-export /**/declare type Hash<T> = holochain.Hash;
+export declare type Hash<T> = holochain.Hash;
 
-//* EXPORT
-export /**/type HoloClass<T,U> = (new (o:U, h:Hash<T>) => T) &
+export type HoloClass<T,U> = (new (o:U, h:Hash<T>) => T) &
   {
     create: (o:U) => T,
     get: (h:Hash<T>) => T,
@@ -210,16 +195,14 @@ export /**/type HoloClass<T,U> = (new (o:U, h:Hash<T>) => T) &
  * It's just as good as a QuantityValue as far as a real QV knows, and it can
  * cross zomes or machines, but you can't do math on it by itself.
  */
-//* EXPORT
-export /**/interface QVlike {units: string, quantity: number};
+export interface QVlike {units: string, quantity: number};
 
 /**
  * A pretty robust implementation of QuantityValue that will some day enable
  * unit conversions and derived units (e.g. Newtons = kg*m^2*s^2)
  * some of the hard work is done, but clearly not all of it.
  */
-//* EXPORT
-export /**/class QuantityValue implements QVlike {
+export class QuantityValue implements QVlike {
   /**
    * There are two special values of units: "" is like "Each", and "%" is a unitless percentage
    * "" only comes into play when multiplying and dividing
@@ -387,8 +370,7 @@ export /**/class QuantityValue implements QVlike {
  * should usually be inferred from the argument, which will have better warnings
  * downstream.
  */
-//*
-export /**/function notError<T>(maybeErr: holochain.CanError<T>): T {
+export function notError<T>(maybeErr: holochain.CanError<T>): T {
   if (isError(maybeErr)) {
     throw new Error(`That was an error! ${``+maybeErr}`);
   } else {
@@ -399,8 +381,7 @@ export /**/function notError<T>(maybeErr: holochain.CanError<T>): T {
 /**
  * The hash you get when commiting a holochain.LinksEntry
  */
-//* EXPORT
-export /**/type LinkHash = Hash<holochain.LinksEntry>
+export type LinkHash = Hash<holochain.LinksEntry>
 
 /**
  * Tool for getting what you need from linkRepo.get() and preserving Hash types
@@ -413,8 +394,7 @@ export /**/type LinkHash = Hash<holochain.LinksEntry>
  * arrays to be for..of'ed
  *
  */
-//* EXPORT
-export /**/class LinkSet<B, L, Tags extends string = string, T = B> extends Array<holochain.GetLinksResponse> {
+export class LinkSet<B, L, Tags extends string = string, T = B> extends Array<holochain.GetLinksResponse> {
 
   constructor(array: Array<holochain.GetLinksResponse>, private origin: LinkRepo<B,L,Tags>, private baseHash: string, private onlyTag?: string) {
     super(...array);
@@ -502,8 +482,7 @@ interface Tag<B,L, T extends string> {
  *  ahead and let it default to string.  Do not use tags that include the pipe
  *  character, '|'
  */
-//* EXPORT
-export /**/class LinkRepo<B, L, T extends string = string> {
+export class LinkRepo<B, L, T extends string = string> {
   /**
    * @param {string} name the exact dna.zomes[].Entries.Name that this repo will
    *  represent.
@@ -810,8 +789,7 @@ interface Named {
  * @example class MyHoloObject<T> extends HoloObject<MyEntryType>
  * @example class LayeredSubclass<T> extends SubclassOfHoloObject<MyEntryType>
  */
-//* EXPORT
-export /**/class HoloObject<tE extends Object = {}> implements Named {
+export class HoloObject<tE extends Object = {}> implements Named {
   /**
    * You must delcare an override of static className to reflect the name of the entry type
    * as listed in the DNA.  Yes, both static and instance className.
@@ -830,18 +808,13 @@ export /**/class HoloObject<tE extends Object = {}> implements Named {
   private openCount: number = 0;
   private openError: Error = null;
   private isCommitted: boolean = false;
-
-  protected hasChanged(): boolean {
+  private hasChanged(): boolean {
     if (this.myHash) {
       return this.myHash === this.makeHash();
     } else {
       return true;
     }
   }
-  protected commited(): boolean {
-    return this.isCommitted;
-  }
-
   /**
    * static entryType must be overriden to be an instance of your entry type or
    * typed as one.
@@ -934,7 +907,7 @@ export /**/class HoloObject<tE extends Object = {}> implements Named {
    * @throws {holochain.HolochainError} if the DHT didn't know about the given hash
    * @throws {TypeError} if the entry doesn't pass the DHT's inspection
    */
-  protected constructor(entry?: tE|null, hash?: Hash<object>) {
+  constructor(entry?: tE|null, hash?: Hash<object>) {
     if (!entry == !hash) throw new Error(`use either entry or hash arguments; can't use both or none`)
 
     if (entry) {
@@ -966,7 +939,7 @@ export /**/class HoloObject<tE extends Object = {}> implements Named {
     } else {
       let hash = commit(this.className, <holochain.JsonEntry>this.myEntry);
       if (isError(hash)) {
-        throw new TypeError(`entry type mismatch or invalid data; hash ${this.myHash} is not a ${this.className}`);
+        throw new TypeError(`entry type mismatch; hash ${this.myHash} is not a ${this.className}`);
       } else {
         this.isCommitted = true;
         return hash;
@@ -1095,7 +1068,7 @@ type LinkVals<E> = {
  * VfEntry and VfObject are a base class for entities that have to do with VF.
  * The standard says that there are a few fields that any object could have.
  */
-interface VfEntry {
+declare interface VfEntry {
   name?: string;
   image?: string;
   note?: string;
@@ -1108,8 +1081,7 @@ interface VfEntry {
  * @see HoloObject
  * @arg T Use this type argument to convey the entry type of a subclass.
  */
-//* EXPORT
-export /**/class VfObject<T extends object = {}> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
+export class VfObject<T extends object = {}> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
   static entryType: VfEntry & typeof HoloObject.entryType;
   protected myEntry: VfEntry & typeof HoloObject.entryType & T;
   static className = "VfObject";
@@ -1154,3 +1126,370 @@ export /**/class VfObject<T extends object = {}> extends HoloObject<VfEntry & ty
     this.myEntry.url = to;
   }
 }
+/* IMPORTS
+import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf } from "../../../lib/ts/common";
+import events from "../events/events";
+import agents from "../agents/agents";
+/*/
+/**/
+
+// <links>
+// <imported from events>
+const EventLinks: events.EventLinks = new LinkRepo(`EventLinks`);
+EventLinks.linkBack("inputs", "inputOf")
+  .linkBack("outputs", "outputOf")
+  .linkBack("inputOf", "inputs")
+  .linkBack("outputOf", "outputs")
+  .linkBack("action", "actionOf")
+  .linkBack("actionOf", "action");
+
+const XferClasses: events.Classifications = new LinkRepo(`Classifications`);
+XferClasses.linkBack("classifiedAs", "classifies")
+  .linkBack("classifies", "classifiedAs");
+
+// </imported from agents/>
+
+const AgentProperty: agents.AgentProperty = new LinkRepo(`AgentProperty`);
+
+// </imported>
+
+// <own> links
+const ResourceClasses = new LinkRepo<
+  EconomicResource|ResourceClassification,
+  EconomicResource|ResourceClassification,
+  "classifiedAs"|"classifies"
+>("ResourceClasses");
+ResourceClasses
+  .linkBack("classifiedAs","classifies")
+  .linkBack("classifies", "classifiedAs");
+
+const ResourceRelationships = new LinkRepo<
+  EconomicResource,
+  EconomicResource,
+  "underlyingResource"|"contains"|"underlies"|"inside"
+>("ResourceRelationships");
+ResourceRelationships
+  .linkBack(`underlyingResource`, `underlies`)
+  .linkBack(`underlies`, `underlyingResource`)
+  .linkBack(`contains`, `inside`)
+  .linkBack(`inside`, `contains`);
+
+const TrackTrace = new LinkRepo<EconomicResource|events.EconomicEvent, events.EconomicEvent|EconomicResource, "affects"|"affectedBy">("TrackTrace");
+TrackTrace.linkBack("affects", "affectedBy")
+  .linkBack("affectedBy", "affects");
+
+// </own> </links>
+
+// <classes>
+interface RcEntry {
+  /**
+   * New instances of the resource will have these units unless overriden on
+   * the instance itself.  Non-standard.
+   * @type {string}
+   */
+  defaultUnits: string;
+}
+
+/**
+ * Represents a category of resources.  For now, it merely provides the default unit
+ * for quantities of resources in this class.
+ * @extends HoloObject
+ */
+class ResourceClassification<T = {}> extends VfObject<T & RcEntry & typeof VfObject.entryType> {
+  static className = "ResourceClassification";
+  className = "ResourceClassification";
+  static entryType: RcEntry & typeof VfObject.entryType;
+  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <RcEntry> {
+      defaultUnits: ''
+    });
+
+  static get(hash: Hash<ResourceClassification>): ResourceClassification {
+    return <ResourceClassification> super.get(hash);
+  }
+  static create(entry: RcEntry & typeof VfObject.entryType): ResourceClassification {
+    return <ResourceClassification> super.create(entry);
+  }
+  constructor(entry?: T & RcEntry & typeof VfObject.entryType, hash?: Hash<ResourceClassification>) {
+    super(entry, hash);
+  }
+
+  instance(properties: typeof EconomicResource.entryType): EconomicResource {
+    let {units, quantity} = properties.currentQuantity,
+      my = this.myEntry;
+    if (!units) {
+      units = my.defaultUnits;
+    } else if (!!my.defaultUnits && units !== my.defaultUnits) {
+      throw new TypeError(`Quantity of resources of class ${my.name || my.url} is expressed in ${my.defaultUnits}, not ${units}`);
+    }
+    return EconomicResource.create({
+      resourceClassifiedAs: this.hash,
+      currentQuantity: {units, quantity},
+      underlyingResource: properties.underlyingResource,
+      contains: properties.contains,
+      trackingIdentifier: properties.trackingIdentifier,
+      owner: properties.owner
+    });
+  }
+
+  get defaultUnits(): string {
+    return this.myEntry.defaultUnits;
+  }
+
+  instances(): EconomicResource[] {
+    return ResourceClasses.get(this.myHash, `classifies`)
+      .types<typeof EconomicResource.entryType>(`EconomicResource`)
+      .hashes().map(erh => EconomicResource.get(erh));
+  }
+
+}
+
+
+
+interface ErEntry {
+  currentQuantity: QVlike;
+  resourceClassifiedAs: Hash<ResourceClassification>; //Hash<ResourceClassification>;
+  underlyingResource?: Hash<EconomicResource>;
+  contains?: Hash<EconomicResource>;
+  trackingIdentifier?: string;
+  //quantityLastCalculated: number;
+  // TODO agent resource roles when they are established
+  owner: Hash<agents.Agent>
+}
+
+class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.entryType> {
+  // <mandatory overrides>
+  className:string = "EconomicResource";
+  static className = "EconomicResource";
+  static entryType: typeof VfObject.entryType & ErEntry;
+
+  static get(hash: Hash<EconomicResource>): EconomicResource {
+    return <EconomicResource> super.get(hash);
+  }
+
+  static create(entry: ErEntry & typeof VfObject.entryType): EconomicResource {
+    let rc = notError(ResourceClassification.get(entry.resourceClassifiedAs));
+
+    if (entry.currentQuantity) {
+      if (!entry.currentQuantity.units) {
+        entry.currentQuantity.units = rc.defaultUnits;
+      }
+    } else {
+      entry.currentQuantity = {units: rc.defaultUnits, quantity: 0};
+    }
+
+    let it = super.create(entry);
+    if (rc) {
+      ResourceClasses.put(it.hash, rc.hash, "classifiedAs");
+    }
+    if (entry.owner) {
+      AgentProperty.put(entry.owner, it.hash, "owns");
+    }
+    if (entry.underlyingResource) {
+      ResourceRelationships.put(it.hash, entry.underlyingResource, "underlyingResource");
+    }
+    if (entry.contains) {
+      ResourceRelationships.put(it.hash, entry.contains, "contains");
+    }
+
+    return <EconomicResource> it;
+  }
+  protected constructor(entry: T & ErEntry & typeof VfObject.entryType | null, hash?: Hash<EconomicResource>) {
+    super(entry, hash);
+  }
+  static entryDefaults = Object.assign({}, VfObject.entryDefaults, {
+    currentQuantity: {units: '', quantity: 0},
+    resourceClassifiedAs: ``,
+    quantityLastCalculated: 0
+  });
+
+  // </mandatory overrides>
+
+  remove(msg?: string): this {
+    const my = this.myEntry;
+    if (my.resourceClassifiedAs) {
+      ResourceClasses.remove(this.myHash, my.resourceClassifiedAs, `classifiedAs`);
+    }
+    TrackTrace.get(this.myHash, `affectedBy`).removeAll();
+    return super.remove(msg);
+  }
+
+  trace(): Hash<events.EconomicEvent>[] {
+    let links = TrackTrace.get(this.myHash, `affectedBy`);
+    let eEvents = links.types<events.EconomicEvent>("EconomicEvent");
+    // I hate this a lot.
+    return <Hash<events.EconomicEvent>[]> call(`events`, `sortEvents`, {events: eEvents.hashes(), order: `up`, by: `end` });
+  }
+
+  get currentQuantity(): QuantityValue {
+    return new QuantityValue(this.myEntry.currentQuantity);
+  }
+  set currentQuantity(to: QuantityValue) {
+    let {units, quantity} = to;
+    this.myEntry.currentQuantity = {units, quantity};
+  }
+}
+// </classes>
+
+// <export>
+
+namespace zome {
+  export type EconomicResource = typeof EconomicResource.entryType;
+  export type ResourceClassification = typeof ResourceClassification.entryType;
+  export type TrackTrace = typeof TrackTrace;
+  export type ResourceClasses = typeof ResourceClasses;
+  export type ResourceRelationships = typeof ResourceRelationships;
+}
+/* IMPORT
+export default zome;
+/*/
+/**/
+
+// </export>
+
+// <fixtures>
+const fixtures = {
+  ResourceClassification: {
+    Currency: new ResourceClassification({name: `Currency`, defaultUnits: ``}).commit(),
+    Work: new ResourceClassification({name: `Work`, defaultUnits: `hours`}).commit(),
+    Idea: new ResourceClassification({name: `Idea`, defaultUnits: `citations`}).commit()
+  }
+}
+// </fixtures>
+
+// public <zome> functions
+
+/**
+ * Retrieves the hashes of all EconomicResource instances classified as given.
+ * @param {Hash<ResourceClassification>} classification the classification to
+ *  get instances of.
+ * @returns {Hash<EconomicResource>[]}
+ */
+function getResourcesInClass(
+  {classification}:
+  {classification: Hash<ResourceClassification>}
+): Hash<EconomicResource>[] {
+  return ResourceClasses.get(classification, `classifies`).hashes();
+}
+
+function getAffectingEvents({resource}: {resource: Hash<EconomicResource>}): Hash<events.EconomicEvent>[] {
+  return TrackTrace.get(resource, "affectedBy").types<events.EconomicEvent>("EconomicEvent").hashes();
+}
+
+// CRUD
+
+function createEconomicResource(
+  {properties: props, event: thing}: {
+    properties: zome.EconomicResource,
+    event: HoloThing<events.EconomicEvent>
+  }
+): CrudResponse<typeof EconomicResource.entryType> {
+  let it: EconomicResource, err: Error;
+  let event: events.EconomicEvent;
+  if (thing) {
+    event = entryOf(thing);
+  }
+  if (!event) {
+    let crud = <ReturnType<events.resourceCreationEvent>>
+      call(`events`, `resourceCreationEvent`, {
+        resource: props
+      });
+    if (crud.error) {
+      return {
+        error: crud.error,
+        entry: null,
+        type: `Error`,
+        hash: ``
+      };
+    }
+    event = crud.entry;
+    let res = EconomicResource.get(event.affects);
+    // that's all we needed to do to sync up its links.
+    res.update();
+    return res.portable();
+  }
+
+  let resQv = props.currentQuantity;
+  let evQv = event.affectedQuantity;
+  if (resQv && evQv) {
+    if (resQv.units !== evQv.units) {
+      if (!resQv.units && resQv.quantity === 0) {
+        resQv.quantity = evQv.quantity;
+        resQv.units = evQv.units;
+      } else if (!evQv.units && evQv.quantity === 0) {
+        evQv.units = resQv.units;
+        evQv.quantity = resQv.quantity;
+      } else {
+        err = new TypeError(`Can't create resource in ${resQv.units} from event in ${evQv.units}`);
+      }
+    }
+    if (!err) {
+      props.currentQuantity = resQv;
+      event.affectedQuantity = evQv;
+    }
+  }
+  if (!err) try {
+    it = notError<EconomicResource>(EconomicResource.create(props));
+    event.affects = it.hash;
+    call(`events`, `createEconomicResource`, event);
+  } catch (e) {
+    err = e;
+  }
+  return {
+    error: err,
+    hash: err ? null : it.commit(),
+    entry: err ? null : it.entry,
+    type: err ? "error" : it.className
+  };
+}
+
+function createResourceClassification(props?: typeof ResourceClassification.entryType): CrudResponse<typeof ResourceClassification.entryType> {
+  let it: ResourceClassification, err: Error;
+  try {
+    it = notError<ResourceClassification>(ResourceClassification.create(props));
+  } catch (e) {
+    err = e;
+  }
+  return {
+    error: err,
+    hash: err ? null : it.commit(),
+    entry: err ? null : it.entry,
+    type: err ? "error" : it.className
+  };
+}
+
+function getFixtures(dontCare: {}): typeof fixtures {
+  return fixtures;
+}
+
+function affect({resource, quantity}:{
+  resource: HoloThing<zome.EconomicResource>,
+  quantity: QVlike
+}): CrudResponse<zome.EconomicResource> {
+  let err: Error, hash: Hash<zome.EconomicResource>, res:EconomicResource;
+  try {
+    res = EconomicResource.get(hashOf(resource));
+    hash = res.open((entry) => {
+      let current = res.currentQuantity.add(quantity);
+      res.currentQuantity = current;
+      return entry;
+    }).update();
+  } catch (e) {
+    err = e;
+  }
+
+  return {
+    error: err,
+    hash: hash || (res && res.hash) || '',
+    entry: (res && res.entry) || entryOf(resource),
+    type: (res && res.className) || `Who knows what this thing is?!`
+  };
+}
+
+// </zome>
+
+// <callbacks>
+function genesis() {
+  return true;
+}
+
+// </callbacks>

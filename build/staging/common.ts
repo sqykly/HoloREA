@@ -1,8 +1,5 @@
-//* IMPORT
 import "./es6";
 import "./holochain-proto";
-/*/
-/**/
 
 // FIXME this is only used for testing.  remove when ready to ship
 // maybe it will be fine.  fingers crossed.
@@ -12,20 +9,17 @@ import "./holochain-proto";
  * We aren't going to be able to pass real Maps around between zomes and agents.
  * So old-school, morally wrong dictionary objects will have to do.
  */
-//* EXPORT
-export /**/type Dict<T> = {[key: string]: T};
+export type Dict<T> = {[key: string]: T};
 
 /**
  * Some dicts need both a key type and a value type.
  */
-//* EXPORT
-export /**/type Catalog<K extends string, T> = {[key: string]: T}
+export type Catalog<K extends string, T> = {[key: string]: T}
 
 /**
  * I believe Location was taken.  Don't need any additional detail for now.
  */
-//* EXPORT
-export /**/type PhysicalLocation = string[];
+export type PhysicalLocation = string[];
 
 /**
  * I can write a good bisect of a sorted list in my sleep.  And I think I did,
@@ -37,8 +31,7 @@ export /**/type PhysicalLocation = string[];
  * @param {number} min the index returned is == the index of min, if it exists.
  * @returns {number}
  */
-//* EXPORT
-export /**/function bisect(array: number[], min: number): number {
+export function bisect(array: number[], min: number): number {
   let b = 0, t = array.length;
   while (t > b) {
     let i = (t + b) >> 1,
@@ -58,8 +51,7 @@ export /**/function bisect(array: number[], min: number): number {
  * For when you don't know what you want or need to pass between zomes.
  * @interface
  */
-//* EXPORT
-export /**/interface CrudResponse<T extends object> {
+export interface CrudResponse<T extends object> {
   /** @prop {Error} error this error is why you can't have the other fields */
   error?: {
     name: string;
@@ -86,8 +78,7 @@ export /**/interface CrudResponse<T extends object> {
  * @param {object} [...] More objects to copy onto dest, in order.
  * @returns {T & U}
  */
-//* EXPORT
-export /**/function deepAssign<T extends object, U extends object>(dest: T, src: U, ...more: object[]): T & U {
+export function deepAssign<T extends object, U extends object>(dest: T, src: U, ...more: object[]): T & U {
   for (let p of Object.keys(src)) {
     let v: U[keyof U];
     if (typeof src[p] == `object`) {
@@ -110,8 +101,7 @@ export /**/function deepAssign<T extends object, U extends object>(dest: T, src:
  * For when you're REALLY unsure what you are getting from some other zome.
  * @type
  */
-//* EXPORT
-export /**/type HoloThing<T extends object> = HoloObject<T> | CrudResponse<T> | Hash<T> | T;
+export type HoloThing<T extends object> = HoloObject<T> | CrudResponse<T> | Hash<T> | T;
 
 function isCrud<T extends object>(thing: HoloThing<T>): thing is CrudResponse<T> {
   if (typeof thing !== `object`) return false;
@@ -132,8 +122,7 @@ function isCrud<T extends object>(thing: HoloThing<T>): thing is CrudResponse<T>
  * @throws {Error} if thing really is a T, then it doesn't know its class name,
  *  and without that, it can't be hashed.
  */
-//* EXPORT
-export /**/function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
+export function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
   if (typeof thing == `string`) {
     return thing;
   } else if (thing instanceof HoloObject) {
@@ -155,8 +144,7 @@ export /**/function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
  *  exported zome function or bridge.
  * @returns {T}
  */
-//* EXPORT
-export /**/function entryOf<T extends object>(thing: HoloThing<T>): T {
+export function entryOf<T extends object>(thing: HoloThing<T>): T {
   if (typeof thing == `string`) {
     let got: holochain.CanError<T> = get(thing);
     return isError(got) ? null : got;
@@ -178,8 +166,7 @@ export /**/function entryOf<T extends object>(thing: HoloThing<T>): T {
  * @param {HoloThing<T>} thing - whatever that is.
  * @returns {CrudResponse<T>}
  */
-//* EXPORT
-export /**/function responseOf<T extends object>(thing: HoloThing<T>): CrudResponse<T> {
+export function responseOf<T extends object>(thing: HoloThing<T>): CrudResponse<T> {
   const response: CrudResponse<T> = { error: null, hash: null, entry: null }
   try {
     let hash = response.hash = hashOf(thing);
@@ -194,11 +181,9 @@ export /**/function responseOf<T extends object>(thing: HoloThing<T>): CrudRespo
  * This is for type safety when you need assurance that get(Hash) will return the correct type.
  * But I don't think it's working; it all comes out strings.
  */
-//* EXPORT
-export /**/declare type Hash<T> = holochain.Hash;
+export declare type Hash<T> = holochain.Hash;
 
-//* EXPORT
-export /**/type HoloClass<T,U> = (new (o:U, h:Hash<T>) => T) &
+export type HoloClass<T,U> = (new (o:U, h:Hash<T>) => T) &
   {
     create: (o:U) => T,
     get: (h:Hash<T>) => T,
@@ -210,16 +195,14 @@ export /**/type HoloClass<T,U> = (new (o:U, h:Hash<T>) => T) &
  * It's just as good as a QuantityValue as far as a real QV knows, and it can
  * cross zomes or machines, but you can't do math on it by itself.
  */
-//* EXPORT
-export /**/interface QVlike {units: string, quantity: number};
+export interface QVlike {units: string, quantity: number};
 
 /**
  * A pretty robust implementation of QuantityValue that will some day enable
  * unit conversions and derived units (e.g. Newtons = kg*m^2*s^2)
  * some of the hard work is done, but clearly not all of it.
  */
-//* EXPORT
-export /**/class QuantityValue implements QVlike {
+export class QuantityValue implements QVlike {
   /**
    * There are two special values of units: "" is like "Each", and "%" is a unitless percentage
    * "" only comes into play when multiplying and dividing
@@ -387,8 +370,7 @@ export /**/class QuantityValue implements QVlike {
  * should usually be inferred from the argument, which will have better warnings
  * downstream.
  */
-//*
-export /**/function notError<T>(maybeErr: holochain.CanError<T>): T {
+export function notError<T>(maybeErr: holochain.CanError<T>): T {
   if (isError(maybeErr)) {
     throw new Error(`That was an error! ${``+maybeErr}`);
   } else {
@@ -399,8 +381,7 @@ export /**/function notError<T>(maybeErr: holochain.CanError<T>): T {
 /**
  * The hash you get when commiting a holochain.LinksEntry
  */
-//* EXPORT
-export /**/type LinkHash = Hash<holochain.LinksEntry>
+export type LinkHash = Hash<holochain.LinksEntry>
 
 /**
  * Tool for getting what you need from linkRepo.get() and preserving Hash types
@@ -413,8 +394,7 @@ export /**/type LinkHash = Hash<holochain.LinksEntry>
  * arrays to be for..of'ed
  *
  */
-//* EXPORT
-export /**/class LinkSet<B, L, Tags extends string = string, T = B> extends Array<holochain.GetLinksResponse> {
+export class LinkSet<B, L, Tags extends string = string, T = B> extends Array<holochain.GetLinksResponse> {
 
   constructor(array: Array<holochain.GetLinksResponse>, private origin: LinkRepo<B,L,Tags>, private baseHash: string, private onlyTag?: string) {
     super(...array);
@@ -502,8 +482,7 @@ interface Tag<B,L, T extends string> {
  *  ahead and let it default to string.  Do not use tags that include the pipe
  *  character, '|'
  */
-//* EXPORT
-export /**/class LinkRepo<B, L, T extends string = string> {
+export class LinkRepo<B, L, T extends string = string> {
   /**
    * @param {string} name the exact dna.zomes[].Entries.Name that this repo will
    *  represent.
@@ -810,8 +789,7 @@ interface Named {
  * @example class MyHoloObject<T> extends HoloObject<MyEntryType>
  * @example class LayeredSubclass<T> extends SubclassOfHoloObject<MyEntryType>
  */
-//* EXPORT
-export /**/class HoloObject<tE extends Object = {}> implements Named {
+export class HoloObject<tE extends Object = {}> implements Named {
   /**
    * You must delcare an override of static className to reflect the name of the entry type
    * as listed in the DNA.  Yes, both static and instance className.
@@ -830,18 +808,13 @@ export /**/class HoloObject<tE extends Object = {}> implements Named {
   private openCount: number = 0;
   private openError: Error = null;
   private isCommitted: boolean = false;
-
-  protected hasChanged(): boolean {
+  private hasChanged(): boolean {
     if (this.myHash) {
       return this.myHash === this.makeHash();
     } else {
       return true;
     }
   }
-  protected commited(): boolean {
-    return this.isCommitted;
-  }
-
   /**
    * static entryType must be overriden to be an instance of your entry type or
    * typed as one.
@@ -934,7 +907,7 @@ export /**/class HoloObject<tE extends Object = {}> implements Named {
    * @throws {holochain.HolochainError} if the DHT didn't know about the given hash
    * @throws {TypeError} if the entry doesn't pass the DHT's inspection
    */
-  protected constructor(entry?: tE|null, hash?: Hash<object>) {
+  constructor(entry?: tE|null, hash?: Hash<object>) {
     if (!entry == !hash) throw new Error(`use either entry or hash arguments; can't use both or none`)
 
     if (entry) {
@@ -966,7 +939,7 @@ export /**/class HoloObject<tE extends Object = {}> implements Named {
     } else {
       let hash = commit(this.className, <holochain.JsonEntry>this.myEntry);
       if (isError(hash)) {
-        throw new TypeError(`entry type mismatch or invalid data; hash ${this.myHash} is not a ${this.className}`);
+        throw new TypeError(`entry type mismatch; hash ${this.myHash} is not a ${this.className}`);
       } else {
         this.isCommitted = true;
         return hash;
@@ -1095,7 +1068,7 @@ type LinkVals<E> = {
  * VfEntry and VfObject are a base class for entities that have to do with VF.
  * The standard says that there are a few fields that any object could have.
  */
-interface VfEntry {
+declare interface VfEntry {
   name?: string;
   image?: string;
   note?: string;
@@ -1108,8 +1081,7 @@ interface VfEntry {
  * @see HoloObject
  * @arg T Use this type argument to convey the entry type of a subclass.
  */
-//* EXPORT
-export /**/class VfObject<T extends object = {}> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
+export class VfObject<T extends object = {}> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
   static entryType: VfEntry & typeof HoloObject.entryType;
   protected myEntry: VfEntry & typeof HoloObject.entryType & T;
   static className = "VfObject";

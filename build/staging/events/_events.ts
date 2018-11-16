@@ -1,18 +1,9 @@
-//* IMPORTS
+/* IMPORTS
 import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../../../lib/ts/common";
 import resources from "../resources/resources";
 import agents from "../agents/agents"
 /*/
 /**/
-
-/* TYPE-SCOPE
-import "../types/agents/"
-import "../types/resources/"
-import "../"
-/*/
-/**/
-
-
 // <imports>
 type Agent = agents.Agent;
 type EconomicResource = resources.EconomicResource;
@@ -149,18 +140,6 @@ class TransferClassification<T = {}> extends VfObject<T & XferClassEntry & typeo
 
 }
 
-const fixtures = {
-  Action: {
-    Give: new Action({name: `Give`, behavior: '-'}).commit(),
-    Receive: new Action({name: `Receive`, behavior: '+'}).commit(),
-    Adjust: new Action({name: `Adjust`, behavior: '+'}).commit()
-  },
-  TransferClassification: {
-    Stub: new TransferClassification({
-      name: `Transfer Classification Stub`
-    }).commit()
-  }
-};
 
 interface XferEntry {
   transferClassifiedAs: Hash<TransferClassification>;
@@ -221,19 +200,6 @@ class Transfer<T = {}> extends VfObject<T & typeof VfObject.entryType & XferEntr
     this.myEntry.transferClassifiedAs = to.hash;
   }
 
-  remove(msg:string): this {
-    let {inputs, outputs, transferClassifiedAs: classy} = this.myEntry;
-    if (inputs) {
-      EventLinks.remove(this.hash, inputs, `inputs`);
-    }
-    if (outputs) {
-      EventLinks.remove(this.hash, outputs, `outputs`);
-    }
-    if (classy) {
-      Classifications.remove(this.hash, classy, `classifiedAs`);
-    }
-    return super.remove(msg);
-  }
 }
 
 interface EeEntry {
@@ -243,19 +209,20 @@ interface EeEntry {
   affects: Hash<EconomicResource>;
   receiver: string; //receiver?: Hash<Agent>;
   provider: string; //provider?: Hash<Agent>;
+
   scope?: Hash<any>;
   affectedQuantity: QVlike;
   start?: number;
   duration?: number;
 }
 
-class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entryType> {
+export class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entryType> {
   // begin mandatory overrides
   static className = "EconomicEvent";
   className = "EconomicEvent";
   static entryType: EeEntry & typeof VfObject.entryType;
   static entryDefaults = Object.assign({}, VfObject.entryDefaults, <EeEntry>{
-    action: fixtures.Action.Adjust,
+    action: ``,
     affects: ``,
     affectedQuantity: { units: ``, quantity: 0 },
     start: 0,
@@ -269,7 +236,6 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
   }
   constructor(entry?: EeEntry & T & typeof VfObject.entryType, hash?: Hash<EconomicEvent>) {
     super(entry, hash);
-    entry = this.myEntry;
     if (!entry.start) this.myEntry.start = Date.now();
     if (!entry.duration) this.myEntry.duration = Date.now();
   }
@@ -278,14 +244,8 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
     return this.entry.action && Action.get(this.entry.action) || null;
   }
   set action(obj: Action) {
-    let my = this.myEntry;
-    if (!obj) {
-      if (my.action) {
-        throw new Error(`economicEvent.action is a required field; can't be set to ${obj}`);
-      }
-    }
     let to = obj.hash;
-
+    let my = this.myEntry;
 
     if (!!my.action && to !== my.action) {
       EventLinks.remove(this.hash, my.action, `action`);
@@ -293,33 +253,6 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
     my.action = to;
     this.update();
     EventLinks.put(this.hash, to, `action`);
-  }
-
-  get inputOf(): Transfer {
-    return this.myEntry.inputOf && Transfer.get(this.myEntry.inputOf) || null;
-  }
-  set inputOf(to: Transfer) {
-    let my = this.myEntry;
-    if (!to) {
-      if (my.outputOf) {
-        EventLinks.remove(this.myHash, my.outputOf, `outputOf`);
-        my.outputOf = null;
-      }
-      return;
-    }
-
-    let hash = to.hash;
-    if (!!my.inputOf && my.inputOf !== hash) {
-      EventLinks.remove(this.hash, my.inputOf, `inputOf`);
-      // somehow get the other instance to reload its fields?
-    }
-    my.inputOf = hash;
-    EventLinks.put(this.myHash, hash, `inputOf`);
-    this.myHash = this.update();
-  }
-
-  get outputOf(): Transfer {
-    return this.myEntry.outputOf && Transfer.get(this.myEntry.outputOf) || null;
   }
 
   get quantity(): QuantityValue {
@@ -392,23 +325,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
     return this.myEntry.affects;
   }
 
-  commit(): Hash<EeEntry> {
-    let my = this.myEntry;
-    let linksOut = EventLinks.get(this.myHash);
 
-    let action = linksOut.tags(`action`).hashes();
-    if (!action.length || action[0] !== my.action && my.action) {
-      EventLinks.put(this.myHash, my.action, `action`);
-      if (action.length) {
-        // TODO
-      }
-    }
-
-
-
-    let hash = super.commit();
-
-  }
 }
 
 /*
@@ -418,14 +335,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
  * That means entry types, not classes, and function signatures.  Oddly enough,
  * LinkRepo just needs a name and a type signature to thaw, so those will be ok
  */
-
-/* TYPE-SCOPE
-declare
-/*/
-/**/
-//* EXPORT
-
-namespace events {
+namespace zome {
   export type Action = typeof Action.entryType;
   export type EconomicEvent = typeof EconomicEvent.entryType;
   export type TransferClassification = typeof TransferClassification.entryType;
@@ -435,9 +345,7 @@ namespace events {
   export type EventLinks = typeof EventLinks;
   export type functions =
     "traceEvents"|"trackEvents"|"traceTransfers"|"trackTransfers"|
-    "eventSubtotals"|"eventsEndedBefore"|"eventsStartedBefore"|"eventEndedAfter"|
-    "eventsStartedAfter"|"createEvent"|"createTransfer"|"createTransferClass"|
-    "createAction"|"resourceCreationEvent"|"sortEvents";
+    "eventSubtotals"|"eventsEndedBefore"|"eventsStartedBefore";
   export type trackEvents = typeof trackEvents;
   export type traceEvents = typeof traceEvents;
   export type traceTransfers = typeof traceTransfers;
@@ -450,13 +358,13 @@ namespace events {
   export type sortEvents = typeof sortEvents;
   export type resourceCreationEvent = typeof resourceCreationEvent;
 }
-export default events;
-/*/
+
+/* IMPORT
+export default zome;
 /**/
 
-
 // <Zome exports> (call() functions)
-//* HOLO-SCOPE
+
 // for <DRY> purposes
 function trackTrace<T, U>(subjects: Hash<T>[], tag: string): Hash<U>[] {
   return subjects.reduce((response: Hash<U>[], subject: Hash<T>) => {
@@ -474,53 +382,53 @@ function filterByTime({events, when}: TimeFilter, filter: (ev: EconomicEvent) =>
 }
 // </DRY>
 
-function traceEvents(events: Hash<EconomicEvent>[]): CrudResponse<events.Transfer>[] {
+function traceEvents(events: Hash<EconomicEvent>[]): CrudResponse<zome.Transfer>[] {
   return trackTrace(events, `outputOf`).map((hash) => {
     let instance = Transfer.get(hash);
     return instance.portable();
   });
 }
 
-function trackEvents(events: Hash<EconomicEvent>[]): CrudResponse<events.Transfer>[] {
+function trackEvents(events: Hash<EconomicEvent>[]): CrudResponse<zome.Transfer>[] {
   return trackTrace(events, `inputOf`).map((hash) => {
     let instance = Transfer.get(hash);
     return instance.portable();
   });
 }
 
-function traceTransfers(xfers: Hash<Transfer>[]): CrudResponse<events.EconomicEvent>[] {
+function traceTransfers(xfers: Hash<Transfer>[]): CrudResponse<zome.EconomicEvent>[] {
   return trackTrace(xfers, `inputs`).map((hash) => {
     let instance = EconomicEvent.get(hash);
     return instance.portable();
   });
 }
 
-function trackTransfers(xfers: Hash<Transfer>[]): CrudResponse<events.EconomicEvent>[] {
+function trackTransfers(xfers: Hash<Transfer>[]): CrudResponse<zome.EconomicEvent>[] {
   return trackTrace(xfers, `outputs`).map((hash) => {
     let instance = EconomicEvent.get(hash);
     return instance.portable();
   });
 }
 
-function eventsStartedBefore({events, when}: TimeFilter): CrudResponse<events.EconomicEvent>[] {
+function eventsStartedBefore({events, when}: TimeFilter): CrudResponse<zome.EconomicEvent>[] {
   return filterByTime({events, when}, ((ev) => when > ev.start)).map(hash => {
     return EconomicEvent.get(hash).portable();
   });
 }
 
-function eventsEndedBefore({events, when}: TimeFilter): CrudResponse<events.EconomicEvent>[] {
+function eventsEndedBefore({events, when}: TimeFilter): CrudResponse<zome.EconomicEvent>[] {
   return filterByTime({events, when}, ((ev) => ev.end < when)).map(hash => {
     return EconomicEvent.get(hash).portable();
   });
 }
 
-function eventsStartedAfter({events, when}: TimeFilter): CrudResponse<events.EconomicEvent>[] {
+function eventsStartedAfter({events, when}: TimeFilter): CrudResponse<zome.EconomicEvent>[] {
   return filterByTime({events, when}, ((ev) => when < ev.start)).map(hash => {
     return EconomicEvent.get(hash).portable();
   });
 }
 
-function eventsEndedAfter({events, when}: TimeFilter): CrudResponse<events.EconomicEvent>[] {
+function eventsEndedAfter({events, when}: TimeFilter): CrudResponse<zome.EconomicEvent>[] {
   return filterByTime({events, when}, ((ev) => ev.end > when)).map(hash => {
     return EconomicEvent.get(hash).portable();
   });
@@ -529,7 +437,7 @@ function eventsEndedAfter({events, when}: TimeFilter): CrudResponse<events.Econo
 function sortEvents(
   {events, by, order, start, end}:
   {events: Hash<EconomicEvent>[], order: "up"|"down", by: "start"|"end", start?: number, end?: number}
-): CrudResponse<events.EconomicEvent>[] {
+): CrudResponse<zome.EconomicEvent>[] {
   let objects = events.map((ev) => EconomicEvent.get(ev)),
     orderBy = by === "start" ?
       (ev:EconomicEvent) => ev.start :
@@ -550,8 +458,6 @@ function sortEvents(
   if (order === "down") objects = objects.reverse();
   return objects.map((ev) => ev.portable());
 }
-/*/
-/**/
 
 /**
  * A structure that details the event and state history of a group of resources
@@ -565,7 +471,6 @@ function sortEvents(
  * @member {Dict<QVlike>} totals The keys of all resources store the QVlike
  *  state of each resource after all the listed events (and previous)
  */
-//* HOLO-SCOPE
 interface Subtotals {
   events: {
     event: CrudResponse<typeof EconomicEvent.entryType>,
@@ -610,8 +515,20 @@ function eventSubtotals(hashes: Hash<EconomicEvent>[]): Subtotals {
 
 // <fixtures>
 
+const fixtures = {
+  Action: {
+    Give: new Action({name: `Give`, behavior: '-'}).commit(),
+    Receive: new Action({name: `Receive`, behavior: '+'}).commit(),
+    Adjust: new Action({name: `Adjust`, behavior: '+'}).commit()
+  },
+  TransferClassification: {
+    Stub: new TransferClassification({
+      name: `Transfer Classification Stub`
+    })
+  }
+};
 
-function getFixtures(dontCare: any): typeof fixtures {
+function getFixtures(dontCare: object): typeof fixtures {
   return fixtures;
 }
 
@@ -621,7 +538,7 @@ function resourceCreationEvent(
   { resource, dates }: {
     resource: resources.EconomicResource, dates?:{start: number, end?:number}
   }
-): CrudResponse<events.EconomicEvent> {
+): CrudResponse<zome.EconomicEvent> {
   let adjustHash: Hash<Action> = fixtures.Action.Adjust;
   let qv = resource.currentQuantity;
   let start: number, end: number;
@@ -644,7 +561,7 @@ function resourceCreationEvent(
   // THIS ONLY WORKS IN A STRATEGY-2 RESOURCE (see mattermost rants)
   // a strategy-1 resource is calculated forward, so the pre-event state MUST
   // have quantity 0.
-  let entry: events.EconomicEvent = {
+  let entry: zome.EconomicEvent = {
     action: adjustHash,
     affects: resHash,
     receiver: resource.owner,
@@ -720,5 +637,3 @@ function createAction(init: typeof Action.entryType): CrudResponse<typeof Action
     entry: it.entry
   };
 }
-/*/
-/**/

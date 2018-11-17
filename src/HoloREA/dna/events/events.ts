@@ -1,14 +1,14 @@
 //* IMPORTS
 import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../../../lib/ts/common";
 import resources from "../resources/resources";
-import agents from "../agents/agents"
+import agents from "../agents/agents";
 /*/
 /**/
 
 /* TYPE-SCOPE
-import "../types/agents/"
-import "../types/resources/"
-import "../"
+import "../agents/agents"
+import "../resources/resources"
+import "../common/common"
 /*/
 /**/
 
@@ -392,22 +392,75 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
     return this.myEntry.affects;
   }
 
-  commit(): Hash<EeEntry> {
+  private updateLinks(hash?: Hash<this>): Hash<this> {
+    hash = hash || this.hash
     let my = this.myEntry;
     let linksOut = EventLinks.get(this.myHash);
 
-    let action = linksOut.tags(`action`).hashes();
-    if (!action.length || action[0] !== my.action && my.action) {
-      EventLinks.put(this.myHash, my.action, `action`);
+    let action = linksOut.tags(`action`);
+    if (my.action && (!action.length || action.hashes[0] !== my.action)) {
+      EventLinks.put(hash, my.action, `action`);
       if (action.length) {
-        // TODO
+        action.removeAll();
       }
     }
 
+    let inputOf = linksOut.tags(`outputOf`);
+    if (my.inputOf && (!inputOf.length || inputOf.hashes()[0] !== my.inputOf)) {
+      EventLinks.put(hash, my.inputOf, `inputOf`);
+      if (inputOf.length) {
+        inputOf.removeAll();
+      }
+    }
 
+    let outputOf = linksOut.tags(`outputOf`);
+    if (my.outputOf && (!outputOf.length || outputOf.hashes()[0] !== my.outputOf)) {
+      EventLinks.put(hash, my.outputOf, `outputOf`);
+      if (outputOf.length) {
+        outputOf.removeAll();
+      }
+    }
 
-    let hash = super.commit();
+    let affects = TrackTrace.get(hash, `affects`);
+    if (my.affects && (!affects.length || affects.hashes()[0] === my.affects)) {
+      TrackTrace.put(hash, my.affects, `affects`);
+      if (affects.length) {
+        affects.removeAll();
+      }
+    }
 
+    return hash;
+  }
+
+  commit(): Hash<this> {
+    return this.updateLinks(super.commit());
+  }
+
+  update(): Hash<this> {
+    return this.updateLinks(super.update());
+  }
+
+  remove(): this {
+    const my = this.myEntry;
+    const hash = this.myHash;
+
+    // If the event is removed, its effect is also reversed.
+    let affects = TrackTrace.get(hash, `affects`);
+    if (affects.length) {
+      let resource = <resources.EconomicResource> affects.data()[0];
+      let sign = this.action.sign;
+      let effect = this.quantity.mul({units: '', quantity: sign});
+      let old = new QuantityValue(resource.currentQuantity);
+      let {units, quantity} = old.sub(effect);
+
+      resource.currentQuantity = {units, quantity};
+      update(`EconomicResource`, resource, my.affects);
+      affects.removeAll();
+    }
+
+    EventLinks.get(hash).tags(`action`, `inputOf`, `outputOf`).removeAll();
+
+    return super.remove();
   }
 }
 
@@ -420,7 +473,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
  */
 
 /* TYPE-SCOPE
-declare
+//declare
 /*/
 /**/
 //* EXPORT
@@ -433,22 +486,22 @@ namespace events {
   export type Process = typeof Process.entryType;
   export type Classifications = typeof Classifications;
   export type EventLinks = typeof EventLinks;
-  export type functions =
-    "traceEvents"|"trackEvents"|"traceTransfers"|"trackTransfers"|
-    "eventSubtotals"|"eventsEndedBefore"|"eventsStartedBefore"|"eventEndedAfter"|
-    "eventsStartedAfter"|"createEvent"|"createTransfer"|"createTransferClass"|
-    "createAction"|"resourceCreationEvent"|"sortEvents";
-  export type trackEvents = typeof trackEvents;
-  export type traceEvents = typeof traceEvents;
-  export type traceTransfers = typeof traceTransfers;
-  export type trackTransfers = typeof trackTransfers;
-  export type eventSubtotals = typeof eventSubtotals;
-  export type eventsStartedBefore = typeof eventsStartedBefore;
-  export type eventsEndedBefore = typeof eventsEndedBefore;
-  export type eventsStartedAfter = typeof eventsStartedAfter;
-  export type eventsEndedAfter = typeof eventsEndedAfter;
-  export type sortEvents = typeof sortEvents;
-  export type resourceCreationEvent = typeof resourceCreationEvent;
+  //export type functions =
+  //  "traceEvents"|"trackEvents"|"traceTransfers"|"trackTransfers"|
+  //  "eventSubtotals"|"eventsEndedBefore"|"eventsStartedBefore"|"eventEndedAfter"|
+  //  "eventsStartedAfter"|"createEvent"|"createTransfer"|"createTransferClass"|
+  //  "createAction"|"resourceCreationEvent"|"sortEvents";
+  //export type trackEvents = typeof trackEvents;
+  //export type traceEvents = typeof traceEvents;
+  //export type traceTransfers = typeof traceTransfers;
+  //export type trackTransfers = typeof trackTransfers;
+  //export type eventSubtotals = typeof eventSubtotals;
+  //export type eventsStartedBefore = typeof eventsStartedBefore;
+  //export type eventsEndedBefore = typeof eventsEndedBefore;
+  //export type eventsStartedAfter = typeof eventsStartedAfter;
+  //export type eventsEndedAfter = typeof eventsEndedAfter;
+  //export type sortEvents = typeof sortEvents;
+  //export type resourceCreationEvent = typeof resourceCreationEvent;
 }
 export default events;
 /*/

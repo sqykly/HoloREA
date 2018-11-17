@@ -4,8 +4,11 @@ import resources from "../resources/resources";
 /*/
 /**/
 
-
-
+/* TYPE-SCOPE
+import "../common/common"
+import "../resources/resources"
+/*/
+/**/
 /**
  * A Holo-zome defining functions that deal with agents, relationships, and locations
  */
@@ -49,7 +52,7 @@ export default agents;
 /**/
 
 // <zome> public functions
-
+//* HOLO-SCOPE
 function createAgent(props?: typeof Agent.entryType): CrudResponse<typeof Agent.entryType> {
   let it: Agent, err: Error;
   try {
@@ -98,3 +101,5 @@ function getOwnedResources(
 
   return agentDicts;
 }
+/*/
+/**/

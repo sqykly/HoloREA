@@ -1,5 +1,8 @@
+/* IMPORT
 import "./es6";
 import "./holochain-proto";
+/*/
+/**/
 
 // FIXME this is only used for testing.  remove when ready to ship
 // maybe it will be fine.  fingers crossed.
@@ -9,17 +12,20 @@ import "./holochain-proto";
  * We aren't going to be able to pass real Maps around between zomes and agents.
  * So old-school, morally wrong dictionary objects will have to do.
  */
-export type Dict<T> = {[key: string]: T};
+//* EXPORT
+export /**/type Dict<T> = {[key: string]: T};
 
 /**
  * Some dicts need both a key type and a value type.
  */
-export type Catalog<K extends string, T> = {[key: string]: T}
+//* EXPORT
+export /**/type Catalog<K extends string, T> = {[key: string]: T}
 
 /**
  * I believe Location was taken.  Don't need any additional detail for now.
  */
-export type PhysicalLocation = string[];
+//* EXPORT
+export /**/type PhysicalLocation = string[];
 
 /**
  * I can write a good bisect of a sorted list in my sleep.  And I think I did,
@@ -31,7 +37,8 @@ export type PhysicalLocation = string[];
  * @param {number} min the index returned is == the index of min, if it exists.
  * @returns {number}
  */
-export function bisect(array: number[], min: number): number {
+//* EXPORT
+export /**/function bisect(array: number[], min: number): number {
   let b = 0, t = array.length;
   while (t > b) {
     let i = (t + b) >> 1,
@@ -51,7 +58,8 @@ export function bisect(array: number[], min: number): number {
  * For when you don't know what you want or need to pass between zomes.
  * @interface
  */
-export interface CrudResponse<T extends object> {
+//* EXPORT
+export /**/interface CrudResponse<T extends object> {
   /** @prop {Error} error this error is why you can't have the other fields */
   error?: {
     name: string;
@@ -78,7 +86,8 @@ export interface CrudResponse<T extends object> {
  * @param {object} [...] More objects to copy onto dest, in order.
  * @returns {T & U}
  */
-export function deepAssign<T extends object, U extends object>(dest: T, src: U, ...more: object[]): T & U {
+//* EXPORT
+export /**/function deepAssign<T extends object, U extends object>(dest: T, src: U, ...more: object[]): T & U {
   for (let p of Object.keys(src)) {
     let v: U[keyof U];
     if (typeof src[p] == `object`) {
@@ -101,7 +110,8 @@ export function deepAssign<T extends object, U extends object>(dest: T, src: U, 
  * For when you're REALLY unsure what you are getting from some other zome.
  * @type
  */
-export type HoloThing<T extends object> = HoloObject<T> | CrudResponse<T> | Hash<T> | T;
+//* EXPORT
+export /**/type HoloThing<T extends object> = HoloObject<T> | CrudResponse<T> | Hash<T> | T;
 
 function isCrud<T extends object>(thing: HoloThing<T>): thing is CrudResponse<T> {
   if (typeof thing !== `object`) return false;
@@ -122,7 +132,8 @@ function isCrud<T extends object>(thing: HoloThing<T>): thing is CrudResponse<T>
  * @throws {Error} if thing really is a T, then it doesn't know its class name,
  *  and without that, it can't be hashed.
  */
-export function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
+//* EXPORT
+export /**/function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
   if (typeof thing == `string`) {
     return thing;
   } else if (thing instanceof HoloObject) {
@@ -144,7 +155,8 @@ export function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
  *  exported zome function or bridge.
  * @returns {T}
  */
-export function entryOf<T extends object>(thing: HoloThing<T>): T {
+//* EXPORT
+export /**/function entryOf<T extends object>(thing: HoloThing<T>): T {
   if (typeof thing == `string`) {
     let got: holochain.CanError<T> = get(thing);
     return isError(got) ? null : got;
@@ -166,7 +178,8 @@ export function entryOf<T extends object>(thing: HoloThing<T>): T {
  * @param {HoloThing<T>} thing - whatever that is.
  * @returns {CrudResponse<T>}
  */
-export function responseOf<T extends object>(thing: HoloThing<T>): CrudResponse<T> {
+//* EXPORT
+export /**/function responseOf<T extends object>(thing: HoloThing<T>): CrudResponse<T> {
   const response: CrudResponse<T> = { error: null, hash: null, entry: null }
   try {
     let hash = response.hash = hashOf(thing);
@@ -181,9 +194,11 @@ export function responseOf<T extends object>(thing: HoloThing<T>): CrudResponse<
  * This is for type safety when you need assurance that get(Hash) will return the correct type.
  * But I don't think it's working; it all comes out strings.
  */
-export declare type Hash<T> = holochain.Hash;
+//* EXPORT
+export /**/declare type Hash<T> = holochain.Hash;
 
-export type HoloClass<T,U> = (new (o:U, h:Hash<T>) => T) &
+//* EXPORT
+export /**/type HoloClass<T,U> = (new (o:U, h:Hash<T>) => T) &
   {
     create: (o:U) => T,
     get: (h:Hash<T>) => T,
@@ -195,14 +210,16 @@ export type HoloClass<T,U> = (new (o:U, h:Hash<T>) => T) &
  * It's just as good as a QuantityValue as far as a real QV knows, and it can
  * cross zomes or machines, but you can't do math on it by itself.
  */
-export interface QVlike {units: string, quantity: number};
+//* EXPORT
+export /**/interface QVlike {units: string, quantity: number};
 
 /**
  * A pretty robust implementation of QuantityValue that will some day enable
  * unit conversions and derived units (e.g. Newtons = kg*m^2*s^2)
  * some of the hard work is done, but clearly not all of it.
  */
-export class QuantityValue implements QVlike {
+//* EXPORT
+export /**/class QuantityValue implements QVlike {
   /**
    * There are two special values of units: "" is like "Each", and "%" is a unitless percentage
    * "" only comes into play when multiplying and dividing
@@ -370,7 +387,8 @@ export class QuantityValue implements QVlike {
  * should usually be inferred from the argument, which will have better warnings
  * downstream.
  */
-export function notError<T>(maybeErr: holochain.CanError<T>): T {
+//*
+export /**/function notError<T>(maybeErr: holochain.CanError<T>): T {
   if (isError(maybeErr)) {
     throw new Error(`That was an error! ${``+maybeErr}`);
   } else {
@@ -381,7 +399,20 @@ export function notError<T>(maybeErr: holochain.CanError<T>): T {
 /**
  * The hash you get when commiting a holochain.LinksEntry
  */
-export type LinkHash = Hash<holochain.LinksEntry>
+//* EXPORT
+export /**/type LinkHash = Hash<holochain.LinksEntry>
+
+//* EXPORT
+export/**/interface LinkReplacement<T, Tags> {
+  hash: Hash<T>;
+  tag: Tags;
+  type: string;
+}
+
+//* EXPORT
+export/**/interface LinkReplace<T, Tags> extends LinkReplacement<T, Tags> {
+  readonly entry: T;
+}
 
 /**
  * Tool for getting what you need from linkRepo.get() and preserving Hash types
@@ -394,7 +425,8 @@ export type LinkHash = Hash<holochain.LinksEntry>
  * arrays to be for..of'ed
  *
  */
-export class LinkSet<B, L, Tags extends string = string, T = B> extends Array<holochain.GetLinksResponse> {
+//* EXPORT
+export /**/class LinkSet<B, L, Tags extends string = string, T = B> extends Array<holochain.GetLinksResponse> {
 
   constructor(array: Array<holochain.GetLinksResponse>, private origin: LinkRepo<B,L,Tags>, private baseHash: string, private onlyTag?: string) {
     super(...array);
@@ -421,6 +453,8 @@ export class LinkSet<B, L, Tags extends string = string, T = B> extends Array<ho
    * @params {string} typeNames is the list of types that the result should have.
    *  these are the type names, not the classes.
    * @returns {LinkSet<C>}
+   * @deprecated
+   * FIXME.  Super deprecated.
    */
   types<C = T>(...typeNames: string[]): LinkSet<B,L,Tags,C> {
     let uniques = new Set<string>(typeNames);
@@ -460,6 +494,77 @@ export class LinkSet<B, L, Tags extends string = string, T = B> extends Array<ho
     });
     this.splice(0, this.length);
   }
+
+  /**
+   * Filters and replaces elements of the set.  Provide a function that accepts
+   * a LinkReplace ({hash, tag, type, entry}) and returns a LinkReplacement
+   * ({hash, tag, type}).  Return undefined or the unmodified argument to leave
+   * the link alone.  Return null to have the link deleted, both from the set
+   * and the DHT.  Return false to remove the link from the set without deleting
+   * on the DHT.  Otherwise, return the new {hash, tag, type}.
+   * @returns {this}
+   */
+  replace(fn: (obj: LinkReplace<T, Tags>) => LinkReplacement<T, Tags>|false): this {
+    const {length, origin} = this;
+    const removals: number[] = [];
+
+    for (let i = 0; i < length; i++) {
+      const {EntryType: type} = this[i];
+      let hash = <Hash<T>>this[i].Hash;
+      let tag = <Tags>this[i].Tag;
+
+      let entry = get(hash);
+
+      if (!isError(entry)) {
+        let rep = fn({hash, tag, type, entry});
+        if (rep === null) {
+          origin.remove(this.baseHash, hash, tag);
+          removals.push(i);
+        } else if (rep === false) {
+          removals.push(i);
+        } else if (rep && (tag !== rep.tag || hash !== rep.hash)) {
+          if (hash === rep.hash && type !== rep.type) {
+            throw new TypeError(`can't link to ${type} ${hash} as type ${rep.type}`);
+          }
+          origin.remove(this.baseHash, hash, tag);
+          tag = rep.tag;
+          hash = rep.hash;
+          origin.put(this.baseHash, hash, tag);
+          this[i] = {
+            EntryType: rep.type,
+            Tag: tag,
+            Hash: hash
+          };
+        }
+      } else {
+        removals.push(i);
+      }
+    }
+
+    for (let i of removals) {
+      this.splice(i, 1);
+    }
+
+    return this;
+  }
+
+  /**
+   * Go through the set link by link, accepting or rejecting them for a new
+   * LinkSet as you go.  The callback should accept a {type, entry, hash, tag}
+   * and return a boolean.
+   */
+  select(fn: (lr: LinkReplace<T, Tags>) => boolean): LinkSet<B, L, Tags, T> {
+    let chosen = new LinkSet<B, L, Tags, T>([], this.origin, this.baseHash);
+
+    for (let response of this) {
+      let {EntryType: type, Hash: hash} = response;
+      let tag = <Tags> response.Tag;
+      let entry = <T>notError(get(hash));
+      if (fn({type, entry, hash, tag})) chosen.push(response);
+    }
+
+    return chosen;
+  }
 }
 
 interface Tag<B,L, T extends string> {
@@ -482,7 +587,8 @@ interface Tag<B,L, T extends string> {
  *  ahead and let it default to string.  Do not use tags that include the pipe
  *  character, '|'
  */
-export class LinkRepo<B, L, T extends string = string> {
+//* EXPORT
+export /**/class LinkRepo<B, L, T extends string = string> {
   /**
    * @param {string} name the exact dna.zomes[].Entries.Name that this repo will
    *  represent.
@@ -789,7 +895,8 @@ interface Named {
  * @example class MyHoloObject<T> extends HoloObject<MyEntryType>
  * @example class LayeredSubclass<T> extends SubclassOfHoloObject<MyEntryType>
  */
-export class HoloObject<tE extends Object = {}> implements Named {
+//* EXPORT
+export /**/class HoloObject<tE extends Object = {}> implements Named {
   /**
    * You must delcare an override of static className to reflect the name of the entry type
    * as listed in the DNA.  Yes, both static and instance className.
@@ -808,13 +915,18 @@ export class HoloObject<tE extends Object = {}> implements Named {
   private openCount: number = 0;
   private openError: Error = null;
   private isCommitted: boolean = false;
-  private hasChanged(): boolean {
+
+  protected hasChanged(): boolean {
     if (this.myHash) {
       return this.myHash === this.makeHash();
     } else {
       return true;
     }
   }
+  protected commited(): boolean {
+    return this.isCommitted;
+  }
+
   /**
    * static entryType must be overriden to be an instance of your entry type or
    * typed as one.
@@ -907,7 +1019,7 @@ export class HoloObject<tE extends Object = {}> implements Named {
    * @throws {holochain.HolochainError} if the DHT didn't know about the given hash
    * @throws {TypeError} if the entry doesn't pass the DHT's inspection
    */
-  constructor(entry?: tE|null, hash?: Hash<object>) {
+  protected constructor(entry?: tE|null, hash?: Hash<object>) {
     if (!entry == !hash) throw new Error(`use either entry or hash arguments; can't use both or none`)
 
     if (entry) {
@@ -939,7 +1051,7 @@ export class HoloObject<tE extends Object = {}> implements Named {
     } else {
       let hash = commit(this.className, <holochain.JsonEntry>this.myEntry);
       if (isError(hash)) {
-        throw new TypeError(`entry type mismatch; hash ${this.myHash} is not a ${this.className}`);
+        throw new TypeError(`entry type mismatch or invalid data; hash ${this.myHash} is not a ${this.className}`);
       } else {
         this.isCommitted = true;
         return hash;
@@ -1068,7 +1180,7 @@ type LinkVals<E> = {
  * VfEntry and VfObject are a base class for entities that have to do with VF.
  * The standard says that there are a few fields that any object could have.
  */
-declare interface VfEntry {
+interface VfEntry {
   name?: string;
   image?: string;
   note?: string;
@@ -1081,7 +1193,8 @@ declare interface VfEntry {
  * @see HoloObject
  * @arg T Use this type argument to convey the entry type of a subclass.
  */
-export class VfObject<T extends object = {}> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
+//* EXPORT
+export /**/class VfObject<T extends object = {}> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
   static entryType: VfEntry & typeof HoloObject.entryType;
   protected myEntry: VfEntry & typeof HoloObject.entryType & T;
   static className = "VfObject";
@@ -1125,643 +1238,4 @@ export class VfObject<T extends object = {}> extends HoloObject<VfEntry & typeof
   set url(to:string) {
     this.myEntry.url = to;
   }
-}
-/* IMPORTS
-import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../../../lib/ts/common";
-import resources from "../resources/resources";
-import agents from "../agents/agents"
-/*/
-/**/
-// <imports>
-type Agent = agents.Agent;
-type EconomicResource = resources.EconomicResource;
-
-const TrackTrace: resources.TrackTrace = new LinkRepo(`TrackTrace`);
-TrackTrace.linkBack("affects", "affectedBy")
-  .linkBack("affectedBy", "affects");
-// </imports>
-
-// <links>
-const Classifications = new LinkRepo<
-  Transfer|TransferClassification,
-  Transfer|TransferClassification,
-  "classifiedAs"|"classifies"
->("Classifications");
-Classifications.linkBack("classifiedAs", "classifies")
-  .linkBack("classifies", "classifiedAs");
-
-
-const EventLinks = new LinkRepo<
-  EconomicEvent|Transfer|Process|Action,
-  EconomicEvent|Transfer|Process|Action,
-  "inputs"|"inputOf"|"outputs"|"outputOf"|"actionOf"|"action"
->("EventLinks");
-EventLinks.linkBack("inputs", "inputOf")
-  .linkBack("outputs", "outputOf")
-  .linkBack("inputOf", "inputs")
-  .linkBack("outputOf", "outputs")
-  .linkBack("action", "actionOf")
-  .linkBack("actionOf", "action");
-
-// </links>
-
-interface ActEntry {
-  name?: string;
-  behavior: '+'|'-'|'0';
-}
-
-class Action<T = {}> extends VfObject<ActEntry & T & typeof VfObject.entryType> {
-  className = "Action";
-  static className = "Action";
-  static entryType: ActEntry & typeof VfObject.entryType;
-  //protected myEntry: T & typeof Action.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <ActEntry> {
-      behavior: '0'
-    });
-
-  static get(hash: Hash<Action>): Action {
-    return <Action> super.get(hash);
-  }
-  static create(entry: ActEntry  & typeof VfObject.entryType): Action {
-    return <Action> super.create(entry);
-  }
-  constructor(entry?: T & ActEntry & typeof VfObject.entryType, hash?: Hash<Action>) {
-    super(entry, hash);
-  }
-
-  isIncrement(): boolean {
-    return this.myEntry.behavior === '+';
-  }
-
-  isDecrement(): boolean {
-    return this.myEntry.behavior === '-';
-  }
-
-  isNoEffect(): boolean {
-    return this.myEntry.behavior === '0';
-  }
-
-  get behavior(): typeof Action.entryType.behavior {
-    return this.myEntry.behavior;
-  }
-
-  set behavior(to: typeof Action.entryType.behavior) {
-    this.myEntry.behavior = to;
-  }
-
-  get sign(): number {
-    let behavior = this.myEntry.behavior;
-    switch (behavior) {
-      case "+": return 1;
-      case "-": return -1;
-      case "0": return 0;
-    }
-  }
-}
-
-interface ProcEntry {
-  name: string;
-}
-
-class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryType> {
-  static className = "Process";
-  className = "Process";
-  static entryType: ProcEntry  & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <ProcEntry> {
-
-    });
-
-  static get(hash: Hash<Process>): Process {
-    return <Process> super.get(hash);
-  }
-  static create(entry: ProcEntry  & typeof VfObject.entryType): Process {
-    return <Process> super.create(entry);
-  }
-  constructor(entry?: T & ProcEntry  & typeof VfObject.entryType, hash?: Hash<Process>) {
-    super(entry, hash);
-  }
-
-  // methods
-}
-
-interface XferClassEntry {
-  name: string;
-}
-
-class TransferClassification<T = {}> extends VfObject<T & XferClassEntry & typeof VfObject.entryType> {
-  static className = "TransferClassification";
-  className = "TransferClassification";
-  static entryType: XferClassEntry & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <XferClassEntry> {
-
-    });
-
-  static get(hash: Hash<TransferClassification>): TransferClassification {
-    return <TransferClassification> super.get(hash);
-  }
-  static create(entry: XferClassEntry & typeof VfObject.entryType): TransferClassification {
-    return <TransferClassification> super.create(entry);
-  }
-  constructor(entry?: T & XferClassEntry & typeof VfObject.entryType, hash?: Hash<TransferClassification>) {
-    super(entry, hash);
-  }
-
-}
-
-
-interface XferEntry {
-  transferClassifiedAs: Hash<TransferClassification>;
-  inputs: Hash<EconomicEvent|Process>;
-  outputs: Hash<EconomicEvent|Process>;
-}
-
-class Transfer<T = {}> extends VfObject<T & typeof VfObject.entryType & XferEntry> {
-  className = "Transfer";
-  static className = "Transfer";
-  static entryType: XferEntry & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <XferEntry> {
-    transferClassifiedAs: ``,
-    inputs: ``,
-    outputs: ``
-  });
-  //protected myEntry: T & XferEntry & typeof VfObject.entryType;
-  static get(hash: Hash<Transfer>): Transfer {
-    return <Transfer> super.get(hash);
-  }
-  static create(entry?: XferEntry & typeof VfObject.entryType): Transfer {
-    return <Transfer> super.create(entry);
-  }
-  constructor(entry?: T & XferEntry & typeof VfObject.entryType, hash?: Hash<Transfer>) {
-    super(entry, hash);
-  }
-
-  get input(): EconomicEvent {
-    return EconomicEvent.get(this.myEntry.inputs);
-  }
-  set input(to: EconomicEvent) {
-    let current = this.myEntry.inputs;
-    if (current && current !== to.hash) {
-      EventLinks.remove(this.hash, this.myEntry.inputs, `inputs`);
-    }
-    this.myEntry.inputs = to.hash;
-  }
-
-  get output(): EconomicEvent {
-    return EconomicEvent.get(this.myEntry.outputs);
-  }
-  set output(to: EconomicEvent) {
-    let current = this.myEntry.outputs;
-    if (current && current !== to.hash) {
-      EventLinks.remove(this.hash, current, `outputs`);
-    }
-    this.myEntry.outputs = to.hash;
-  }
-
-  get classification(): TransferClassification {
-    return TransferClassification.get(this.myEntry.transferClassifiedAs);
-  }
-  set classification(to: TransferClassification) {
-    let current = this.myEntry.transferClassifiedAs;
-    if (current && current !== to.hash) {
-      Classifications.remove(this.hash, current, `classifiedAs`);
-    }
-    this.myEntry.transferClassifiedAs = to.hash;
-  }
-
-}
-
-interface EeEntry {
-  action: Hash<Action>;
-  outputOf?: Hash<Transfer|Process>;
-  inputOf?: Hash<Transfer|Process>;
-  affects: Hash<EconomicResource>;
-  receiver: string; //receiver?: Hash<Agent>;
-  provider: string; //provider?: Hash<Agent>;
-
-  scope?: Hash<any>;
-  affectedQuantity: QVlike;
-  start?: number;
-  duration?: number;
-}
-
-export class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entryType> {
-  // begin mandatory overrides
-  static className = "EconomicEvent";
-  className = "EconomicEvent";
-  static entryType: EeEntry & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <EeEntry>{
-    action: ``,
-    affects: ``,
-    affectedQuantity: { units: ``, quantity: 0 },
-    start: 0,
-    duration: 0
-  });
-  static get(hash: Hash<EconomicEvent>): EconomicEvent {
-    return <EconomicEvent> super.get(hash);
-  }
-  static create(entry: EeEntry & typeof VfObject.entryType): EconomicEvent {
-    return <EconomicEvent> super.create(entry);
-  }
-  constructor(entry?: EeEntry & T & typeof VfObject.entryType, hash?: Hash<EconomicEvent>) {
-    super(entry, hash);
-    if (!entry.start) this.myEntry.start = Date.now();
-    if (!entry.duration) this.myEntry.duration = Date.now();
-  }
-
-  get action(): Action {
-    return this.entry.action && Action.get(this.entry.action) || null;
-  }
-  set action(obj: Action) {
-    let to = obj.hash;
-    let my = this.myEntry;
-
-    if (!!my.action && to !== my.action) {
-      EventLinks.remove(this.hash, my.action, `action`);
-    }
-    my.action = to;
-    this.update();
-    EventLinks.put(this.hash, to, `action`);
-  }
-
-  get quantity(): QuantityValue {
-    return new QuantityValue(this.myEntry.affectedQuantity);
-  }
-  set quantity(to: QuantityValue) {
-    let {units, quantity} = to;
-    this.myEntry.affectedQuantity = {units, quantity};
-  }
-  get start(): number {
-    return this.myEntry.start;
-  }
-  started(when: number|Date): this {
-    if (typeof when != `number`) {
-      when = when.valueOf();
-    }
-    this.myEntry.start = when;
-    this.update();
-    return this;
-  }
-  get startDate(): Date {
-    return new Date(this.start);
-  }
-
-  get duration(): number {
-    return this.myEntry.duration;
-  }
-
-  get end(): number {
-    const my = this.myEntry;
-    return this.myEntry.start + this.myEntry.duration;
-  }
-  get endDate(): Date {
-    return new Date(this.end);
-  }
-  ended(when?: number|Date): this {
-    if (when === undefined || when === null) {
-      when = Date.now();
-    } else if (typeof when != `number`) {
-      when = when.valueOf();
-    }
-    let my = this.myEntry;
-    my.duration = when - my.start;
-    this.update();
-    return this;
-  }
-  instant(): this {
-    this.myEntry.duration = 1;
-    this.update();
-    return this;
-  }
-
-  get isComplete(): boolean {
-    return !!this.duration;
-  }
-  get isOngoing(): boolean {
-    return !this.isComplete;
-  }
-
-  set affects(res: HoloThing<EconomicResource>) {
-    let hash = hashOf(res);
-    const my = this.myEntry;
-    if (my.affects && my.affects !== hash) {
-      TrackTrace.remove(this.hash, my.affects, `affects`);
-    }
-    my.affects = hash;
-    this.update();
-  }
-  get affects(): HoloThing<EconomicResource> {
-    return this.myEntry.affects;
-  }
-
-
-}
-
-/*
- * Because I didn't think before dividing modules, they need to be freeze-dried
- * and thawed all the time to move between domains.  Further, to avoid compiling
- * each zome to a monolith, the only things they can export are type aliases.
- * That means entry types, not classes, and function signatures.  Oddly enough,
- * LinkRepo just needs a name and a type signature to thaw, so those will be ok
- */
-namespace zome {
-  export type Action = typeof Action.entryType;
-  export type EconomicEvent = typeof EconomicEvent.entryType;
-  export type TransferClassification = typeof TransferClassification.entryType;
-  export type Transfer = typeof Transfer.entryType;
-  export type Process = typeof Process.entryType;
-  export type Classifications = typeof Classifications;
-  export type EventLinks = typeof EventLinks;
-  export type functions =
-    "traceEvents"|"trackEvents"|"traceTransfers"|"trackTransfers"|
-    "eventSubtotals"|"eventsEndedBefore"|"eventsStartedBefore";
-  export type trackEvents = typeof trackEvents;
-  export type traceEvents = typeof traceEvents;
-  export type traceTransfers = typeof traceTransfers;
-  export type trackTransfers = typeof trackTransfers;
-  export type eventSubtotals = typeof eventSubtotals;
-  export type eventsStartedBefore = typeof eventsStartedBefore;
-  export type eventsEndedBefore = typeof eventsEndedBefore;
-  export type eventsStartedAfter = typeof eventsStartedAfter;
-  export type eventsEndedAfter = typeof eventsEndedAfter;
-  export type sortEvents = typeof sortEvents;
-  export type resourceCreationEvent = typeof resourceCreationEvent;
-}
-
-/* IMPORT
-export default zome;
-/**/
-
-// <Zome exports> (call() functions)
-
-// for <DRY> purposes
-function trackTrace<T, U>(subjects: Hash<T>[], tag: string): Hash<U>[] {
-  return subjects.reduce((response: Hash<U>[], subject: Hash<T>) => {
-    return response.concat(EventLinks.get(subject, tag).hashes());
-  }, []);
-}
-interface TimeFilter {
-  events: Hash<EconomicEvent>[],
-  when: number
-}
-function filterByTime({events, when}: TimeFilter, filter: (ev: EconomicEvent) => boolean): Hash<EconomicEvent>[] {
-  return events.map((ev) => EconomicEvent.get(ev))
-    .filter(filter)
-    .map((ev) => ev.hash);
-}
-// </DRY>
-
-function traceEvents(events: Hash<EconomicEvent>[]): CrudResponse<zome.Transfer>[] {
-  return trackTrace(events, `outputOf`).map((hash) => {
-    let instance = Transfer.get(hash);
-    return instance.portable();
-  });
-}
-
-function trackEvents(events: Hash<EconomicEvent>[]): CrudResponse<zome.Transfer>[] {
-  return trackTrace(events, `inputOf`).map((hash) => {
-    let instance = Transfer.get(hash);
-    return instance.portable();
-  });
-}
-
-function traceTransfers(xfers: Hash<Transfer>[]): CrudResponse<zome.EconomicEvent>[] {
-  return trackTrace(xfers, `inputs`).map((hash) => {
-    let instance = EconomicEvent.get(hash);
-    return instance.portable();
-  });
-}
-
-function trackTransfers(xfers: Hash<Transfer>[]): CrudResponse<zome.EconomicEvent>[] {
-  return trackTrace(xfers, `outputs`).map((hash) => {
-    let instance = EconomicEvent.get(hash);
-    return instance.portable();
-  });
-}
-
-function eventsStartedBefore({events, when}: TimeFilter): CrudResponse<zome.EconomicEvent>[] {
-  return filterByTime({events, when}, ((ev) => when > ev.start)).map(hash => {
-    return EconomicEvent.get(hash).portable();
-  });
-}
-
-function eventsEndedBefore({events, when}: TimeFilter): CrudResponse<zome.EconomicEvent>[] {
-  return filterByTime({events, when}, ((ev) => ev.end < when)).map(hash => {
-    return EconomicEvent.get(hash).portable();
-  });
-}
-
-function eventsStartedAfter({events, when}: TimeFilter): CrudResponse<zome.EconomicEvent>[] {
-  return filterByTime({events, when}, ((ev) => when < ev.start)).map(hash => {
-    return EconomicEvent.get(hash).portable();
-  });
-}
-
-function eventsEndedAfter({events, when}: TimeFilter): CrudResponse<zome.EconomicEvent>[] {
-  return filterByTime({events, when}, ((ev) => ev.end > when)).map(hash => {
-    return EconomicEvent.get(hash).portable();
-  });
-}
-
-function sortEvents(
-  {events, by, order, start, end}:
-  {events: Hash<EconomicEvent>[], order: "up"|"down", by: "start"|"end", start?: number, end?: number}
-): CrudResponse<zome.EconomicEvent>[] {
-  let objects = events.map((ev) => EconomicEvent.get(ev)),
-    orderBy = by === "start" ?
-      (ev:EconomicEvent) => ev.start :
-      (ev:EconomicEvent) => ev.end;
-  objects.sort((a, b) => {
-    return Math.sign(orderBy(b) - orderBy(a));
-  });
-
-  let times = (!!start || !!end) && objects.map(orderBy);
-  if (start) {
-    let i = bisect(times, start);
-    objects = objects.slice(i);
-  }
-  if (end) {
-    let i = bisect(times, end);
-    objects = objects.slice(0, i);
-  }
-  if (order === "down") objects = objects.reverse();
-  return objects.map((ev) => ev.portable());
-}
-
-/**
- * A structure that details the event and state history of a group of resources
- * @interface
- * @member {object[]} events
- * @member {CrudResponse<EconomicEvent>} events[].event  The event that caused
- *  a state change.
- * @member {Dict<QVlike>} events[].subtotals using the hash of a resource as a key, the
- *  values are QuantityValue-like structs that reflect the state of that resource
- *  before the event occurred.
- * @member {Dict<QVlike>} totals The keys of all resources store the QVlike
- *  state of each resource after all the listed events (and previous)
- */
-interface Subtotals {
-  events: {
-    event: CrudResponse<typeof EconomicEvent.entryType>,
-    subtotals: {[k:string]: QVlike}
-  }[];
-  resources: Hash<resources.EconomicResource>[];
-  totals: {[k:string]: QVlike};
-};
-
-function eventSubtotals(hashes: Hash<EconomicEvent>[]): Subtotals {
-  const uniqueRes = new Set<Hash<EconomicResource>>();
-  let resourceHashes: Hash<resources.EconomicResource>[] = [];
-
-  let events = hashes.map((h) => EconomicEvent.get(h));
-  events.sort((a, b) => {
-    return b.end - a.end;
-  });
-
-  events.forEach((ev) => {
-    uniqueRes.add(ev.entry.affects);
-  });
-
-  let qvs: {[k:string]: QuantityValue};
-  uniqueRes.forEach((ur) => {
-    qvs[ur] = new QuantityValue({units: ``, quantity: 0});
-    resourceHashes.push(ur);
-  });
-
-  let subs = events.map((ev) => {
-    let item = {event: ev.portable(), subtotals: qvs},
-      sign = ev.action.sign,
-      quantity = ev.quantity.mul({units: ``, quantity: sign}),
-      res = hashOf(ev.affects);
-
-    qvs = Object.assign({}, qvs, { [res]: qvs[res].add(quantity) });
-
-    return item;
-  });
-
-  return {events: subs, totals: qvs, resources: resourceHashes};
-}
-
-// <fixtures>
-
-const fixtures = {
-  Action: {
-    Give: new Action({name: `Give`, behavior: '-'}).commit(),
-    Receive: new Action({name: `Receive`, behavior: '+'}).commit(),
-    Adjust: new Action({name: `Adjust`, behavior: '+'}).commit()
-  },
-  TransferClassification: {
-    Stub: new TransferClassification({
-      name: `Transfer Classification Stub`
-    })
-  }
-};
-
-function getFixtures(dontCare: object): typeof fixtures {
-  return fixtures;
-}
-
-// </fixures>
-
-function resourceCreationEvent(
-  { resource, dates }: {
-    resource: resources.EconomicResource, dates?:{start: number, end?:number}
-  }
-): CrudResponse<zome.EconomicEvent> {
-  let adjustHash: Hash<Action> = fixtures.Action.Adjust;
-  let qv = resource.currentQuantity;
-  let start: number, end: number;
-  if (dates) {
-    start = dates.start;
-    end = dates.end || start + 1;
-  } else {
-    start = Date.now();
-    end = start + 1;
-  }
-  if (!qv.units) {
-    let resClass =
-      notError<resources.ResourceClassification>(get(resource.resourceClassifiedAs));
-    qv.units = resClass.defaultUnits;
-  }
-
-  let resHash: Hash<resources.EconomicResource> =
-    notError(commit(`EconomicResource`, resource));
-
-  // THIS ONLY WORKS IN A STRATEGY-2 RESOURCE (see mattermost rants)
-  // a strategy-1 resource is calculated forward, so the pre-event state MUST
-  // have quantity 0.
-  let entry: zome.EconomicEvent = {
-    action: adjustHash,
-    affects: resHash,
-    receiver: resource.owner,
-    provider: resource.owner,
-    affectedQuantity: qv,
-    start: start,
-    duration: end - start
-  };
-  let event = new EconomicEvent(entry);
-  return {
-    type: event.className,
-    hash: event.commit(),
-    entry: event.entry
-  }
-}
-
-// CRUD
-function createEvent(init: typeof EconomicEvent.entryType): CrudResponse<typeof EconomicEvent.entryType> {
-  let it: EconomicEvent, err: Error;
-  try {
-    it = EconomicEvent.create(init);
-    let affect = it.affects;
-
-  } catch (e) {
-    err = e;
-  }
-  return {
-    error: err,
-    hash: it.hash,
-    entry: it.entry
-  };
-}
-
-function createTransfer(init: typeof Transfer.entryType): CrudResponse<typeof Transfer.entryType> {
-  let it: Transfer, err: Error;
-  try {
-    it = Transfer.create(init);
-  } catch (e) {
-    err = e;
-  }
-  return {
-    error: err,
-    hash: it.hash,
-    entry: it.entry
-  };
-}
-
-function createTransferClass(init: typeof TransferClassification.entryType): CrudResponse<typeof TransferClassification.entryType> {
-  let it: TransferClassification, err: Error;
-  try {
-    it = TransferClassification.create(init);
-  } catch (e) {
-    err = e;
-  }
-  return {
-    error: err,
-    hash: it.hash,
-    entry: it.entry
-  };
-}
-
-function createAction(init: typeof Action.entryType): CrudResponse<typeof Action.entryType> {
-  let it: Action, err: Error;
-
-  try {
-    it = Action.create(init);
-  } catch (e) {
-    err = e;
-  }
-  return {
-    error: err,
-    hash: it.hash,
-    entry: it.entry
-  };
 }

@@ -6,9 +6,12 @@ import agents from "../agents/agents";
 /**/
 
 /* TYPE-SCOPE
-import "../common"
+import "../common/common";
+import "../events/events";
+import "../agents/agents";
 /*/
 /**/
+
 // <links>
 // <imported from events>
 const EventLinks: events.EventLinks = new LinkRepo(`EventLinks`);
@@ -110,6 +113,9 @@ class ResourceClassification<T = {}> extends VfObject<T & RcEntry & typeof VfObj
   get defaultUnits(): string {
     return this.myEntry.defaultUnits;
   }
+  set defaultUnits(to: string) {
+    this.myEntry.defaultUnits = to;
+  }
 
   instances(): EconomicResource[] {
     return ResourceClasses.get(this.myHash, `classifies`)
@@ -139,7 +145,58 @@ class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.en
   static entryType: typeof VfObject.entryType & ErEntry;
 
   static get(hash: Hash<EconomicResource>): EconomicResource {
-    return <EconomicResource> super.get(hash);
+    const it = <EconomicResource> super.get(hash);
+    const my = it.myEntry;
+
+    const owners = AgentProperty.get(my.owner, `owns`).select(({hash}) => hash === it.myHash);
+    if (my.owner && !owners.length) {
+      throw new Error(`resource was re-assigned ownership, but can't recover new owner`);
+    }
+
+    const underlying = ResourceRelationships.get(hash, `underlyingResource`);
+    if (underlying.length) {
+      const mine = underlying.select(({hash: link}) => link === my.underlyingResource);
+      let more = underlying.select(({hash: link}) => link !== my.underlyingResource);
+      if (more.length) {
+        mine.removeAll();
+        let pop: Hash<EconomicResource> = more.hashes()[0];
+        more.select(({hash: link}) => link !== pop).removeAll();
+        my.underlyingResource = pop;
+      } else if (!mine.length) {
+        my.underlyingResource = null;
+      }
+    }
+
+    const contains = ResourceRelationships.get(hash, `contains`);
+    if (contains.length) {
+      const mine = contains.select(({hash: link}) => link === my.contains);
+      let more = contains.select(({hash: link}) => link !== my.contains);
+      if (more.length) {
+        mine.removeAll()
+        let pop = more.hashes()[0];
+        more.select(({hash: link}) => link !== pop).removeAll();
+        my.contains = pop;
+      } else if (!mine.length) {
+        my.contains = null;
+      }
+    }
+
+    const classy = ResourceClasses.get(hash, `classifiedAs`);
+    if (classy.length) {
+      const mine = classy.select(({hash: link}) => link === my.resourceClassifiedAs);
+      let more = classy.select(({hash: link}) => link !== my.resourceClassifiedAs);
+      if (more.length) {
+        mine.removeAll()
+        let pop = more.hashes()[0];
+        more.select(({hash: link}) => link !== pop).removeAll();
+        my.resourceClassifiedAs = pop;
+      } else if (!mine.length) {
+        my.resourceClassifiedAs = null;
+      }
+    }
+
+    it.update();
+    return it;
   }
 
   static create(entry: ErEntry & typeof VfObject.entryType): EconomicResource {
@@ -153,21 +210,10 @@ class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.en
       entry.currentQuantity = {units: rc.defaultUnits, quantity: 0};
     }
 
-    let it = super.create(entry);
-    if (rc) {
-      ResourceClasses.put(it.hash, rc.hash, "classifiedAs");
-    }
-    if (entry.owner) {
-      AgentProperty.put(entry.owner, it.hash, "owns");
-    }
-    if (entry.underlyingResource) {
-      ResourceRelationships.put(it.hash, entry.underlyingResource, "underlyingResource");
-    }
-    if (entry.contains) {
-      ResourceRelationships.put(it.hash, entry.contains, "contains");
-    }
+    let it = <EconomicResource> super.create(entry);
+    it.updateLinks();
 
-    return <EconomicResource> it;
+    return it;
   }
   protected constructor(entry: T & ErEntry & typeof VfObject.entryType | null, hash?: Hash<EconomicResource>) {
     super(entry, hash);
@@ -180,13 +226,99 @@ class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.en
 
   // </mandatory overrides>
 
+  get underlyingResource(): EconomicResource {
+    return EconomicResource.get(this.myEntry.underlyingResource);
+  }
+  set underlyingResource(to: EconomicResource) {
+    this.myEntry.underlyingResource = to && to.hash;
+  }
+
+  get contains(): EconomicResource {
+    return EconomicResource.get(this.myEntry.contains);
+  }
+  set contains(to: EconomicResource) {
+    this.myEntry.contains = to && to.hash;
+  }
+
+  get classification(): ResourceClassification {
+    return ResourceClassification.get(this.myEntry.resourceClassifiedAs);
+  }
+  set classification(to: ResourceClassification) {
+    this.myEntry.resourceClassifiedAs = to && to.hash;
+  }
+
+  get owner(): Hash<agents.Agent> {
+    return this.myEntry.owner;
+  }
+  set owner(to: Hash<agents.Agent>) {
+    this.owner = to || null;
+  }
+
+  protected updateLinks(hash?: Hash<this>): Hash<this> {
+    hash = hash || this.myHash;
+    const my = this.myEntry;
+
+    let relationships = ResourceRelationships.get(hash);
+
+    let underlying = relationships.tags(`underlyingResource`);
+    if (my.underlyingResource && (!underlying.length || underlying.hashes()[0] !== my.underlyingResource)) {
+      ResourceRelationships.put(hash, my.underlyingResource, `underlyingResource`);
+      underlying.removeAll();
+    }
+
+    let contains = relationships.tags(`contains`);
+    if (my.contains && (!contains.length || contains.hashes()[0] !== my.contains)) {
+      ResourceRelationships.put(hash, my.contains, `contains`);
+      contains.removeAll();
+    }
+
+    let classy = ResourceClasses.get(hash, `classifiedAs`);
+    let myClass = my.resourceClassifiedAs;
+    if (myClass && (!classy.length || classy.hashes()[0] !== myClass)) {
+      ResourceClasses.put(hash, myClass, `classifiedAs`);
+      classy.removeAll();
+    }
+
+    if (my.owner) {
+      let owner = AgentProperty.get(my.owner, `owns`).select(({hash}) => hash === this.myHash);
+      if (!owner.length) {
+        AgentProperty.put(my.owner, hash, `owns`);
+      }
+    }
+
+    return hash;
+  }
+
   remove(msg?: string): this {
     const my = this.myEntry;
     if (my.resourceClassifiedAs) {
       ResourceClasses.remove(this.myHash, my.resourceClassifiedAs, `classifiedAs`);
     }
     TrackTrace.get(this.myHash, `affectedBy`).removeAll();
+
+    let relations = ResourceRelationships.get(this.myHash);
+    let internal = relations.tags(`underlyingResource`, `contains`);
+    let external = relations.tags(`underlies`, `inside`);
+    internal.removeAll();
+
+    for (let underlies of external.tags(`underlies`).hashes()) {
+      let res = EconomicResource.get(underlies);
+      res.underlyingResource = null;
+    }
+    for (let inside of external.tags(`inside`).hashes()) {
+      let res = EconomicResource.get(inside);
+      res.contains = null;
+    }
+
     return super.remove(msg);
+  }
+
+  update(): Hash<this> {
+    return this.updateLinks(super.update());
+  }
+
+  commit(): Hash<this> {
+    return this.updateLinks(super.commit());
   }
 
   trace(): Hash<events.EconomicEvent>[] {
@@ -239,6 +371,7 @@ const fixtures = {
  *  get instances of.
  * @returns {Hash<EconomicResource>[]}
  */
+//* HOLO-SCOPE
 function getResourcesInClass(
   {classification}:
   {classification: Hash<ResourceClassification>}
@@ -264,7 +397,7 @@ function createEconomicResource(
     event = entryOf(thing);
   }
   if (!event) {
-    let crud = <ReturnType<events.resourceCreationEvent>>
+    let crud = <CrudResponse<events.EconomicEvent>>
       call(`events`, `resourceCreationEvent`, {
         resource: props
       });
@@ -368,3 +501,5 @@ function genesis() {
 }
 
 // </callbacks>
+/*/
+/**/

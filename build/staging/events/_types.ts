@@ -1,18 +1,16 @@
-// <reference path="../common/common"/>
-// <reference path="../agents/agents"/>
-// <reference path="../resources/resources"/>
-//* IMPORTS
-//import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../../../lib/ts/common";
-import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../common/common";
-import resources from "../resources/resources";
-import agents from "../agents/agents";
+/// <reference path="../agents/agents"/>
+/// <reference path="../resources/resources"/>
+/* IMPORTS
+import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../../../lib/ts/common";
+//import resources from "../resources/resources";
+//import agents from "../agents/agents";
 /*/
 /**/
 
 /* TYPE-SCOPE
-//import "../agents/agents"
-//import "../resources/resources"
-//import "../common/common"
+import "../agents/agents"
+import "../resources/resources"
+import "../common/common"
 /*/
 /**/
 
@@ -27,20 +25,20 @@ TrackTrace.linkBack("affects", "affectedBy")
 // </imports>
 
 // <links>
-const Classifications: LinkRepo<
+const Classifications = new LinkRepo<
   Transfer|TransferClassification,
   Transfer|TransferClassification,
   "classifiedAs"|"classifies"
-> = new LinkRepo("Classifications");
+>("Classifications");
 Classifications.linkBack("classifiedAs", "classifies")
   .linkBack("classifies", "classifiedAs");
 
 
-const EventLinks: LinkRepo<
+const EventLinks = new LinkRepo<
   EconomicEvent|Transfer|Process|Action,
   EconomicEvent|Transfer|Process|Action,
   "inputs"|"inputOf"|"outputs"|"outputOf"|"actionOf"|"action"
-> = new LinkRepo("EventLinks");
+>("EventLinks");
 EventLinks.linkBack("inputs", "inputOf")
   .linkBack("outputs", "outputOf")
   .linkBack("inputOf", "inputs")
@@ -512,14 +510,14 @@ namespace events {
 /*/
 /**/
 
-//* EXPORT
+/* EXPORT
 export default events;
 /*/
 /**/
 
 
 // <Zome exports> (call() functions)
-//* HOLO-SCOPE
+/* HOLO-SCOPE
 // for <DRY> purposes
 function trackTrace<T, U>(subjects: Hash<T>[], tag: string): Hash<U>[] {
   return subjects.reduce((response: Hash<U>[], subject: Hash<T>) => {
@@ -628,7 +626,7 @@ function sortEvents(
  * @member {Dict<QVlike>} totals The keys of all resources store the QVlike
  *  state of each resource after all the listed events (and previous)
  */
-//* HOLO-SCOPE
+/* HOLO-SCOPE
 interface Subtotals {
   events: {
     event: CrudResponse<typeof EconomicEvent.entryType>,

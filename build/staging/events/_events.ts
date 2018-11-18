@@ -1,7 +1,7 @@
 // <reference path="../common/common"/>
 // <reference path="../agents/agents"/>
 // <reference path="../resources/resources"/>
-//* IMPORTS
+/* IMPORTS
 //import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../../../lib/ts/common";
 import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../common/common";
 import resources from "../resources/resources";
@@ -476,7 +476,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
  * LinkRepo just needs a name and a type signature to thaw, so those will be ok
  */
 
-//* TYPE-SCOPE
+/* TYPE-SCOPE
 declare global {
 /*/
 /**/
@@ -507,12 +507,12 @@ namespace events {
   //export type sortEvents = typeof sortEvents;
   //export type resourceCreationEvent = typeof resourceCreationEvent;
 }
-//* TYPE-SCOPE
+/* TYPE-SCOPE
 }
 /*/
 /**/
 
-//* EXPORT
+/* EXPORT
 export default events;
 /*/
 /**/

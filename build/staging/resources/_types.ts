@@ -1,11 +1,13 @@
-/* IMPORTS
+/// <reference path="../agents/agents"/>
+/// <reference path="../events/events"/>
+/* IMPORT
 import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf } from "../../../lib/ts/common";
-import events from "../events/events";
-import agents from "../agents/agents";
+//import events from "../events/events";
+//import agents from "../agents/agents";
 /*/
 /**/
 
-//* TYPE-SCOPE
+/* TYPE-SCOPE
 import "../common/common";
 import "../events/events";
 import "../agents/agents";
@@ -339,7 +341,11 @@ class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.en
 // </classes>
 
 // <export>
-//* EXPORT
+
+//* TYPE-SCOPE
+declare global {
+/*/
+/**/
 namespace resources {
   export type EconomicResource = typeof EconomicResource.entryType;
   export type ResourceClassification = typeof ResourceClassification.entryType;
@@ -347,6 +353,11 @@ namespace resources {
   export type ResourceClasses = typeof ResourceClasses;
   export type ResourceRelationships = typeof ResourceRelationships;
 }
+//* TYPE-SCOPE
+}
+/*/
+/**/
+/* EXPORT
 export default resources;
 /*/
 /**/

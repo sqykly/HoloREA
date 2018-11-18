@@ -1,6 +1,6 @@
 // <reference path="../common/common.ts"/>
 // <reference path="../resources/resources.ts"/>
-//* IMPORT
+/* IMPORT
 //import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../../../lib/ts/common";
 import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../common/common";
 import "../common/holochain-proto";
@@ -46,7 +46,7 @@ class Agent<T = {}> extends VfObject<T & AgentEntry & typeof VfObject.entryType>
 
 const AgentProperty: LinkRepo<agents.Agent, resources.EconomicResource, "owns"> = new LinkRepo("AgentProperty");
 
-//* TYPE-SCOPE
+/* TYPE-SCOPE
 declare global {
 /*/
 /**/
@@ -55,12 +55,12 @@ namespace agents {
   export type AgentProperty = typeof AgentProperty;
 
 }
-//* TYPE-SCOPE
+/* TYPE-SCOPE
 }
 /*/
 /**/
 
-//* EXPORT
+/* EXPORT
 export default agents;
 /*/
 /**/

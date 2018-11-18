@@ -1,72 +1,47 @@
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    }
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
 // <reference path="../common/common.ts"/>
 // <reference path="../resources/resources.ts"/>
 //* IMPORT
 //import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../../../lib/ts/common";
-import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../common/common";
-import "../common/holochain-proto";
-import "../common/es6";
-import resources from "../resources/resources";
-
-/*/
-/**/
-
-/* TYPE-SCOPE
-import "../common/common";
-import "../resources/resources";
-/*/
-/**/
-
-/**
- * A Holo-zome defining functions that deal with agents, relationships, and locations
- */
-interface AgentEntry {
-  primaryLocation: PhysicalLocation;
-  name: string;
-}
-
-class Agent<T = {}> extends VfObject<T & AgentEntry & typeof VfObject.entryType> {
-  static className = "Agent";
-  className = "Agent";
-  static entryType: AgentEntry & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <AgentEntry> {
-      primaryLocation: [`middle of nowhere`, `placeville, XX 12345`]
+require("../common/common");
+var Agent = /** @class */ (function (_super) {
+    __extends(Agent, _super);
+    function Agent(entry, hash) {
+        var _this = _super.call(this, entry, hash) || this;
+        _this.className = "Agent";
+        return _this;
+    }
+    Agent.get = function (hash) {
+        return _super.get.call(this, hash);
+    };
+    Agent.create = function (entry) {
+        return _super.create.call(this, entry);
+    };
+    Agent.className = "Agent";
+    Agent.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
+        primaryLocation: ["middle of nowhere", "placeville, XX 12345"]
     });
-
-  static get(hash: Hash<Agent>): Agent {
-    return <Agent> super.get(hash);
-  }
-  static create(entry: AgentEntry & typeof VfObject.entryType): Agent {
-    return <Agent> super.create(entry);
-  }
-  constructor(entry?: T & AgentEntry & typeof VfObject.entryType, hash?: Hash<Agent>) {
-    super(entry, hash);
-  }
-
-}
-
-const AgentProperty: LinkRepo<agents.Agent, resources.EconomicResource, "owns"> = new LinkRepo("AgentProperty");
-
-//* TYPE-SCOPE
-declare global {
+    return Agent;
+}(VfObject));
+var AgentProperty = new LinkRepo("AgentProperty");
 /*/
 /**/
-namespace agents {
-  export type Agent = typeof Agent.entryType;
-  export type AgentProperty = typeof AgentProperty;
-
-}
-//* TYPE-SCOPE
-}
-/*/
-/**/
-
-//* EXPORT
-export default agents;
-/*/
-/**/
-
 // <zome> public functions
-//* HOLO-SCOPE
+/* HOLO-SCOPE
 function createAgent(props?: typeof Agent.entryType): CrudResponse<typeof Agent.entryType> {
   let it: Agent, err: Error;
   try {
@@ -99,7 +74,7 @@ function getOwnedResources(
   for (let agentHash of agents) {
 
     let classDict: Dict<Hash<resources.EconomicResource>[]> = {},
-      stuffHeHas = AgentProperty.get(agentHash, "owns").tags<resources.EconomicResource>(`owns`);
+      stuffHeHas = AgentProperty.get(agentHash, "owns").types<resources.EconomicResource>("EconomicResource");
 
     stuffHeHas.data().forEach((resource: resources.EconomicResource, index: number) => {
       let type = resource.resourceClassifiedAs;

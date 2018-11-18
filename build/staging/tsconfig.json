@@ -1,11 +1,18 @@
 {
   "compilerOptions": {
-    "typeRoots": ["./agents", "./resources", "./events", "./common"],
     "newLine" : "lf",
-    "module": "None",
     "downlevelIteration": true,
     "allowUnreachableCode": true,
     "allowUnusedLabels": true,
-    "target": "ES5"
+    "target": "ES5",
+    "lib": ["ES6", "ES5"]
+  },
+  "files": [
+    "./agents/agents.ts", "./common/common.ts", "./events/events.ts",
+    "./resources/resources.ts", "./common/es6.d.ts", "./common/holochain-proto.d.ts"
+  ],
+  "exclude": ["./**/*.ts", "./**/*.d.ts"],
+  "comment": {
+    "module": "None"
   }
 }

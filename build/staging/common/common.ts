@@ -1,30 +1,29 @@
-//* IMPORT
+// <reference path="./es6.d.ts"/>
+// <reference path="./holochain-proto.d.ts"/>
+/* IMPORT
 import "./es6";
 import "./holochain-proto";
+
 /*/
 /**/
-
-// FIXME this is only used for testing.  remove when ready to ship
-// maybe it will be fine.  fingers crossed.
-// /FIXME
 
 /**
  * We aren't going to be able to pass real Maps around between zomes and agents.
  * So old-school, morally wrong dictionary objects will have to do.
  */
-//* EXPORT
-export /**/type Dict<T> = {[key: string]: T};
+/* EXPORT
+export/**/type Dict<T> = {[key: string]: T};
 
 /**
  * Some dicts need both a key type and a value type.
  */
-//* EXPORT
+/* EXPORT
 export /**/type Catalog<K extends string, T> = {[key: string]: T}
 
 /**
  * I believe Location was taken.  Don't need any additional detail for now.
  */
-//* EXPORT
+/* EXPORT
 export /**/type PhysicalLocation = string[];
 
 /**
@@ -37,7 +36,7 @@ export /**/type PhysicalLocation = string[];
  * @param {number} min the index returned is == the index of min, if it exists.
  * @returns {number}
  */
-//* EXPORT
+/* EXPORT
 export /**/function bisect(array: number[], min: number): number {
   let b = 0, t = array.length;
   while (t > b) {
@@ -58,7 +57,7 @@ export /**/function bisect(array: number[], min: number): number {
  * For when you don't know what you want or need to pass between zomes.
  * @interface
  */
-//* EXPORT
+/* EXPORT
 export /**/interface CrudResponse<T extends object> {
   /** @prop {Error} error this error is why you can't have the other fields */
   error?: {
@@ -86,7 +85,7 @@ export /**/interface CrudResponse<T extends object> {
  * @param {object} [...] More objects to copy onto dest, in order.
  * @returns {T & U}
  */
-//* EXPORT
+/* EXPORT
 export /**/function deepAssign<T extends object, U extends object>(dest: T, src: U, ...more: object[]): T & U {
   for (let p of Object.keys(src)) {
     let v: U[keyof U];
@@ -110,7 +109,7 @@ export /**/function deepAssign<T extends object, U extends object>(dest: T, src:
  * For when you're REALLY unsure what you are getting from some other zome.
  * @type
  */
-//* EXPORT
+/* EXPORT
 export /**/type HoloThing<T extends object> = HoloObject<T> | CrudResponse<T> | Hash<T> | T;
 
 function isCrud<T extends object>(thing: HoloThing<T>): thing is CrudResponse<T> {
@@ -132,7 +131,7 @@ function isCrud<T extends object>(thing: HoloThing<T>): thing is CrudResponse<T>
  * @throws {Error} if thing really is a T, then it doesn't know its class name,
  *  and without that, it can't be hashed.
  */
-//* EXPORT
+/* EXPORT
 export /**/function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
   if (typeof thing == `string`) {
     return thing;
@@ -155,7 +154,7 @@ export /**/function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
  *  exported zome function or bridge.
  * @returns {T}
  */
-//* EXPORT
+/* EXPORT
 export /**/function entryOf<T extends object>(thing: HoloThing<T>): T {
   if (typeof thing == `string`) {
     let got: holochain.CanError<T> = get(thing);
@@ -178,7 +177,7 @@ export /**/function entryOf<T extends object>(thing: HoloThing<T>): T {
  * @param {HoloThing<T>} thing - whatever that is.
  * @returns {CrudResponse<T>}
  */
-//* EXPORT
+/* EXPORT
 export /**/function responseOf<T extends object>(thing: HoloThing<T>): CrudResponse<T> {
   const response: CrudResponse<T> = { error: null, hash: null, entry: null }
   try {
@@ -194,10 +193,10 @@ export /**/function responseOf<T extends object>(thing: HoloThing<T>): CrudRespo
  * This is for type safety when you need assurance that get(Hash) will return the correct type.
  * But I don't think it's working; it all comes out strings.
  */
-//* EXPORT
+/* EXPORT
 export /**/declare type Hash<T> = holochain.Hash;
 
-//* EXPORT
+/* EXPORT
 export /**/type HoloClass<T,U> = (new (o:U, h:Hash<T>) => T) &
   {
     create: (o:U) => T,
@@ -210,7 +209,7 @@ export /**/type HoloClass<T,U> = (new (o:U, h:Hash<T>) => T) &
  * It's just as good as a QuantityValue as far as a real QV knows, and it can
  * cross zomes or machines, but you can't do math on it by itself.
  */
-//* EXPORT
+/* EXPORT
 export /**/interface QVlike {units: string, quantity: number};
 
 /**
@@ -218,7 +217,7 @@ export /**/interface QVlike {units: string, quantity: number};
  * unit conversions and derived units (e.g. Newtons = kg*m^2*s^2)
  * some of the hard work is done, but clearly not all of it.
  */
-//* EXPORT
+/* EXPORT
 export /**/class QuantityValue implements QVlike {
   /**
    * There are two special values of units: "" is like "Each", and "%" is a unitless percentage
@@ -387,7 +386,7 @@ export /**/class QuantityValue implements QVlike {
  * should usually be inferred from the argument, which will have better warnings
  * downstream.
  */
-//*
+/* EXPORT
 export /**/function notError<T>(maybeErr: holochain.CanError<T>): T {
   if (isError(maybeErr)) {
     throw new Error(`That was an error! ${``+maybeErr}`);
@@ -399,17 +398,17 @@ export /**/function notError<T>(maybeErr: holochain.CanError<T>): T {
 /**
  * The hash you get when commiting a holochain.LinksEntry
  */
-//* EXPORT
+/* EXPORT
 export /**/type LinkHash = Hash<holochain.LinksEntry>
 
-//* EXPORT
+/* EXPORT
 export/**/interface LinkReplacement<T, Tags> {
   hash: Hash<T>;
   tag: Tags;
   type: string;
 }
 
-//* EXPORT
+/* EXPORT
 export/**/interface LinkReplace<T, Tags> extends LinkReplacement<T, Tags> {
   readonly entry: T;
 }
@@ -425,8 +424,8 @@ export/**/interface LinkReplace<T, Tags> extends LinkReplacement<T, Tags> {
  * arrays to be for..of'ed
  *
  */
-//* EXPORT
-export /**/class LinkSet<B, L, Tags extends string = string, T = B> extends Array<holochain.GetLinksResponse> {
+/* EXPORT
+export /**/class LinkSet<B, L, Tags extends string = string, T extends L = L> extends Array<holochain.GetLinksResponse> {
 
   constructor(array: Array<holochain.GetLinksResponse>, private origin: LinkRepo<B,L,Tags>, private baseHash: string, private onlyTag?: string) {
     super(...array);
@@ -440,9 +439,9 @@ export /**/class LinkSet<B, L, Tags extends string = string, T = B> extends Arra
    * Filter by any number of tags.  Returns a new LinkSet of the same type.
    * @param {string[]} narrowing An array of the tag names wanted.
    */
-  tags(...narrowing: string[]): LinkSet<B, L, Tags, T> {
+  tags<Tx extends T>(...narrowing: string[]): LinkSet<B, L, Tags, Tx> {
     let uniques = new Set(narrowing);
-    return new LinkSet<B, L, Tags, T>( this.filter( ({Tag}) => uniques.has(Tag) ), this.origin, this.baseHash );
+    return new LinkSet<B, L, Tags, Tx>( this.filter( ({Tag}) => uniques.has(Tag) ), this.origin, this.baseHash );
   }
 
   /**
@@ -456,7 +455,7 @@ export /**/class LinkSet<B, L, Tags extends string = string, T = B> extends Arra
    * @deprecated
    * FIXME.  Super deprecated.
    */
-  types<C = T>(...typeNames: string[]): LinkSet<B,L,Tags,C> {
+  types<C extends T = T>(...typeNames: string[]): LinkSet<B,L,Tags,C> {
     let uniques = new Set<string>(typeNames);
     return new LinkSet<B,L,Tags,C>(this.filter( ({EntryType}) => uniques.has(EntryType) ), this.origin, this.baseHash);
   }
@@ -587,7 +586,7 @@ interface Tag<B,L, T extends string> {
  *  ahead and let it default to string.  Do not use tags that include the pipe
  *  character, '|'
  */
-//* EXPORT
+/* EXPORT
 export /**/class LinkRepo<B, L, T extends string = string> {
   /**
    * @param {string} name the exact dna.zomes[].Entries.Name that this repo will
@@ -623,9 +622,9 @@ export /**/class LinkRepo<B, L, T extends string = string> {
    *  LinksOptions.
    * @returns {LinkSet<B>} containing the query result.
    */
-  get(base: Hash<B>, tag: string = ``, options: holochain.LinksOptions = {}): LinkSet<B,L,T,B> {
+  get<RT extends L = L>(base: Hash<B>, tag: string = ``, options: holochain.LinksOptions = {}): LinkSet<B,L,T,RT> {
     if (!tag) {
-      return new LinkSet<B,L,T,B>(<holochain.GetLinksResponse[]> notError(getLinks(base, tag, options)), this, base);
+      return new LinkSet<B,L,T,RT>(<holochain.GetLinksResponse[]> notError(getLinks(base, tag, options)), this, base);
     }
     let tags = tag.split(`|`),
       responses: holochain.GetLinksResponse[] = [];
@@ -635,7 +634,7 @@ export /**/class LinkRepo<B, L, T extends string = string> {
       responses = responses.concat(response);
     }
 
-    return new LinkSet<B,L,T,B>(responses, this, base);
+    return new LinkSet<B,L,T,RT>(responses, this, base);
   }
 
   /**
@@ -895,7 +894,7 @@ interface Named {
  * @example class MyHoloObject<T> extends HoloObject<MyEntryType>
  * @example class LayeredSubclass<T> extends SubclassOfHoloObject<MyEntryType>
  */
-//* EXPORT
+/* EXPORT
 export /**/class HoloObject<tE extends Object = {}> implements Named {
   /**
    * You must delcare an override of static className to reflect the name of the entry type
@@ -1193,7 +1192,7 @@ interface VfEntry {
  * @see HoloObject
  * @arg T Use this type argument to convey the entry type of a subclass.
  */
-//* EXPORT
+/* EXPORT
 export /**/class VfObject<T extends object = {}> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
   static entryType: VfEntry & typeof HoloObject.entryType;
   protected myEntry: VfEntry & typeof HoloObject.entryType & T;

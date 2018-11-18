@@ -1,19 +1,18 @@
-/* IMPORT
+// <reference path="./es6.d.ts"/>
+// <reference path="./holochain-proto.d.ts"/>
+//* IMPORT
 import "./es6";
 import "./holochain-proto";
+
 /*/
 /**/
-
-// FIXME this is only used for testing.  remove when ready to ship
-// maybe it will be fine.  fingers crossed.
-// /FIXME
 
 /**
  * We aren't going to be able to pass real Maps around between zomes and agents.
  * So old-school, morally wrong dictionary objects will have to do.
  */
 //* EXPORT
-export /**/type Dict<T> = {[key: string]: T};
+export/**/type Dict<T> = {[key: string]: T};
 
 /**
  * Some dicts need both a key type and a value type.
@@ -387,7 +386,7 @@ export /**/class QuantityValue implements QVlike {
  * should usually be inferred from the argument, which will have better warnings
  * downstream.
  */
-//*
+//* EXPORT
 export /**/function notError<T>(maybeErr: holochain.CanError<T>): T {
   if (isError(maybeErr)) {
     throw new Error(`That was an error! ${``+maybeErr}`);
@@ -426,7 +425,7 @@ export/**/interface LinkReplace<T, Tags> extends LinkReplacement<T, Tags> {
  *
  */
 //* EXPORT
-export /**/class LinkSet<B, L, Tags extends string = string, T = B> extends Array<holochain.GetLinksResponse> {
+export /**/class LinkSet<B, L, Tags extends string = string, T extends L = L> extends Array<holochain.GetLinksResponse> {
 
   constructor(array: Array<holochain.GetLinksResponse>, private origin: LinkRepo<B,L,Tags>, private baseHash: string, private onlyTag?: string) {
     super(...array);
@@ -440,9 +439,9 @@ export /**/class LinkSet<B, L, Tags extends string = string, T = B> extends Arra
    * Filter by any number of tags.  Returns a new LinkSet of the same type.
    * @param {string[]} narrowing An array of the tag names wanted.
    */
-  tags(...narrowing: string[]): LinkSet<B, L, Tags, T> {
+  tags<Tx extends T>(...narrowing: string[]): LinkSet<B, L, Tags, Tx> {
     let uniques = new Set(narrowing);
-    return new LinkSet<B, L, Tags, T>( this.filter( ({Tag}) => uniques.has(Tag) ), this.origin, this.baseHash );
+    return new LinkSet<B, L, Tags, Tx>( this.filter( ({Tag}) => uniques.has(Tag) ), this.origin, this.baseHash );
   }
 
   /**
@@ -456,7 +455,7 @@ export /**/class LinkSet<B, L, Tags extends string = string, T = B> extends Arra
    * @deprecated
    * FIXME.  Super deprecated.
    */
-  types<C = T>(...typeNames: string[]): LinkSet<B,L,Tags,C> {
+  types<C extends T = T>(...typeNames: string[]): LinkSet<B,L,Tags,C> {
     let uniques = new Set<string>(typeNames);
     return new LinkSet<B,L,Tags,C>(this.filter( ({EntryType}) => uniques.has(EntryType) ), this.origin, this.baseHash);
   }
@@ -623,9 +622,9 @@ export /**/class LinkRepo<B, L, T extends string = string> {
    *  LinksOptions.
    * @returns {LinkSet<B>} containing the query result.
    */
-  get(base: Hash<B>, tag: string = ``, options: holochain.LinksOptions = {}): LinkSet<B,L,T,B> {
+  get<RT extends L = L>(base: Hash<B>, tag: string = ``, options: holochain.LinksOptions = {}): LinkSet<B,L,T,RT> {
     if (!tag) {
-      return new LinkSet<B,L,T,B>(<holochain.GetLinksResponse[]> notError(getLinks(base, tag, options)), this, base);
+      return new LinkSet<B,L,T,RT>(<holochain.GetLinksResponse[]> notError(getLinks(base, tag, options)), this, base);
     }
     let tags = tag.split(`|`),
       responses: holochain.GetLinksResponse[] = [];
@@ -635,7 +634,7 @@ export /**/class LinkRepo<B, L, T extends string = string> {
       responses = responses.concat(response);
     }
 
-    return new LinkSet<B,L,T,B>(responses, this, base);
+    return new LinkSet<B,L,T,RT>(responses, this, base);
   }
 
   /**

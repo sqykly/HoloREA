@@ -1,18 +1,13 @@
-// <reference path="../common/common.ts"/>
-// <reference path="../resources/resources.ts"/>
-//* IMPORT
-//import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../../../lib/ts/common";
-import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../common/common";
-import "../common/holochain-proto";
-import "../common/es6";
-import resources from "../resources/resources";
-
+/// <reference path="../resources/resources.ts"/>
+/* IMPORT
+import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../../../lib/ts/common";
+//import resources from "../resources/resources";
 /*/
 /**/
 
 /* TYPE-SCOPE
-import "../common/common";
-import "../resources/resources";
+import "../common/_types";
+import "../resources/_types";
 /*/
 /**/
 
@@ -44,29 +39,28 @@ class Agent<T = {}> extends VfObject<T & AgentEntry & typeof VfObject.entryType>
 
 }
 
-const AgentProperty: LinkRepo<agents.Agent, resources.EconomicResource, "owns"> = new LinkRepo("AgentProperty");
+const AgentProperty = new LinkRepo<Agent, resources.EconomicResource, "owns">("AgentProperty");
 
 //* TYPE-SCOPE
 declare global {
 /*/
 /**/
 namespace agents {
-  export type Agent = typeof Agent.entryType;
-  export type AgentProperty = typeof AgentProperty;
-
+  type Agent = typeof Agent.entryType;
+  type AgentProperty = typeof AgentProperty;
 }
 //* TYPE-SCOPE
 }
 /*/
 /**/
 
-//* EXPORT
+/* EXPORT
 export default agents;
 /*/
 /**/
 
 // <zome> public functions
-//* HOLO-SCOPE
+/* HOLO-SCOPE
 function createAgent(props?: typeof Agent.entryType): CrudResponse<typeof Agent.entryType> {
   let it: Agent, err: Error;
   try {
@@ -99,7 +93,7 @@ function getOwnedResources(
   for (let agentHash of agents) {
 
     let classDict: Dict<Hash<resources.EconomicResource>[]> = {},
-      stuffHeHas = AgentProperty.get(agentHash, "owns").tags<resources.EconomicResource>(`owns`);
+      stuffHeHas = AgentProperty.get(agentHash, "owns").types<resources.EconomicResource>("EconomicResource");
 
     stuffHeHas.data().forEach((resource: resources.EconomicResource, index: number) => {
       let type = resource.resourceClassifiedAs;

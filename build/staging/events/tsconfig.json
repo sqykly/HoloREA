@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-   	"outFile": "../../../../bin/HoloREA/dna/agents/agents.js",
+   	"outFile": "../../../../bin/HoloREA/dna/events/events.js",
    	"rootDir": "./",
    	"allowJs": false,
     "target": "es5",
@@ -9,6 +9,6 @@
     "newLine" : "lf",
     "module": "None"
   },
-  "files": ["./agents.ts", "./lib.d.ts"],
+  "files": ["./events.ts", "./lib.d.ts"],
   "exclude" : ["*.*", "/**/*.*"]
 }

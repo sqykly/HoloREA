@@ -25,5 +25,5 @@ done
 # compile each zome with module: None to bin
 for zome in $ZOMES; do
   tsc --project $STAGING/${zome}/ --outFile $BINDNA/${zome}/_${zome}.js
-  cat $STAGING/shim.js $BINDNA/${zome}/_${zome}.js > $BINDNA/${zome}/${zome}.js
+  cat $STAGING/shims.js $BINDNA/${zome}/_${zome}.js > $BINDNA/${zome}/${zome}.js
 done

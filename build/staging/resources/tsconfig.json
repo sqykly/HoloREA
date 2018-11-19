@@ -9,6 +9,6 @@
     "newLine" : "lf",
     "module": "None"
   },
-  "files": ["./resources.ts", "./lib.d.ts"],
+  "files": ["./resources.ts"],
   "exclude" : ["*.*", "/**/*.*"]
 }

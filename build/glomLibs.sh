@@ -6,7 +6,6 @@ COMMON=$SRCDNA/common/
 ZOMES="agents events resources"
 MODULES="${ZOMES} common"
 LIBPATH=$STAGING/common/
-# oops.  Didn't need the declarations from common when we're about to glom it to the code itself
 LIBS="$LIBPATH/holochain-proto.d.ts"
 
 for zome in $ZOMES; do

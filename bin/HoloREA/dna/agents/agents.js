@@ -1,3 +1,60 @@
+/**
+ * I guess typescript can't honor my ES5 target here?!  Ok...
+ * It really only needs to implement the functions I use: constructor, get, set, add, has
+ * And the key types I use: just string, I think.
+ */
+
+var Set = (function (_super) {
+
+  function Set(items) {
+    this.keys = {};
+    var len;
+    if (items && items.length) {
+      len = items.length;
+      for (var i = 0; i < len; i++) {
+        this.add(items[i]);
+      }
+    }
+  }
+
+  var proto = Set.prototype = Object.create(_super.prototype);
+  proto.add = function (item) {
+    this.keys[''+item] = true;
+    return this;
+  };
+  proto.delete = function (item) {
+    delete this.keys[''+item];
+    return this;
+  };
+  proto.has = function (item) {
+    return this.keys.hasOwnProperty(''+item);
+  };
+
+  return Set;
+})(Object);
+
+var Map = (function (_super) {
+
+  function Map(items) {
+    this.entries = this.keys = {};
+    var len = items && items.length;
+    for (i = 0; i < len; i++) {
+      this.set(items[0], items[1]);
+    }
+  }
+
+  var proto = Map.prototype = Object.create(_super.prototype);
+  proto.add = null;
+  proto.set = function (what, to) {
+    this.entries[''+what] = to;
+    return this;
+  }
+  proto.get = function (what) {
+    return this.entries[''+what];
+  }
+
+  return Map;
+})(Set)
 // <reference path="./es6.d.ts"/>
 // <reference path="./holochain-proto.d.ts"/>
 /* IMPORT
@@ -667,8 +724,8 @@ export /**/ var LinkRepo = /** @class */ (function () {
     LinkRepo.prototype.addPredicate = function (trigger, subj, obj) {
         var triggered = this.predicates.get(trigger);
         for (var _i = 0, triggered_1 = triggered; _i < triggered_1.length; _i++) {
-            var _a = triggered_1[_i], query_1 = _a.query, dependent = _a.dependent;
-            var queried = query_1.repo.get(subj, query_1.tag).hashes();
+            var _a = triggered_1[_i], query = _a.query, dependent = _a.dependent;
+            var queried = query.repo.get(subj, query.tag).hashes();
             for (var _b = 0, queried_1 = queried; _b < queried_1.length; _b++) {
                 var q = queried_1[_b];
                 dependent.repo.put(q, obj, dependent.tag);
@@ -678,8 +735,8 @@ export /**/ var LinkRepo = /** @class */ (function () {
     LinkRepo.prototype.removePredicate = function (trigger, subj, obj) {
         var triggered = this.predicates.get(trigger);
         for (var _i = 0, triggered_2 = triggered; _i < triggered_2.length; _i++) {
-            var _a = triggered_2[_i], query_2 = _a.query, dependent = _a.dependent;
-            var queried = query_2.repo.get(subj, query_2.tag).hashes();
+            var _a = triggered_2[_i], query = _a.query, dependent = _a.dependent;
+            var queried = query.repo.get(subj, query.tag).hashes();
             for (var _b = 0, queried_2 = queried; _b < queried_2.length; _b++) {
                 var q = queried_2[_b];
                 dependent.repo.remove(q, obj, dependent.tag);
@@ -1139,6 +1196,46 @@ function getOwnedResources(_a) {
         _loop_1(agentHash);
     }
     return agentDicts;
+}
+// callbacks
+function genesis() {
+    // YAGNI
+    return true;
+}
+function validateCommit(entryType, entry, header, pkg, sources) {
+    // check against schema: YAGNI
+    return true;
+}
+function validatePut(entryType, entry, header, pkg, sources) {
+    // check for data sanity: YAGNI
+    return validateCommit(entryType, entry, header, pkg, sources);
+}
+function validateMod(entryType, entry, header, replaces, pkg, sources) {
+    // messages are immutable for now.
+    return true;
+}
+function validateDel(entryType, hash, pkg, sources) {
+    // messages are permanent for now
+    return true;
+}
+function validateLink(entryType, hash, links, pkg, sources) {
+    return true;
+}
+function validatePutPkg(entryType) {
+    // don't care.
+    return null;
+}
+function validateModPkg(entryType) {
+    // can't happen, don't care
+    return null;
+}
+function validateDelPkg(entryType) {
+    // can't happen, don't care
+    return null;
+}
+function validateLinkPkg(entryType) {
+    // can't happen, don't care
+    return null;
 }
 /*/
 /**/

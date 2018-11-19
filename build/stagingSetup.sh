@@ -22,8 +22,9 @@ cp $COMMON -r $STAGING/
 
 # cp: zomes to staging as zome.ts
 for zome in $MODULES; do
-  rm --interactive=never $STAGING/${zome}/${zome}.d.ts
-  cp $SRCDNA/${zome}/${zome}.ts $STAGING/${zome}/_${zome}.ts
+  folder=$STAGING/$zome
+  rm --interactive=never $folder/${zome}.d.ts $folder/_${zome}.d.ts $folder/_${zome}.ts $folder/_types.ts $folder/${zome}.js $folder/lib.d.ts
+  cp $SRCDNA/${zome}/${zome}.ts $folder/_${zome}.ts
 done
 
 # sed: turn IMPORT comment-on, EXPORT comment-off, TYPE-SCOPE on, HOLO-SCOPE off to zome/zome.ts

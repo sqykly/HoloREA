@@ -1,60 +1,3 @@
-/**
- * I guess typescript can't honor my ES5 target here?!  Ok...
- * It really only needs to implement the functions I use: constructor, get, set, add, has
- * And the key types I use: just string, I think.
- */
-
-var Set = (function (_super) {
-
-  function Set(items) {
-    this.keys = {};
-    var len;
-    if (items && items.length) {
-      len = items.length;
-      for (var i = 0; i < len; i++) {
-        this.add(items[i]);
-      }
-    }
-  }
-
-  var proto = Set.prototype = Object.create(_super.prototype);
-  proto.add = function (item) {
-    this.keys[''+item] = true;
-    return this;
-  };
-  proto.delete = function (item) {
-    delete this.keys[''+item];
-    return this;
-  };
-  proto.has = function (item) {
-    return this.keys.hasOwnProperty(''+item);
-  };
-
-  return Set;
-})(Object);
-
-var Map = (function (_super) {
-
-  function Map(items) {
-    this.entries = this.keys = {};
-    var len = items && items.length;
-    for (i = 0; i < len; i++) {
-      this.set(items[0], items[1]);
-    }
-  }
-
-  var proto = Map.prototype = Object.create(_super.prototype);
-  proto.add = null;
-  proto.set = function (what, to) {
-    this.entries[''+what] = to;
-    return this;
-  }
-  proto.get = function (what) {
-    return this.entries[''+what];
-  }
-
-  return Map;
-})(Set)
 // <reference path="./es6.d.ts"/>
 // <reference path="./holochain-proto.d.ts"/>
 /* IMPORT
@@ -1126,653 +1069,76 @@ export /**/ var VfObject = /** @class */ (function (_super) {
     VfObject.entryDefaults = {};
     return VfObject;
 }(HoloObject));
-var TrackTrace = new LinkRepo("TrackTrace");
-TrackTrace.linkBack("affects", "affectedBy")
-    .linkBack("affectedBy", "affects");
-// </imports>
-// <links>
-var Classifications = new LinkRepo("Classifications");
-Classifications.linkBack("classifiedAs", "classifies")
-    .linkBack("classifies", "classifiedAs");
-var EventLinks = new LinkRepo("EventLinks");
-EventLinks.linkBack("inputs", "inputOf")
-    .linkBack("outputs", "outputOf")
-    .linkBack("inputOf", "inputs")
-    .linkBack("outputOf", "outputs")
-    .linkBack("action", "actionOf")
-    .linkBack("actionOf", "action");
-var Action = /** @class */ (function (_super) {
-    __extends(Action, _super);
-    function Action(entry, hash) {
+var Agent = /** @class */ (function (_super) {
+    __extends(Agent, _super);
+    function Agent(entry, hash) {
         var _this = _super.call(this, entry, hash) || this;
-        _this.className = "Action";
+        _this.className = "Agent";
         return _this;
     }
-    Action.get = function (hash) {
+    Agent.get = function (hash) {
         return _super.get.call(this, hash);
     };
-    Action.create = function (entry) {
+    Agent.create = function (entry) {
         return _super.create.call(this, entry);
     };
-    Action.prototype.isIncrement = function () {
-        return this.myEntry.behavior === '+';
-    };
-    Action.prototype.isDecrement = function () {
-        return this.myEntry.behavior === '-';
-    };
-    Action.prototype.isNoEffect = function () {
-        return this.myEntry.behavior === '0';
-    };
-    Object.defineProperty(Action.prototype, "behavior", {
-        get: function () {
-            return this.myEntry.behavior;
-        },
-        set: function (to) {
-            this.myEntry.behavior = to;
-        },
-        enumerable: true,
-        configurable: true
+    Agent.className = "Agent";
+    Agent.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
+        primaryLocation: ["middle of nowhere", "placeville, XX 12345"]
     });
-    Object.defineProperty(Action.prototype, "sign", {
-        get: function () {
-            var behavior = this.myEntry.behavior;
-            switch (behavior) {
-                case "+": return 1;
-                case "-": return -1;
-                case "0": return 0;
-            }
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Action.className = "Action";
-    //protected myEntry: T & typeof Action.entryType;
-    Action.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
-        behavior: '0'
-    });
-    return Action;
+    return Agent;
 }(VfObject));
-var Process = /** @class */ (function (_super) {
-    __extends(Process, _super);
-    function Process(entry, hash) {
-        var _this = _super.call(this, entry, hash) || this;
-        _this.className = "Process";
-        return _this;
-    }
-    Process.get = function (hash) {
-        return _super.get.call(this, hash);
-    };
-    Process.create = function (entry) {
-        return _super.create.call(this, entry);
-    };
-    Process.className = "Process";
-    Process.entryDefaults = Object.assign({}, VfObject.entryDefaults, {});
-    return Process;
-}(VfObject));
-var TransferClassification = /** @class */ (function (_super) {
-    __extends(TransferClassification, _super);
-    function TransferClassification(entry, hash) {
-        var _this = _super.call(this, entry, hash) || this;
-        _this.className = "TransferClassification";
-        return _this;
-    }
-    TransferClassification.get = function (hash) {
-        return _super.get.call(this, hash);
-    };
-    TransferClassification.create = function (entry) {
-        return _super.create.call(this, entry);
-    };
-    TransferClassification.className = "TransferClassification";
-    TransferClassification.entryDefaults = Object.assign({}, VfObject.entryDefaults, {});
-    return TransferClassification;
-}(VfObject));
-var fixtures = {
-    Action: {
-        Give: new Action({ name: "Give", behavior: '-' }).commit(),
-        Receive: new Action({ name: "Receive", behavior: '+' }).commit(),
-        Adjust: new Action({ name: "Adjust", behavior: '+' }).commit()
-    },
-    TransferClassification: {
-        Stub: new TransferClassification({
-            name: "Transfer Classification Stub"
-        }).commit()
-    }
-};
-var Transfer = /** @class */ (function (_super) {
-    __extends(Transfer, _super);
-    function Transfer(entry, hash) {
-        var _this = _super.call(this, entry, hash) || this;
-        _this.className = "Transfer";
-        return _this;
-    }
-    //protected myEntry: T & XferEntry & typeof VfObject.entryType;
-    Transfer.get = function (hash) {
-        return _super.get.call(this, hash);
-    };
-    Transfer.create = function (entry) {
-        return _super.create.call(this, entry);
-    };
-    Object.defineProperty(Transfer.prototype, "input", {
-        get: function () {
-            return EconomicEvent.get(this.myEntry.inputs);
-        },
-        set: function (to) {
-            var current = this.myEntry.inputs;
-            if (current && current !== to.hash) {
-                EventLinks.remove(this.hash, this.myEntry.inputs, "inputs");
-            }
-            this.myEntry.inputs = to.hash;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Transfer.prototype, "output", {
-        get: function () {
-            return EconomicEvent.get(this.myEntry.outputs);
-        },
-        set: function (to) {
-            var current = this.myEntry.outputs;
-            if (current && current !== to.hash) {
-                EventLinks.remove(this.hash, current, "outputs");
-            }
-            this.myEntry.outputs = to.hash;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Transfer.prototype, "classification", {
-        get: function () {
-            return TransferClassification.get(this.myEntry.transferClassifiedAs);
-        },
-        set: function (to) {
-            var current = this.myEntry.transferClassifiedAs;
-            if (current && current !== to.hash) {
-                Classifications.remove(this.hash, current, "classifiedAs");
-            }
-            this.myEntry.transferClassifiedAs = to.hash;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Transfer.prototype.remove = function (msg) {
-        var _a = this.myEntry, inputs = _a.inputs, outputs = _a.outputs, classy = _a.transferClassifiedAs;
-        if (inputs) {
-            EventLinks.remove(this.hash, inputs, "inputs");
-        }
-        if (outputs) {
-            EventLinks.remove(this.hash, outputs, "outputs");
-        }
-        if (classy) {
-            Classifications.remove(this.hash, classy, "classifiedAs");
-        }
-        return _super.prototype.remove.call(this, msg);
-    };
-    Transfer.className = "Transfer";
-    Transfer.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
-        transferClassifiedAs: "",
-        inputs: "",
-        outputs: ""
-    });
-    return Transfer;
-}(VfObject));
-var EconomicEvent = /** @class */ (function (_super) {
-    __extends(EconomicEvent, _super);
-    function EconomicEvent(entry, hash) {
-        var _this = _super.call(this, entry, hash) || this;
-        _this.className = "EconomicEvent";
-        entry = _this.myEntry;
-        if (!entry.start)
-            _this.myEntry.start = Date.now();
-        if (!entry.duration)
-            _this.myEntry.duration = Date.now();
-        return _this;
-    }
-    EconomicEvent.get = function (hash) {
-        return _super.get.call(this, hash);
-    };
-    EconomicEvent.create = function (entry) {
-        return _super.create.call(this, entry);
-    };
-    Object.defineProperty(EconomicEvent.prototype, "action", {
-        get: function () {
-            return this.entry.action && Action.get(this.entry.action) || null;
-        },
-        set: function (obj) {
-            var my = this.myEntry;
-            if (!obj) {
-                if (my.action) {
-                    throw new Error("economicEvent.action is a required field; can't be set to " + obj);
-                }
-            }
-            var to = obj.hash;
-            if (!!my.action && to !== my.action) {
-                EventLinks.remove(this.hash, my.action, "action");
-            }
-            my.action = to;
-            this.update();
-            EventLinks.put(this.hash, to, "action");
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "inputOf", {
-        get: function () {
-            return this.myEntry.inputOf && Transfer.get(this.myEntry.inputOf) || null;
-        },
-        set: function (to) {
-            var my = this.myEntry;
-            if (!to) {
-                if (my.outputOf) {
-                    EventLinks.remove(this.myHash, my.outputOf, "outputOf");
-                    my.outputOf = null;
-                }
-                return;
-            }
-            var hash = to.hash;
-            if (!!my.inputOf && my.inputOf !== hash) {
-                EventLinks.remove(this.hash, my.inputOf, "inputOf");
-                // somehow get the other instance to reload its fields?
-            }
-            my.inputOf = hash;
-            EventLinks.put(this.myHash, hash, "inputOf");
-            this.myHash = this.update();
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "outputOf", {
-        get: function () {
-            return this.myEntry.outputOf && Transfer.get(this.myEntry.outputOf) || null;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "quantity", {
-        get: function () {
-            return new QuantityValue(this.myEntry.affectedQuantity);
-        },
-        set: function (to) {
-            var units = to.units, quantity = to.quantity;
-            this.myEntry.affectedQuantity = { units: units, quantity: quantity };
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "start", {
-        get: function () {
-            return this.myEntry.start;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    EconomicEvent.prototype.started = function (when) {
-        if (typeof when != "number") {
-            when = when.valueOf();
-        }
-        this.myEntry.start = when;
-        this.update();
-        return this;
-    };
-    Object.defineProperty(EconomicEvent.prototype, "startDate", {
-        get: function () {
-            return new Date(this.start);
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "duration", {
-        get: function () {
-            return this.myEntry.duration;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "end", {
-        get: function () {
-            var my = this.myEntry;
-            return this.myEntry.start + this.myEntry.duration;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "endDate", {
-        get: function () {
-            return new Date(this.end);
-        },
-        enumerable: true,
-        configurable: true
-    });
-    EconomicEvent.prototype.ended = function (when) {
-        if (when === undefined || when === null) {
-            when = Date.now();
-        }
-        else if (typeof when != "number") {
-            when = when.valueOf();
-        }
-        var my = this.myEntry;
-        my.duration = when - my.start;
-        this.update();
-        return this;
-    };
-    EconomicEvent.prototype.instant = function () {
-        this.myEntry.duration = 1;
-        this.update();
-        return this;
-    };
-    Object.defineProperty(EconomicEvent.prototype, "isComplete", {
-        get: function () {
-            return !!this.duration;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "isOngoing", {
-        get: function () {
-            return !this.isComplete;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "affects", {
-        get: function () {
-            return this.myEntry.affects;
-        },
-        set: function (res) {
-            var hash = hashOf(res);
-            var my = this.myEntry;
-            if (my.affects && my.affects !== hash) {
-                TrackTrace.remove(this.hash, my.affects, "affects");
-            }
-            my.affects = hash;
-            this.update();
-        },
-        enumerable: true,
-        configurable: true
-    });
-    EconomicEvent.prototype.updateLinks = function (hash) {
-        hash = hash || this.hash;
-        var my = this.myEntry;
-        var linksOut = EventLinks.get(this.myHash);
-        var action = linksOut.tags("action");
-        if (my.action && (!action.length || action.hashes[0] !== my.action)) {
-            EventLinks.put(hash, my.action, "action");
-            if (action.length) {
-                action.removeAll();
-            }
-        }
-        var inputOf = linksOut.tags("outputOf");
-        if (my.inputOf && (!inputOf.length || inputOf.hashes()[0] !== my.inputOf)) {
-            EventLinks.put(hash, my.inputOf, "inputOf");
-            if (inputOf.length) {
-                inputOf.removeAll();
-            }
-        }
-        var outputOf = linksOut.tags("outputOf");
-        if (my.outputOf && (!outputOf.length || outputOf.hashes()[0] !== my.outputOf)) {
-            EventLinks.put(hash, my.outputOf, "outputOf");
-            if (outputOf.length) {
-                outputOf.removeAll();
-            }
-        }
-        var affects = TrackTrace.get(hash, "affects");
-        if (my.affects && (!affects.length || affects.hashes()[0] === my.affects)) {
-            TrackTrace.put(hash, my.affects, "affects");
-            if (affects.length) {
-                affects.removeAll();
-            }
-        }
-        return hash;
-    };
-    EconomicEvent.prototype.commit = function () {
-        return this.updateLinks(_super.prototype.commit.call(this));
-    };
-    EconomicEvent.prototype.update = function () {
-        return this.updateLinks(_super.prototype.update.call(this));
-    };
-    EconomicEvent.prototype.remove = function () {
-        var my = this.myEntry;
-        var hash = this.myHash;
-        // If the event is removed, its effect is also reversed.
-        var affects = TrackTrace.get(hash, "affects");
-        if (affects.length) {
-            var resource = affects.data()[0];
-            var sign = this.action.sign;
-            var effect = this.quantity.mul({ units: '', quantity: sign });
-            var old = new QuantityValue(resource.currentQuantity);
-            var _a = old.sub(effect), units = _a.units, quantity = _a.quantity;
-            resource.currentQuantity = { units: units, quantity: quantity };
-            update("EconomicResource", resource, my.affects);
-            affects.removeAll();
-        }
-        EventLinks.get(hash).tags("action", "inputOf", "outputOf").removeAll();
-        return _super.prototype.remove.call(this);
-    };
-    // begin mandatory overrides
-    EconomicEvent.className = "EconomicEvent";
-    EconomicEvent.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
-        action: fixtures.Action.Adjust,
-        affects: "",
-        affectedQuantity: { units: "", quantity: 0 },
-        start: 0,
-        duration: 0
-    });
-    return EconomicEvent;
-}(VfObject));
+var AgentProperty = new LinkRepo("AgentProperty");
 /* TYPE-SCOPE
 }
 /*/
 /**/
 /* EXPORT
-export default events;
+export default agents;
 /*/
 /**/
-// <Zome exports> (call() functions)
+// <zome> public functions
 //* HOLO-SCOPE
-// for <DRY> purposes
-function trackTrace(subjects, tag) {
-    return subjects.reduce(function (response, subject) {
-        return response.concat(EventLinks.get(subject, tag).hashes());
-    }, []);
-}
-function filterByTime(_a, filter) {
-    var events = _a.events, when = _a.when;
-    return events.map(function (ev) { return EconomicEvent.get(ev); })
-        .filter(filter)
-        .map(function (ev) { return ev.hash; });
-}
-// </DRY>
-function traceEvents(events) {
-    return trackTrace(events, "outputOf").map(function (hash) {
-        var instance = Transfer.get(hash);
-        return instance.portable();
-    });
-}
-function trackEvents(events) {
-    return trackTrace(events, "inputOf").map(function (hash) {
-        var instance = Transfer.get(hash);
-        return instance.portable();
-    });
-}
-function traceTransfers(xfers) {
-    return trackTrace(xfers, "inputs").map(function (hash) {
-        var instance = EconomicEvent.get(hash);
-        return instance.portable();
-    });
-}
-function trackTransfers(xfers) {
-    return trackTrace(xfers, "outputs").map(function (hash) {
-        var instance = EconomicEvent.get(hash);
-        return instance.portable();
-    });
-}
-function eventsStartedBefore(_a) {
-    var events = _a.events, when = _a.when;
-    return filterByTime({ events: events, when: when }, (function (ev) { return when > ev.start; })).map(function (hash) {
-        return EconomicEvent.get(hash).portable();
-    });
-}
-function eventsEndedBefore(_a) {
-    var events = _a.events, when = _a.when;
-    return filterByTime({ events: events, when: when }, (function (ev) { return ev.end < when; })).map(function (hash) {
-        return EconomicEvent.get(hash).portable();
-    });
-}
-function eventsStartedAfter(_a) {
-    var events = _a.events, when = _a.when;
-    return filterByTime({ events: events, when: when }, (function (ev) { return when < ev.start; })).map(function (hash) {
-        return EconomicEvent.get(hash).portable();
-    });
-}
-function eventsEndedAfter(_a) {
-    var events = _a.events, when = _a.when;
-    return filterByTime({ events: events, when: when }, (function (ev) { return ev.end > when; })).map(function (hash) {
-        return EconomicEvent.get(hash).portable();
-    });
-}
-function sortEvents(_a) {
-    var events = _a.events, by = _a.by, order = _a.order, start = _a.start, end = _a.end;
-    var objects = events.map(function (ev) { return EconomicEvent.get(ev); }), orderBy = by === "start" ?
-        function (ev) { return ev.start; } :
-        function (ev) { return ev.end; };
-    objects.sort(function (a, b) {
-        return Math.sign(orderBy(b) - orderBy(a));
-    });
-    var times = (!!start || !!end) && objects.map(orderBy);
-    if (start) {
-        var i = bisect(times, start);
-        objects = objects.slice(i);
-    }
-    if (end) {
-        var i = bisect(times, end);
-        objects = objects.slice(0, i);
-    }
-    if (order === "down")
-        objects = objects.reverse();
-    return objects.map(function (ev) { return ev.portable(); });
-}
-;
-function eventSubtotals(hashes) {
-    var uniqueRes = new Set();
-    var resourceHashes = [];
-    var events = hashes.map(function (h) { return EconomicEvent.get(h); });
-    events.sort(function (a, b) {
-        return b.end - a.end;
-    });
-    events.forEach(function (ev) {
-        uniqueRes.add(ev.entry.affects);
-    });
-    var qvs;
-    uniqueRes.forEach(function (ur) {
-        qvs[ur] = new QuantityValue({ units: "", quantity: 0 });
-        resourceHashes.push(ur);
-    });
-    var subs = events.map(function (ev) {
-        var _a;
-        var item = { event: ev.portable(), subtotals: qvs }, sign = ev.action.sign, quantity = ev.quantity.mul({ units: "", quantity: sign }), res = hashOf(ev.affects);
-        qvs = Object.assign({}, qvs, (_a = {}, _a[res] = qvs[res].add(quantity), _a));
-        return item;
-    });
-    return { events: subs, totals: qvs, resources: resourceHashes };
-}
-// <fixtures>
-function getFixtures(dontCare) {
-    return fixtures;
-}
-// </fixures>
-function resourceCreationEvent(_a) {
-    var resource = _a.resource, dates = _a.dates;
-    var adjustHash = fixtures.Action.Adjust;
-    var qv = resource.currentQuantity;
-    var start, end;
-    if (dates) {
-        start = dates.start;
-        end = dates.end || start + 1;
-    }
-    else {
-        start = Date.now();
-        end = start + 1;
-    }
-    if (!qv.units) {
-        var resClass = notError(get(resource.resourceClassifiedAs));
-        qv.units = resClass.defaultUnits;
-    }
-    var resHash = notError(commit("EconomicResource", resource));
-    // THIS ONLY WORKS IN A STRATEGY-2 RESOURCE (see mattermost rants)
-    // a strategy-1 resource is calculated forward, so the pre-event state MUST
-    // have quantity 0.
-    var entry = {
-        action: adjustHash,
-        affects: resHash,
-        receiver: resource.owner,
-        provider: resource.owner,
-        affectedQuantity: qv,
-        start: start,
-        duration: end - start
-    };
-    var event = new EconomicEvent(entry);
-    return {
-        type: event.className,
-        hash: event.commit(),
-        entry: event.entry
-    };
-}
-// CRUD
-function createEvent(init) {
+function createAgent(props) {
     var it, err;
     try {
-        it = EconomicEvent.create(init);
-        var affect = it.affects;
+        it = notError(Agent.create(props));
     }
     catch (e) {
         err = e;
     }
     return {
         error: err,
-        hash: it.hash,
-        entry: it.entry
+        hash: err ? null : it.commit(),
+        entry: err ? null : it.entry,
+        type: err ? "error" : it.className
     };
 }
-function createTransfer(init) {
-    var it, err;
-    try {
-        it = Transfer.create(init);
+function getOwnedResources(_a) {
+    var agents = _a.agents, types = _a.types;
+    //              [agent][class][resource]
+    var agentDicts = {}, typeSet = null;
+    if (types) {
+        typeSet = new Set(types);
     }
-    catch (e) {
-        err = e;
-    }
-    return {
-        error: err,
-        hash: it.hash,
-        entry: it.entry
+    var _loop_1 = function (agentHash) {
+        var classDict = {}, stuffHeHas = AgentProperty.get(agentHash, "owns").tags("owns");
+        stuffHeHas.data().forEach(function (resource, index) {
+            var type = resource.resourceClassifiedAs;
+            if (!types || typeSet.has(type)) {
+                var instances = classDict[type] || [];
+                instances.push(stuffHeHas[index].Hash);
+                classDict[type] = instances;
+            }
+        });
+        agentDicts[agentHash] = classDict;
     };
-}
-function createTransferClass(init) {
-    var it, err;
-    try {
-        it = TransferClassification.create(init);
+    // This is going to have to be a query-filter-collate.
+    for (var _i = 0, agents_1 = agents; _i < agents_1.length; _i++) {
+        var agentHash = agents_1[_i];
+        _loop_1(agentHash);
     }
-    catch (e) {
-        err = e;
-    }
-    return {
-        error: err,
-        hash: it.hash,
-        entry: it.entry
-    };
-}
-function createAction(init) {
-    var it, err;
-    try {
-        it = Action.create(init);
-    }
-    catch (e) {
-        err = e;
-    }
-    return {
-        error: err,
-        hash: it.hash,
-        entry: it.entry
-    };
+    return agentDicts;
 }
 // callbacks
 function genesis() {

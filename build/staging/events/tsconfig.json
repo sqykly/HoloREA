@@ -9,6 +9,6 @@
     "newLine" : "lf",
     "module": "None"
   },
-  "files": ["./events.ts", "./lib.d.ts"],
+  "files": ["./events.ts"],
   "exclude" : ["*.*", "/**/*.*"]
 }

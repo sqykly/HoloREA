@@ -1,60 +1,3 @@
-/**
- * I guess typescript can't honor my ES5 target here?!  Ok...
- * It really only needs to implement the functions I use: constructor, get, set, add, has
- * And the key types I use: just string, I think.
- */
-
-var Set = (function (_super) {
-
-  function Set(items) {
-    this.keys = {};
-    var len;
-    if (items && items.length) {
-      len = items.length;
-      for (var i = 0; i < len; i++) {
-        this.add(items[i]);
-      }
-    }
-  }
-
-  var proto = Set.prototype = Object.create(_super.prototype);
-  proto.add = function (item) {
-    this.keys[''+item] = true;
-    return this;
-  };
-  proto.delete = function (item) {
-    delete this.keys[''+item];
-    return this;
-  };
-  proto.has = function (item) {
-    return this.keys.hasOwnProperty(''+item);
-  };
-
-  return Set;
-})(Object);
-
-var Map = (function (_super) {
-
-  function Map(items) {
-    this.entries = this.keys = {};
-    var len = items && items.length;
-    for (i = 0; i < len; i++) {
-      this.set(items[0], items[1]);
-    }
-  }
-
-  var proto = Map.prototype = Object.create(_super.prototype);
-  proto.add = null;
-  proto.set = function (what, to) {
-    this.entries[''+what] = to;
-    return this;
-  }
-  proto.get = function (what) {
-    return this.entries[''+what];
-  }
-
-  return Map;
-})(Set)
 // <reference path="./es6.d.ts"/>
 // <reference path="./holochain-proto.d.ts"/>
 /* IMPORT
@@ -1126,14 +1069,24 @@ export /**/ var VfObject = /** @class */ (function (_super) {
     VfObject.entryDefaults = {};
     return VfObject;
 }(HoloObject));
-var TrackTrace = new LinkRepo("TrackTrace");
-TrackTrace.linkBack("affects", "affectedBy")
-    .linkBack("affectedBy", "affects");
-// </imports>
+// <reference path="../common/common"/>
+// <reference path="../agents/agents"/>
+// <reference path="../events/events"/>
+/* IMPORT
+//import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf } from "../../../lib/ts/common";
+import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf } from "../common/common";
+import events from "../events/events";
+import agents from "../agents/agents";
+/*/
+/**/
+/* TYPE-SCOPE
+//import "../common/common";
+//import "../events/events";
+//import "../agents/agents";
+/*/
+/**/
 // <links>
-var Classifications = new LinkRepo("Classifications");
-Classifications.linkBack("classifiedAs", "classifies")
-    .linkBack("classifies", "classifiedAs");
+// <imported from events>
 var EventLinks = new LinkRepo("EventLinks");
 EventLinks.linkBack("inputs", "inputOf")
     .linkBack("outputs", "outputOf")
@@ -1141,639 +1094,449 @@ EventLinks.linkBack("inputs", "inputOf")
     .linkBack("outputOf", "outputs")
     .linkBack("action", "actionOf")
     .linkBack("actionOf", "action");
-var Action = /** @class */ (function (_super) {
-    __extends(Action, _super);
-    function Action(entry, hash) {
+var XferClasses = new LinkRepo("Classifications");
+XferClasses.linkBack("classifiedAs", "classifies")
+    .linkBack("classifies", "classifiedAs");
+// </imported from agents/>
+var AgentProperty = new LinkRepo("AgentProperty");
+// </imported>
+// <own> links
+var ResourceClasses = new LinkRepo("ResourceClasses");
+ResourceClasses
+    .linkBack("classifiedAs", "classifies")
+    .linkBack("classifies", "classifiedAs");
+var ResourceRelationships = new LinkRepo("ResourceRelationships");
+ResourceRelationships
+    .linkBack("underlyingResource", "underlies")
+    .linkBack("underlies", "underlyingResource")
+    .linkBack("contains", "inside")
+    .linkBack("inside", "contains");
+var TrackTrace = new LinkRepo("TrackTrace");
+TrackTrace.linkBack("affects", "affectedBy")
+    .linkBack("affectedBy", "affects");
+/**
+ * Represents a category of resources.  For now, it merely provides the default unit
+ * for quantities of resources in this class.
+ * @extends HoloObject
+ */
+var ResourceClassification = /** @class */ (function (_super) {
+    __extends(ResourceClassification, _super);
+    function ResourceClassification(entry, hash) {
         var _this = _super.call(this, entry, hash) || this;
-        _this.className = "Action";
+        _this.className = "ResourceClassification";
         return _this;
     }
-    Action.get = function (hash) {
+    ResourceClassification.get = function (hash) {
         return _super.get.call(this, hash);
     };
-    Action.create = function (entry) {
+    ResourceClassification.create = function (entry) {
         return _super.create.call(this, entry);
     };
-    Action.prototype.isIncrement = function () {
-        return this.myEntry.behavior === '+';
+    ResourceClassification.prototype.instance = function (properties) {
+        var _a = properties.currentQuantity, units = _a.units, quantity = _a.quantity, my = this.myEntry;
+        if (!units) {
+            units = my.defaultUnits;
+        }
+        else if (!!my.defaultUnits && units !== my.defaultUnits) {
+            throw new TypeError("Quantity of resources of class " + (my.name || my.url) + " is expressed in " + my.defaultUnits + ", not " + units);
+        }
+        return EconomicResource.create({
+            resourceClassifiedAs: this.hash,
+            currentQuantity: { units: units, quantity: quantity },
+            underlyingResource: properties.underlyingResource,
+            contains: properties.contains,
+            trackingIdentifier: properties.trackingIdentifier,
+            owner: properties.owner
+        });
     };
-    Action.prototype.isDecrement = function () {
-        return this.myEntry.behavior === '-';
-    };
-    Action.prototype.isNoEffect = function () {
-        return this.myEntry.behavior === '0';
-    };
-    Object.defineProperty(Action.prototype, "behavior", {
+    Object.defineProperty(ResourceClassification.prototype, "defaultUnits", {
         get: function () {
-            return this.myEntry.behavior;
+            return this.myEntry.defaultUnits;
         },
         set: function (to) {
-            this.myEntry.behavior = to;
+            this.myEntry.defaultUnits = to;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(Action.prototype, "sign", {
-        get: function () {
-            var behavior = this.myEntry.behavior;
-            switch (behavior) {
-                case "+": return 1;
-                case "-": return -1;
-                case "0": return 0;
-            }
-        },
-        enumerable: true,
-        configurable: true
+    ResourceClassification.prototype.instances = function () {
+        return ResourceClasses.get(this.myHash)
+            .tags("classifies")
+            .hashes().map(function (erh) { return EconomicResource.get(erh); });
+    };
+    ResourceClassification.className = "ResourceClassification";
+    ResourceClassification.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
+        defaultUnits: ''
     });
-    Action.className = "Action";
-    //protected myEntry: T & typeof Action.entryType;
-    Action.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
-        behavior: '0'
-    });
-    return Action;
+    return ResourceClassification;
 }(VfObject));
-var Process = /** @class */ (function (_super) {
-    __extends(Process, _super);
-    function Process(entry, hash) {
+var EconomicResource = /** @class */ (function (_super) {
+    __extends(EconomicResource, _super);
+    function EconomicResource(entry, hash) {
         var _this = _super.call(this, entry, hash) || this;
-        _this.className = "Process";
+        // <mandatory overrides>
+        _this.className = "EconomicResource";
         return _this;
     }
-    Process.get = function (hash) {
-        return _super.get.call(this, hash);
+    EconomicResource.get = function (hash) {
+        var it = _super.get.call(this, hash);
+        var my = it.myEntry;
+        var owners = AgentProperty.get(my.owner, "owns").select(function (_a) {
+            var hash = _a.hash;
+            return hash === it.myHash;
+        });
+        if (my.owner && !owners.length) {
+            throw new Error("resource was re-assigned ownership, but can't recover new owner");
+        }
+        var underlying = ResourceRelationships.get(hash, "underlyingResource");
+        if (underlying.length) {
+            var mine = underlying.select(function (_a) {
+                var link = _a.hash;
+                return link === my.underlyingResource;
+            });
+            var more = underlying.select(function (_a) {
+                var link = _a.hash;
+                return link !== my.underlyingResource;
+            });
+            if (more.length) {
+                mine.removeAll();
+                var pop_1 = more.hashes()[0];
+                more.select(function (_a) {
+                    var link = _a.hash;
+                    return link !== pop_1;
+                }).removeAll();
+                my.underlyingResource = pop_1;
+            }
+            else if (!mine.length) {
+                my.underlyingResource = null;
+            }
+        }
+        var contains = ResourceRelationships.get(hash, "contains");
+        if (contains.length) {
+            var mine = contains.select(function (_a) {
+                var link = _a.hash;
+                return link === my.contains;
+            });
+            var more = contains.select(function (_a) {
+                var link = _a.hash;
+                return link !== my.contains;
+            });
+            if (more.length) {
+                mine.removeAll();
+                var pop_2 = more.hashes()[0];
+                more.select(function (_a) {
+                    var link = _a.hash;
+                    return link !== pop_2;
+                }).removeAll();
+                my.contains = pop_2;
+            }
+            else if (!mine.length) {
+                my.contains = null;
+            }
+        }
+        var classy = ResourceClasses.get(hash, "classifiedAs");
+        if (classy.length) {
+            var mine = classy.select(function (_a) {
+                var link = _a.hash;
+                return link === my.resourceClassifiedAs;
+            });
+            var more = classy.select(function (_a) {
+                var link = _a.hash;
+                return link !== my.resourceClassifiedAs;
+            });
+            if (more.length) {
+                mine.removeAll();
+                var pop_3 = more.hashes()[0];
+                more.select(function (_a) {
+                    var link = _a.hash;
+                    return link !== pop_3;
+                }).removeAll();
+                my.resourceClassifiedAs = pop_3;
+            }
+            else if (!mine.length) {
+                my.resourceClassifiedAs = null;
+            }
+        }
+        it.update();
+        return it;
     };
-    Process.create = function (entry) {
-        return _super.create.call(this, entry);
+    EconomicResource.create = function (entry) {
+        var rc = notError(ResourceClassification.get(entry.resourceClassifiedAs));
+        if (entry.currentQuantity) {
+            if (!entry.currentQuantity.units) {
+                entry.currentQuantity.units = rc.defaultUnits;
+            }
+        }
+        else {
+            entry.currentQuantity = { units: rc.defaultUnits, quantity: 0 };
+        }
+        var it = _super.create.call(this, entry);
+        it.updateLinks();
+        return it;
     };
-    Process.className = "Process";
-    Process.entryDefaults = Object.assign({}, VfObject.entryDefaults, {});
-    return Process;
-}(VfObject));
-var TransferClassification = /** @class */ (function (_super) {
-    __extends(TransferClassification, _super);
-    function TransferClassification(entry, hash) {
-        var _this = _super.call(this, entry, hash) || this;
-        _this.className = "TransferClassification";
-        return _this;
-    }
-    TransferClassification.get = function (hash) {
-        return _super.get.call(this, hash);
-    };
-    TransferClassification.create = function (entry) {
-        return _super.create.call(this, entry);
-    };
-    TransferClassification.className = "TransferClassification";
-    TransferClassification.entryDefaults = Object.assign({}, VfObject.entryDefaults, {});
-    return TransferClassification;
-}(VfObject));
-var fixtures = {
-    Action: {
-        Give: new Action({ name: "Give", behavior: '-' }).commit(),
-        Receive: new Action({ name: "Receive", behavior: '+' }).commit(),
-        Adjust: new Action({ name: "Adjust", behavior: '+' }).commit()
-    },
-    TransferClassification: {
-        Stub: new TransferClassification({
-            name: "Transfer Classification Stub"
-        }).commit()
-    }
-};
-var Transfer = /** @class */ (function (_super) {
-    __extends(Transfer, _super);
-    function Transfer(entry, hash) {
-        var _this = _super.call(this, entry, hash) || this;
-        _this.className = "Transfer";
-        return _this;
-    }
-    //protected myEntry: T & XferEntry & typeof VfObject.entryType;
-    Transfer.get = function (hash) {
-        return _super.get.call(this, hash);
-    };
-    Transfer.create = function (entry) {
-        return _super.create.call(this, entry);
-    };
-    Object.defineProperty(Transfer.prototype, "input", {
+    Object.defineProperty(EconomicResource.prototype, "underlyingResource", {
+        // </mandatory overrides>
         get: function () {
-            return EconomicEvent.get(this.myEntry.inputs);
+            return EconomicResource.get(this.myEntry.underlyingResource);
         },
         set: function (to) {
-            var current = this.myEntry.inputs;
-            if (current && current !== to.hash) {
-                EventLinks.remove(this.hash, this.myEntry.inputs, "inputs");
-            }
-            this.myEntry.inputs = to.hash;
+            this.myEntry.underlyingResource = to && to.hash;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(Transfer.prototype, "output", {
+    Object.defineProperty(EconomicResource.prototype, "contains", {
         get: function () {
-            return EconomicEvent.get(this.myEntry.outputs);
+            return EconomicResource.get(this.myEntry.contains);
         },
         set: function (to) {
-            var current = this.myEntry.outputs;
-            if (current && current !== to.hash) {
-                EventLinks.remove(this.hash, current, "outputs");
-            }
-            this.myEntry.outputs = to.hash;
+            this.myEntry.contains = to && to.hash;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(Transfer.prototype, "classification", {
+    Object.defineProperty(EconomicResource.prototype, "classification", {
         get: function () {
-            return TransferClassification.get(this.myEntry.transferClassifiedAs);
+            return ResourceClassification.get(this.myEntry.resourceClassifiedAs);
         },
         set: function (to) {
-            var current = this.myEntry.transferClassifiedAs;
-            if (current && current !== to.hash) {
-                Classifications.remove(this.hash, current, "classifiedAs");
-            }
-            this.myEntry.transferClassifiedAs = to.hash;
+            this.myEntry.resourceClassifiedAs = to && to.hash;
         },
         enumerable: true,
         configurable: true
     });
-    Transfer.prototype.remove = function (msg) {
-        var _a = this.myEntry, inputs = _a.inputs, outputs = _a.outputs, classy = _a.transferClassifiedAs;
-        if (inputs) {
-            EventLinks.remove(this.hash, inputs, "inputs");
-        }
-        if (outputs) {
-            EventLinks.remove(this.hash, outputs, "outputs");
-        }
-        if (classy) {
-            Classifications.remove(this.hash, classy, "classifiedAs");
-        }
-        return _super.prototype.remove.call(this, msg);
-    };
-    Transfer.className = "Transfer";
-    Transfer.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
-        transferClassifiedAs: "",
-        inputs: "",
-        outputs: ""
-    });
-    return Transfer;
-}(VfObject));
-var EconomicEvent = /** @class */ (function (_super) {
-    __extends(EconomicEvent, _super);
-    function EconomicEvent(entry, hash) {
-        var _this = _super.call(this, entry, hash) || this;
-        _this.className = "EconomicEvent";
-        entry = _this.myEntry;
-        if (!entry.start)
-            _this.myEntry.start = Date.now();
-        if (!entry.duration)
-            _this.myEntry.duration = Date.now();
-        return _this;
-    }
-    EconomicEvent.get = function (hash) {
-        return _super.get.call(this, hash);
-    };
-    EconomicEvent.create = function (entry) {
-        return _super.create.call(this, entry);
-    };
-    Object.defineProperty(EconomicEvent.prototype, "action", {
+    Object.defineProperty(EconomicResource.prototype, "owner", {
         get: function () {
-            return this.entry.action && Action.get(this.entry.action) || null;
-        },
-        set: function (obj) {
-            var my = this.myEntry;
-            if (!obj) {
-                if (my.action) {
-                    throw new Error("economicEvent.action is a required field; can't be set to " + obj);
-                }
-            }
-            var to = obj.hash;
-            if (!!my.action && to !== my.action) {
-                EventLinks.remove(this.hash, my.action, "action");
-            }
-            my.action = to;
-            this.update();
-            EventLinks.put(this.hash, to, "action");
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "inputOf", {
-        get: function () {
-            return this.myEntry.inputOf && Transfer.get(this.myEntry.inputOf) || null;
+            return this.myEntry.owner;
         },
         set: function (to) {
-            var my = this.myEntry;
-            if (!to) {
-                if (my.outputOf) {
-                    EventLinks.remove(this.myHash, my.outputOf, "outputOf");
-                    my.outputOf = null;
-                }
-                return;
-            }
-            var hash = to.hash;
-            if (!!my.inputOf && my.inputOf !== hash) {
-                EventLinks.remove(this.hash, my.inputOf, "inputOf");
-                // somehow get the other instance to reload its fields?
-            }
-            my.inputOf = hash;
-            EventLinks.put(this.myHash, hash, "inputOf");
-            this.myHash = this.update();
+            this.owner = to || null;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(EconomicEvent.prototype, "outputOf", {
-        get: function () {
-            return this.myEntry.outputOf && Transfer.get(this.myEntry.outputOf) || null;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "quantity", {
-        get: function () {
-            return new QuantityValue(this.myEntry.affectedQuantity);
-        },
-        set: function (to) {
-            var units = to.units, quantity = to.quantity;
-            this.myEntry.affectedQuantity = { units: units, quantity: quantity };
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "start", {
-        get: function () {
-            return this.myEntry.start;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    EconomicEvent.prototype.started = function (when) {
-        if (typeof when != "number") {
-            when = when.valueOf();
-        }
-        this.myEntry.start = when;
-        this.update();
-        return this;
-    };
-    Object.defineProperty(EconomicEvent.prototype, "startDate", {
-        get: function () {
-            return new Date(this.start);
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "duration", {
-        get: function () {
-            return this.myEntry.duration;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "end", {
-        get: function () {
-            var my = this.myEntry;
-            return this.myEntry.start + this.myEntry.duration;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "endDate", {
-        get: function () {
-            return new Date(this.end);
-        },
-        enumerable: true,
-        configurable: true
-    });
-    EconomicEvent.prototype.ended = function (when) {
-        if (when === undefined || when === null) {
-            when = Date.now();
-        }
-        else if (typeof when != "number") {
-            when = when.valueOf();
-        }
+    EconomicResource.prototype.updateLinks = function (hash) {
+        var _this = this;
+        hash = hash || this.myHash;
         var my = this.myEntry;
-        my.duration = when - my.start;
-        this.update();
-        return this;
-    };
-    EconomicEvent.prototype.instant = function () {
-        this.myEntry.duration = 1;
-        this.update();
-        return this;
-    };
-    Object.defineProperty(EconomicEvent.prototype, "isComplete", {
-        get: function () {
-            return !!this.duration;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "isOngoing", {
-        get: function () {
-            return !this.isComplete;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(EconomicEvent.prototype, "affects", {
-        get: function () {
-            return this.myEntry.affects;
-        },
-        set: function (res) {
-            var hash = hashOf(res);
-            var my = this.myEntry;
-            if (my.affects && my.affects !== hash) {
-                TrackTrace.remove(this.hash, my.affects, "affects");
-            }
-            my.affects = hash;
-            this.update();
-        },
-        enumerable: true,
-        configurable: true
-    });
-    EconomicEvent.prototype.updateLinks = function (hash) {
-        hash = hash || this.hash;
-        var my = this.myEntry;
-        var linksOut = EventLinks.get(this.myHash);
-        var action = linksOut.tags("action");
-        if (my.action && (!action.length || action.hashes[0] !== my.action)) {
-            EventLinks.put(hash, my.action, "action");
-            if (action.length) {
-                action.removeAll();
-            }
+        var relationships = ResourceRelationships.get(hash);
+        var underlying = relationships.tags("underlyingResource");
+        if (my.underlyingResource && (!underlying.length || underlying.hashes()[0] !== my.underlyingResource)) {
+            ResourceRelationships.put(hash, my.underlyingResource, "underlyingResource");
+            underlying.removeAll();
         }
-        var inputOf = linksOut.tags("outputOf");
-        if (my.inputOf && (!inputOf.length || inputOf.hashes()[0] !== my.inputOf)) {
-            EventLinks.put(hash, my.inputOf, "inputOf");
-            if (inputOf.length) {
-                inputOf.removeAll();
-            }
+        var contains = relationships.tags("contains");
+        if (my.contains && (!contains.length || contains.hashes()[0] !== my.contains)) {
+            ResourceRelationships.put(hash, my.contains, "contains");
+            contains.removeAll();
         }
-        var outputOf = linksOut.tags("outputOf");
-        if (my.outputOf && (!outputOf.length || outputOf.hashes()[0] !== my.outputOf)) {
-            EventLinks.put(hash, my.outputOf, "outputOf");
-            if (outputOf.length) {
-                outputOf.removeAll();
-            }
+        var classy = ResourceClasses.get(hash, "classifiedAs");
+        var myClass = my.resourceClassifiedAs;
+        if (myClass && (!classy.length || classy.hashes()[0] !== myClass)) {
+            ResourceClasses.put(hash, myClass, "classifiedAs");
+            classy.removeAll();
         }
-        var affects = TrackTrace.get(hash, "affects");
-        if (my.affects && (!affects.length || affects.hashes()[0] === my.affects)) {
-            TrackTrace.put(hash, my.affects, "affects");
-            if (affects.length) {
-                affects.removeAll();
+        if (my.owner) {
+            var owner = AgentProperty.get(my.owner, "owns").select(function (_a) {
+                var hash = _a.hash;
+                return hash === _this.myHash;
+            });
+            if (!owner.length) {
+                AgentProperty.put(my.owner, hash, "owns");
             }
         }
         return hash;
     };
-    EconomicEvent.prototype.commit = function () {
-        return this.updateLinks(_super.prototype.commit.call(this));
+    EconomicResource.prototype.remove = function (msg) {
+        var my = this.myEntry;
+        if (my.resourceClassifiedAs) {
+            ResourceClasses.remove(this.myHash, my.resourceClassifiedAs, "classifiedAs");
+        }
+        TrackTrace.get(this.myHash, "affectedBy").removeAll();
+        var relations = ResourceRelationships.get(this.myHash);
+        var internal = relations.tags("underlyingResource", "contains");
+        var external = relations.tags("underlies", "inside");
+        internal.removeAll();
+        for (var _i = 0, _a = external.tags("underlies").hashes(); _i < _a.length; _i++) {
+            var underlies = _a[_i];
+            var res = EconomicResource.get(underlies);
+            res.underlyingResource = null;
+        }
+        for (var _b = 0, _c = external.tags("inside").hashes(); _b < _c.length; _b++) {
+            var inside = _c[_b];
+            var res = EconomicResource.get(inside);
+            res.contains = null;
+        }
+        return _super.prototype.remove.call(this, msg);
     };
-    EconomicEvent.prototype.update = function () {
+    EconomicResource.prototype.update = function () {
         return this.updateLinks(_super.prototype.update.call(this));
     };
-    EconomicEvent.prototype.remove = function () {
-        var my = this.myEntry;
-        var hash = this.myHash;
-        // If the event is removed, its effect is also reversed.
-        var affects = TrackTrace.get(hash, "affects");
-        if (affects.length) {
-            var resource = affects.data()[0];
-            var sign = this.action.sign;
-            var effect = this.quantity.mul({ units: '', quantity: sign });
-            var old = new QuantityValue(resource.currentQuantity);
-            var _a = old.sub(effect), units = _a.units, quantity = _a.quantity;
-            resource.currentQuantity = { units: units, quantity: quantity };
-            update("EconomicResource", resource, my.affects);
-            affects.removeAll();
-        }
-        EventLinks.get(hash).tags("action", "inputOf", "outputOf").removeAll();
-        return _super.prototype.remove.call(this);
+    EconomicResource.prototype.commit = function () {
+        return this.updateLinks(_super.prototype.commit.call(this));
     };
-    // begin mandatory overrides
-    EconomicEvent.className = "EconomicEvent";
-    EconomicEvent.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
-        action: fixtures.Action.Adjust,
-        affects: "",
-        affectedQuantity: { units: "", quantity: 0 },
-        start: 0,
-        duration: 0
+    EconomicResource.prototype.trace = function () {
+        var links = TrackTrace.get(this.myHash, "affectedBy");
+        var eEvents = links.types("EconomicEvent");
+        // I hate this a lot.
+        return call("events", "sortEvents", { events: eEvents.hashes(), order: "up", by: "end" });
+    };
+    Object.defineProperty(EconomicResource.prototype, "currentQuantity", {
+        get: function () {
+            return new QuantityValue(this.myEntry.currentQuantity);
+        },
+        set: function (to) {
+            var units = to.units, quantity = to.quantity;
+            this.myEntry.currentQuantity = { units: units, quantity: quantity };
+        },
+        enumerable: true,
+        configurable: true
     });
-    return EconomicEvent;
+    EconomicResource.className = "EconomicResource";
+    EconomicResource.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
+        currentQuantity: { units: '', quantity: 0 },
+        resourceClassifiedAs: "",
+        quantityLastCalculated: 0
+    });
+    return EconomicResource;
 }(VfObject));
 /* TYPE-SCOPE
 }
 /*/
 /**/
 /* EXPORT
-export default events;
+export default resources;
 /*/
 /**/
-// <Zome exports> (call() functions)
-//* HOLO-SCOPE
-// for <DRY> purposes
-function trackTrace(subjects, tag) {
-    return subjects.reduce(function (response, subject) {
-        return response.concat(EventLinks.get(subject, tag).hashes());
-    }, []);
-}
-function filterByTime(_a, filter) {
-    var events = _a.events, when = _a.when;
-    return events.map(function (ev) { return EconomicEvent.get(ev); })
-        .filter(filter)
-        .map(function (ev) { return ev.hash; });
-}
-// </DRY>
-function traceEvents(events) {
-    return trackTrace(events, "outputOf").map(function (hash) {
-        var instance = Transfer.get(hash);
-        return instance.portable();
-    });
-}
-function trackEvents(events) {
-    return trackTrace(events, "inputOf").map(function (hash) {
-        var instance = Transfer.get(hash);
-        return instance.portable();
-    });
-}
-function traceTransfers(xfers) {
-    return trackTrace(xfers, "inputs").map(function (hash) {
-        var instance = EconomicEvent.get(hash);
-        return instance.portable();
-    });
-}
-function trackTransfers(xfers) {
-    return trackTrace(xfers, "outputs").map(function (hash) {
-        var instance = EconomicEvent.get(hash);
-        return instance.portable();
-    });
-}
-function eventsStartedBefore(_a) {
-    var events = _a.events, when = _a.when;
-    return filterByTime({ events: events, when: when }, (function (ev) { return when > ev.start; })).map(function (hash) {
-        return EconomicEvent.get(hash).portable();
-    });
-}
-function eventsEndedBefore(_a) {
-    var events = _a.events, when = _a.when;
-    return filterByTime({ events: events, when: when }, (function (ev) { return ev.end < when; })).map(function (hash) {
-        return EconomicEvent.get(hash).portable();
-    });
-}
-function eventsStartedAfter(_a) {
-    var events = _a.events, when = _a.when;
-    return filterByTime({ events: events, when: when }, (function (ev) { return when < ev.start; })).map(function (hash) {
-        return EconomicEvent.get(hash).portable();
-    });
-}
-function eventsEndedAfter(_a) {
-    var events = _a.events, when = _a.when;
-    return filterByTime({ events: events, when: when }, (function (ev) { return ev.end > when; })).map(function (hash) {
-        return EconomicEvent.get(hash).portable();
-    });
-}
-function sortEvents(_a) {
-    var events = _a.events, by = _a.by, order = _a.order, start = _a.start, end = _a.end;
-    var objects = events.map(function (ev) { return EconomicEvent.get(ev); }), orderBy = by === "start" ?
-        function (ev) { return ev.start; } :
-        function (ev) { return ev.end; };
-    objects.sort(function (a, b) {
-        return Math.sign(orderBy(b) - orderBy(a));
-    });
-    var times = (!!start || !!end) && objects.map(orderBy);
-    if (start) {
-        var i = bisect(times, start);
-        objects = objects.slice(i);
-    }
-    if (end) {
-        var i = bisect(times, end);
-        objects = objects.slice(0, i);
-    }
-    if (order === "down")
-        objects = objects.reverse();
-    return objects.map(function (ev) { return ev.portable(); });
-}
-;
-function eventSubtotals(hashes) {
-    var uniqueRes = new Set();
-    var resourceHashes = [];
-    var events = hashes.map(function (h) { return EconomicEvent.get(h); });
-    events.sort(function (a, b) {
-        return b.end - a.end;
-    });
-    events.forEach(function (ev) {
-        uniqueRes.add(ev.entry.affects);
-    });
-    var qvs;
-    uniqueRes.forEach(function (ur) {
-        qvs[ur] = new QuantityValue({ units: "", quantity: 0 });
-        resourceHashes.push(ur);
-    });
-    var subs = events.map(function (ev) {
-        var _a;
-        var item = { event: ev.portable(), subtotals: qvs }, sign = ev.action.sign, quantity = ev.quantity.mul({ units: "", quantity: sign }), res = hashOf(ev.affects);
-        qvs = Object.assign({}, qvs, (_a = {}, _a[res] = qvs[res].add(quantity), _a));
-        return item;
-    });
-    return { events: subs, totals: qvs, resources: resourceHashes };
-}
+// </export>
 // <fixtures>
+var fixtures = {
+    ResourceClassification: {
+        Currency: new ResourceClassification({ name: "Currency", defaultUnits: "" }).commit(),
+        Work: new ResourceClassification({ name: "Work", defaultUnits: "hours" }).commit(),
+        Idea: new ResourceClassification({ name: "Idea", defaultUnits: "citations" }).commit()
+    }
+};
+// </fixtures>
+// public <zome> functions
+/**
+ * Retrieves the hashes of all EconomicResource instances classified as given.
+ * @param {Hash<ResourceClassification>} classification the classification to
+ *  get instances of.
+ * @returns {Hash<EconomicResource>[]}
+ */
+//* HOLO-SCOPE
+function getResourcesInClass(_a) {
+    var classification = _a.classification;
+    return ResourceClasses.get(classification, "classifies").hashes();
+}
+function getAffectingEvents(_a) {
+    var resource = _a.resource;
+    return TrackTrace.get(resource, "affectedBy").types("EconomicEvent").hashes();
+}
+// CRUD
+function createEconomicResource(_a) {
+    var props = _a.properties, thing = _a.event;
+    var it, err;
+    var event;
+    if (thing) {
+        event = entryOf(thing);
+    }
+    if (!event) {
+        var crud = call("events", "resourceCreationEvent", {
+            resource: props
+        });
+        if (crud.error) {
+            return {
+                error: crud.error,
+                entry: null,
+                type: "Error",
+                hash: ""
+            };
+        }
+        event = crud.entry;
+        var res = EconomicResource.get(event.affects);
+        // that's all we needed to do to sync up its links.
+        res.update();
+        return res.portable();
+    }
+    var resQv = props.currentQuantity;
+    var evQv = event.affectedQuantity;
+    if (resQv && evQv) {
+        if (resQv.units !== evQv.units) {
+            if (!resQv.units && resQv.quantity === 0) {
+                resQv.quantity = evQv.quantity;
+                resQv.units = evQv.units;
+            }
+            else if (!evQv.units && evQv.quantity === 0) {
+                evQv.units = resQv.units;
+                evQv.quantity = resQv.quantity;
+            }
+            else {
+                err = new TypeError("Can't create resource in " + resQv.units + " from event in " + evQv.units);
+            }
+        }
+        if (!err) {
+            props.currentQuantity = resQv;
+            event.affectedQuantity = evQv;
+        }
+    }
+    if (!err)
+        try {
+            it = notError(EconomicResource.create(props));
+            event.affects = it.hash;
+            call("events", "createEconomicResource", event);
+        }
+        catch (e) {
+            err = e;
+        }
+    return {
+        error: err,
+        hash: err ? null : it.commit(),
+        entry: err ? null : it.entry,
+        type: err ? "error" : it.className
+    };
+}
+function createResourceClassification(props) {
+    var it, err;
+    try {
+        it = notError(ResourceClassification.create(props));
+    }
+    catch (e) {
+        err = e;
+    }
+    return {
+        error: err,
+        hash: err ? null : it.commit(),
+        entry: err ? null : it.entry,
+        type: err ? "error" : it.className
+    };
+}
 function getFixtures(dontCare) {
     return fixtures;
 }
-// </fixures>
-function resourceCreationEvent(_a) {
-    var resource = _a.resource, dates = _a.dates;
-    var adjustHash = fixtures.Action.Adjust;
-    var qv = resource.currentQuantity;
-    var start, end;
-    if (dates) {
-        start = dates.start;
-        end = dates.end || start + 1;
-    }
-    else {
-        start = Date.now();
-        end = start + 1;
-    }
-    if (!qv.units) {
-        var resClass = notError(get(resource.resourceClassifiedAs));
-        qv.units = resClass.defaultUnits;
-    }
-    var resHash = notError(commit("EconomicResource", resource));
-    // THIS ONLY WORKS IN A STRATEGY-2 RESOURCE (see mattermost rants)
-    // a strategy-1 resource is calculated forward, so the pre-event state MUST
-    // have quantity 0.
-    var entry = {
-        action: adjustHash,
-        affects: resHash,
-        receiver: resource.owner,
-        provider: resource.owner,
-        affectedQuantity: qv,
-        start: start,
-        duration: end - start
-    };
-    var event = new EconomicEvent(entry);
-    return {
-        type: event.className,
-        hash: event.commit(),
-        entry: event.entry
-    };
-}
-// CRUD
-function createEvent(init) {
-    var it, err;
+function affect(_a) {
+    var resource = _a.resource, quantity = _a.quantity;
+    var err, hash, res;
     try {
-        it = EconomicEvent.create(init);
-        var affect = it.affects;
+        res = EconomicResource.get(hashOf(resource));
+        hash = res.open(function (entry) {
+            var current = res.currentQuantity.add(quantity);
+            res.currentQuantity = current;
+            return entry;
+        }).update();
     }
     catch (e) {
         err = e;
     }
     return {
         error: err,
-        hash: it.hash,
-        entry: it.entry
+        hash: hash || (res && res.hash) || '',
+        entry: (res && res.entry) || entryOf(resource),
+        type: (res && res.className) || "Who knows what this thing is?!"
     };
 }
-function createTransfer(init) {
-    var it, err;
-    try {
-        it = Transfer.create(init);
-    }
-    catch (e) {
-        err = e;
-    }
-    return {
-        error: err,
-        hash: it.hash,
-        entry: it.entry
-    };
-}
-function createTransferClass(init) {
-    var it, err;
-    try {
-        it = TransferClassification.create(init);
-    }
-    catch (e) {
-        err = e;
-    }
-    return {
-        error: err,
-        hash: it.hash,
-        entry: it.entry
-    };
-}
-function createAction(init) {
-    var it, err;
-    try {
-        it = Action.create(init);
-    }
-    catch (e) {
-        err = e;
-    }
-    return {
-        error: err,
-        hash: it.hash,
-        entry: it.entry
-    };
-}
+// </zome>
 // callbacks
 function genesis() {
     // YAGNI
@@ -1814,5 +1577,6 @@ function validateLinkPkg(entryType) {
     // can't happen, don't care
     return null;
 }
+// </callbacks>
 /*/
 /**/

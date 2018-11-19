@@ -1,6 +1,6 @@
 type EconomicResource = resources.EconomicResource;
-const Classifications: LinkRepo<Transfer | TransferClassification, Transfer | TransferClassification, "classifiedAs" | "classifies">;
-const EventLinks: LinkRepo<EconomicEvent | Transfer | Process | Action, EconomicEvent | Transfer | Process | Action, "inputs" | "inputOf" | "outputs" | "outputOf" | "actionOf" | "action">;
+const Classifications: LinkRepo<events.Transfer | events.TransferClassification, events.Transfer | events.TransferClassification, "classifiedAs" | "classifies">;
+const EventLinks: LinkRepo<events.EconomicEvent | events.Transfer | events.Process | events.Action, events.EconomicEvent | events.Transfer | events.Process | events.Action, "inputs" | "inputOf" | "outputs" | "outputOf" | "actionOf" | "action">;
 interface ActEntry {
     name?: string;
     behavior: '+' | '-' | '0';

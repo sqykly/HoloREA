@@ -1268,8 +1268,8 @@ TrackTrace.linkBack("affects", "affectedBy")
 
 // <links>
 const Classifications: LinkRepo<
-  Transfer|TransferClassification,
-  Transfer|TransferClassification,
+  events.Transfer|events.TransferClassification,
+  events.Transfer|events.TransferClassification,
   "classifiedAs"|"classifies"
 > = new LinkRepo("Classifications");
 Classifications.linkBack("classifiedAs", "classifies")
@@ -1277,8 +1277,8 @@ Classifications.linkBack("classifiedAs", "classifies")
 
 
 const EventLinks: LinkRepo<
-  EconomicEvent|Transfer|Process|Action,
-  EconomicEvent|Transfer|Process|Action,
+  events.EconomicEvent|events.Transfer|events.Process|events.Action,
+  events.EconomicEvent|events.Transfer|events.Process|events.Action,
   "inputs"|"inputOf"|"outputs"|"outputOf"|"actionOf"|"action"
 > = new LinkRepo("EventLinks");
 EventLinks.linkBack("inputs", "inputOf")
@@ -2023,5 +2023,56 @@ function createAction(init: typeof Action.entryType): CrudResponse<typeof Action
     entry: it.entry
   };
 }
+
+// callbacks
+function genesis() {
+  // YAGNI
+  return true;
+}
+
+function validateCommit(entryType, entry, header, pkg, sources) {
+  // check against schema: YAGNI
+  return true;
+}
+
+function validatePut(entryType, entry, header, pkg, sources) {
+  // check for data sanity: YAGNI
+  return validateCommit(entryType, entry, header, pkg, sources);
+}
+
+function validateMod(entryType, entry, header, replaces, pkg, sources) {
+  // messages are immutable for now.
+  return true;
+}
+
+function validateDel(entryType, hash, pkg, sources) {
+  // messages are permanent for now
+  return true;
+}
+
+function validateLink(entryType, hash, links, pkg, sources) {
+  return true;
+}
+
+function validatePutPkg(entryType) {
+  // don't care.
+  return null;
+}
+
+function validateModPkg(entryType) {
+  // can't happen, don't care
+  return null;
+}
+
+function validateDelPkg(entryType) {
+  // can't happen, don't care
+  return null;
+}
+
+function validateLinkPkg(entryType) {
+  // can't happen, don't care
+  return null;
+}
+
 /*/
 /**/

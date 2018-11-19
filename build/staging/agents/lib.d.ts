@@ -330,8 +330,8 @@ declare namespace holochain {
 	}
 }
 type EconomicResource = resources.EconomicResource;
-const Classifications: LinkRepo<Transfer | TransferClassification, Transfer | TransferClassification, "classifiedAs" | "classifies">;
-const EventLinks: LinkRepo<EconomicEvent | Transfer | Process | Action, EconomicEvent | Transfer | Process | Action, "inputs" | "inputOf" | "outputs" | "outputOf" | "actionOf" | "action">;
+const Classifications: LinkRepo<events.Transfer | events.TransferClassification, events.Transfer | events.TransferClassification, "classifiedAs" | "classifies">;
+const EventLinks: LinkRepo<events.EconomicEvent | events.Transfer | events.Process | events.Action, events.EconomicEvent | events.Transfer | events.Process | events.Action, "inputs" | "inputOf" | "outputs" | "outputOf" | "actionOf" | "action">;
 interface ActEntry {
     name?: string;
     behavior: '+' | '-' | '0';
@@ -456,9 +456,9 @@ declare global {
  * @member {Dict<QVlike>} totals The keys of all resources store the QVlike
  *  state of each resource after all the listed events (and previous)
  */
-const ResourceClasses: LinkRepo<EconomicResource | ResourceClassification, EconomicResource | ResourceClassification, "classifiedAs" | "classifies">;
-const ResourceRelationships: LinkRepo<EconomicResource, EconomicResource, "underlyingResource" | "contains" | "underlies" | "inside">;
-const TrackTrace: LinkRepo<EconomicResource | events.EconomicEvent, events.EconomicEvent | EconomicResource, "affects" | "affectedBy">;
+const ResourceClasses: LinkRepo<resources.EconomicResource | resources.ResourceClassification, resources.EconomicResource | resources.ResourceClassification, "classifiedAs" | "classifies">;
+const ResourceRelationships: LinkRepo<resources.EconomicResource, resources.EconomicResource, "underlyingResource" | "contains" | "underlies" | "inside">;
+const TrackTrace: LinkRepo<resources.EconomicResource | events.EconomicEvent, events.EconomicEvent | resources.EconomicResource, "affects" | "affectedBy">;
 interface RcEntry {
     /**
      * New instances of the resource will have these units unless overriden on

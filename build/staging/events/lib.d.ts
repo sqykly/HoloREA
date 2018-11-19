@@ -355,9 +355,9 @@ declare global {
     }
 }
 //
-const ResourceClasses: LinkRepo<EconomicResource | ResourceClassification, EconomicResource | ResourceClassification, "classifiedAs" | "classifies">;
-const ResourceRelationships: LinkRepo<EconomicResource, EconomicResource, "underlyingResource" | "contains" | "underlies" | "inside">;
-const TrackTrace: LinkRepo<EconomicResource | events.EconomicEvent, events.EconomicEvent | EconomicResource, "affects" | "affectedBy">;
+const ResourceClasses: LinkRepo<resources.EconomicResource | resources.ResourceClassification, resources.EconomicResource | resources.ResourceClassification, "classifiedAs" | "classifies">;
+const ResourceRelationships: LinkRepo<resources.EconomicResource, resources.EconomicResource, "underlyingResource" | "contains" | "underlies" | "inside">;
+const TrackTrace: LinkRepo<resources.EconomicResource | events.EconomicEvent, events.EconomicEvent | resources.EconomicResource, "affects" | "affectedBy">;
 interface RcEntry {
     /**
      * New instances of the resource will have these units unless overriden on

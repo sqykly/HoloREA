@@ -1278,8 +1278,8 @@ const AgentProperty: agents.AgentProperty = new LinkRepo(`AgentProperty`);
 
 // <own> links
 const ResourceClasses: LinkRepo<
-  EconomicResource|ResourceClassification,
-  EconomicResource|ResourceClassification,
+  resources.EconomicResource|resources.ResourceClassification,
+  resources.EconomicResource|resources.ResourceClassification,
   "classifiedAs"|"classifies"
 > = new LinkRepo("ResourceClasses");
 ResourceClasses
@@ -1287,8 +1287,8 @@ ResourceClasses
   .linkBack("classifies", "classifiedAs");
 
 const ResourceRelationships: LinkRepo<
-  EconomicResource,
-  EconomicResource,
+  resources.EconomicResource,
+  resources.EconomicResource,
   "underlyingResource"|"contains"|"underlies"|"inside"
 > = new LinkRepo("ResourceRelationships");
 ResourceRelationships
@@ -1297,7 +1297,10 @@ ResourceRelationships
   .linkBack(`contains`, `inside`)
   .linkBack(`inside`, `contains`);
 
-const TrackTrace: LinkRepo<EconomicResource|events.EconomicEvent, events.EconomicEvent|EconomicResource, "affects"|"affectedBy">
+const TrackTrace: LinkRepo<
+  resources.EconomicResource|events.EconomicEvent,
+  events.EconomicEvent|resources.EconomicResource,
+"affects"|"affectedBy">
 = new LinkRepo("TrackTrace");
 TrackTrace.linkBack("affects", "affectedBy")
   .linkBack("affectedBy", "affects");
@@ -1363,8 +1366,8 @@ class ResourceClassification<T = {}> extends VfObject<T & RcEntry & typeof VfObj
   }
 
   instances(): EconomicResource[] {
-    return ResourceClasses.get(this.myHash, `classifies`)
-      .types<typeof EconomicResource.entryType>(`EconomicResource`)
+    return ResourceClasses.get(this.myHash)
+      .tags<resources.EconomicResource>(`classifies`)
       .hashes().map(erh => EconomicResource.get(erh));
   }
 
@@ -1749,9 +1752,54 @@ function affect({resource, quantity}:{
 
 // </zome>
 
-// <callbacks>
+// callbacks
 function genesis() {
+  // YAGNI
   return true;
+}
+
+function validateCommit(entryType, entry, header, pkg, sources) {
+  // check against schema: YAGNI
+  return true;
+}
+
+function validatePut(entryType, entry, header, pkg, sources) {
+  // check for data sanity: YAGNI
+  return validateCommit(entryType, entry, header, pkg, sources);
+}
+
+function validateMod(entryType, entry, header, replaces, pkg, sources) {
+  // messages are immutable for now.
+  return true;
+}
+
+function validateDel(entryType, hash, pkg, sources) {
+  // messages are permanent for now
+  return true;
+}
+
+function validateLink(entryType, hash, links, pkg, sources) {
+  return true;
+}
+
+function validatePutPkg(entryType) {
+  // don't care.
+  return null;
+}
+
+function validateModPkg(entryType) {
+  // can't happen, don't care
+  return null;
+}
+
+function validateDelPkg(entryType) {
+  // can't happen, don't care
+  return null;
+}
+
+function validateLinkPkg(entryType) {
+  // can't happen, don't care
+  return null;
 }
 
 // </callbacks>

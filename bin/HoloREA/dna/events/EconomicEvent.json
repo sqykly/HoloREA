@@ -1,43 +1,44 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
   "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/events/EconomicEvent",
-  "description": "GFD: An event modifies the quantity of resources available to one or more agents; some parts could be delegated to Links ",
+  "title": "EconomicEvent",
+  "description": "An event modifies the quantity of resources available to one or more agents",
   "properties": {
     "action": {
       "type": "string",
-      "description": "a verb that classifies the type of event; if we want Actions unbounded, this must be a hash of the Action object"
+      "description": "The hash of an Action object whose behavior defines this event's effects"
     },
     "inputOf": {
       "type": "string",
-      "description": "The name[s] or hash[es] of the Process[es] or Transfer[s] to which this Event is an input; COULD want to be a Links though if there will be searches on this attribute"
+      "description": "The hash of a Transfer object whose inputs property is this event"
     },
     "outputOf": {
       "type": "string",
-      "description": "See inputOf, replace 'input' with 'output'"
+      "description": "The hash of a Transfer object whose outputs property is this event"
     },
     "affects": {
       "type": "string",
-      "description": "<-resources:TrackTrace.affectedBy-#EconomicResource identifying the resource whose quantities are affected by the event"
+      "description": "The hash of the EconomicResource affected by this event"
     },
     "receiver": {
       "type": "string",
-      "description": "#Agent whom the intended, committed, or actual economic event is for."
+      "description": "The hash of an Agent who is affected by this event"
     },
     "provider": {
       "type": "string",
-      "description": "#Agent that enables the event"
+      "description": "The hash of an Agent who enabled this event"
     },
     "scope": {
       "type": "string",
-      "description": "a #any that is the context for the event"
+      "description": "A Hash of anything that is the context of this event"
     },
     "affectedQuantity": {
-      "if": { "type": "object" },
-      "then": { "$ref": "../common/QuantityValue" },
-      "else": { "type": "number" }
+      "description": "The quantity of this.affects that is affected",
+      "type": { "$ref": "../common/QuantityValue" }
     },
     "start": { "$ref": "../common/Date" },
     "duration": { "$ref": "../common/Date" }
   },
+  "required": ["affects", "affectedQuantity", "action"],
   "additionalProperties": { "$ref": "../common/VfObject" }
 }

@@ -1,12 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
   "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/events/Action",
-  "description": "anemic Action",
+  "title": "Action",
+  "description": "Describes a category of event that defines what the effect is",
   "properties": {
-    "name": { "$ref": "../common/XmlIdentifier" },
+    "name": { "type": "string" },
     "behavior": {
       "type": "string",
       "enum": ["+", "-", "0"]
     }
-  }
+  },
+  "required": ["name", "behavior"],
+  "additionalProperties": { "$ref": "../common/VfObject" }
 }

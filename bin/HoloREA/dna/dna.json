@@ -83,51 +83,20 @@
           "Config": null,
           "Entries": [
             {
-                "Name": "Agent",
-                "Description": "Basic information about an agent",
-                "DataFormat": "json",
-                "SchemaFile": "Agent.json",
-                "Sharing": "public"
-            },
-            {
-              "Name": "AgentLocation",
-              "Description": "Links an agent to its locations.  Only 1 can be tagged primary",
-              "DataFormat": "links",
-              "Base": "#Agent",
-              "Link": "#Location",
-              "Tag": ["primary", "secondary"],
-              "Sharing": "public"
-            },
-            {
-              "Name": "Location",
-              "Description": "A location used to physically reach an Agent.  GFD: a simple array of strings for a street address",
+              "Name": "Agent",
+              "Description": "Basic information about an agent",
               "DataFormat": "json",
-              "SchemaFile": "Location.json",
+              "SchemaFile": "Agent.json",
               "Sharing": "public"
             },
             {
-              "Name": "Relationship",
-              "Description": "Links Agents to others via AgentRelationships",
-              "DataFormat": "links",
-              "Base": "#Agent",
-              "Link": "#Agent",
-              "Tag": ["#AgentRelationshipRole"]
-            },
-            {
-              "Name": "AgentRelationshipRole",
-              "Description": "Describes a user-constructed type of relationship in more general, universal characteristics",
-              "DataFormat": "json",
-              "SchemaFile": "AgentRelationshipRole.json",
-              "Sharing": "public"
-            },
-            {
-              "Name": "RelationshipRoleDomain",
-              "Description": "A simple Links that allows the API to ingest a namespaced relationship without knowing all the hashes",
+              "Name": "AgentProperty",
+              "Description": "Links for knowing who owns what",
               "DataFormat": "links",
               "Sharing": "public",
-              "Base": "#Agent",
-              "Link": "#AgentRelationshipRole",
-              "Tag": ["/name/"]
+              "Base": "Agent",
+              "Link": "EconomicResource",
+              "Tag": "owns"
             }
           ],
           "Functions": [
@@ -137,37 +106,7 @@
               "Exposure": "public"
             },
             {
-              "Name": "createUser",
-              "CallingType": "json",
-              "Exposure": "public"
-            },
-            {
-              "Name": "createProject",
-              "CallingType": "json",
-              "Exposure": "public"
-            },
-            {
-              "Name": "createOrganization",
-              "CallingType": "json",
-              "Exposure": "public"
-            }
-            {
-              "Name": "addLocation",
-              "CallingType": "json",
-              "Exposure": "public"
-            },
-            {
-              "Name": "createRole",
-              "CallingType": "json",
-              "Exposure": "public"
-            },
-            {
-              "Name": "joinProject",
-              "CallingType": "json",
-              "Exposure": "public"
-            },
-            {
-              "Name": "createRelationship",
+              "Name": "getOwnedResources",
               "CallingType": "json",
               "Exposure": "public"
             }
@@ -175,7 +114,7 @@
         },
         {
           "Name": "events",
-          "Description": "All things that happen",
+          "Description": "All things that happen and affect resources",
           "CodeFile": "events.js",
           "RibosomeType": "js",
           "BridgeFuncs": null,
@@ -190,12 +129,12 @@
             },
             {
               "Name": "EventLinks",
-              "Description": "Searchable event links",
+              "Description": "Searchable links between entries in this zome",
               "DataFormat": "links",
               "Sharing": "public",
-              "Base": ["EconomicEvent", "Process", "Transfer"],
-              "Link": ["EconomicEvent", "Process", "Transfer"],
-              "Tag": ["inputs", "inputOf", "outputs", "outputOf"]
+              "Base": ["EconomicEvent", "Process", "Transfer", "Action"],
+              "Link": ["EconomicEvent", "Process", "Transfer", "Action"],
+              "Tag": ["inputs", "inputOf", "outputs", "outputOf", "action", "actionOf"]
             },
             {
               "Name": "Transfer",
@@ -206,10 +145,112 @@
             },
             {
               "Name": "Action",
-              "Description": "Describes the behavior of a transfer",
+              "Description": "Describes the behavior of an event",
               "DataFormat": "json",
               "SchemaFile": "Action.json",
               "Sharing": "public"
+            },
+            {
+              "Name": "TransferClassification",
+              "Description": "Nominally identifies a category of Transfer",
+              "DataFormat": "json",
+              "SchemaFile": "TransferClassification.json",
+              "Sharing": "public"
+            },
+            {
+              "Name": "Classifications",
+              "Description": "Links to express the categorization of transfer.  Poorly named.",
+              "DataFormat": "links",
+              "Sharing": "public",
+              "Base": ["Transfer", "TransferClassification"],
+              "Tag": ["classifiedAs", "classifies"]
+            }
+          ],
+          "Functions": [
+            {
+              "Name": "createTransferClass",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "createAction",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "getFixtures",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "createEvent",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "createTransfer",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "traceEvents",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "trackEvents",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "traceTransfers",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "trackTransfers",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "eventSubtotals",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "eventsStartedAfter",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "eventsStartedBefore",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "eventsEndedAfter",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "eventsEndedBefore",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "resourceCreationEvent",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "allPosted",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "sortEvents",
+              "CallingType": "json",
+              "Exposure": "public"
             }
           ]
         },
@@ -230,27 +271,37 @@
             },
             {
               "Name": "ResourceClassification",
-              "Description": "A stub",
-              "DataFormat": "string",
+              "Description": "Describes a category of resources",
+              "DataFormat": "json",
+              "SchemaFile": "ResourceClassification.json",
               "Sharing": "public"
             },
             {
-              "Name": "Classifications",
+              "Name": "ResourceClasses",
               "Description": "Links to provide lists of resources classified by a ResourceClassification",
               "DataFormat": "links",
               "Sharing": "public",
-              "Base": "ResourceClassification",
-              "Link": "EconomicResource",
-              "Tag": ["classifies"]
+              "Base": ["ResourceClassification", "EconomicResource"],
+              "Link": ["EconomicResource", "ResourceClassification"],
+              "Tag": ["classifies", "classifiedAs"]
             },
             {
               "Name": "TrackTrace",
               "Description": "Links to track and trace changes of ownership and quantity of resources",
               "DataFormat": "links",
               "Sharing": "public",
-              "Base": ["EconomicResource", "Transfer", "Process", "EconomicEvent"],
-              "Link": ["EconomicEvent", "Transfer", "Process", "EconomicResource"],
+              "Base": ["EconomicResource", "EconomicEvent"],
+              "Link": ["EconomicEvent", "EconomicResource"],
               "Tag": ["affectedBy", "affects"]
+            },
+            {
+              "Name": "ResourceRelationships",
+              "Description": "Links to express how resources are related to each other",
+              "DataFormat": "links",
+              "Sharing": "public",
+              "Base": "EconomicResource",
+              "Link": "EconomicResource",
+              "Tag": ["underlyingResource", "underlies", "contains", "inside"]
             }
           ],
           "Functions": [
@@ -264,6 +315,26 @@
               "CallingType": "json",
               "Exposure": "public"
             },
+            {
+              "Name": "getFixtures",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "getResourcesInClass",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "getAffectingEvents",
+              "CallingType": "json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "affect",
+              "CallingType": "json",
+              "Exposure": "public"
+            }
 
           ]
         }

@@ -1,77 +1,131 @@
 import React from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import Header from "./header";
 import media from "styled-media-query";
-import Select from "react-select";
+import LogEvent from "../../logEvent";
+import Feed from "../../FeedItem";
+import moment from "moment";
+import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
+import "react-tabs/style/react-tabs.css";
+
 
 export default props => {
   return (
     <Body>
       <Wrapper>
-        <Header
-          image={props.providerImage}
-          name={'Ivan Minutillo'}
-        />
+        <Header image={props.providerImage} name={"Ivan Minutillo"} />
         <Content>
           <Inside>
             <Overview>
-              <SmartSentence>
-                <Img
-                  style={{ backgroundImage: `url(${props.providerImage})` }}
+              <Tabs>
+              <StyledTabList>
+                <StyledTab>Exchange</StyledTab>
+                <StyledTab>Balance Sheet</StyledTab>
+              </StyledTabList>
+                <TabPanel>
+                <SmartSentence>
+                  <LogEvent />
+                </SmartSentence>
+                <Tagline>Feed</Tagline>
+                <Feed
+                  primary={
+                    <FeedItem>
+                      <B>Ivan Minutillo</B>{" "}
+                      {"exchange" + " " + 5 + " " + "each of"}
+                      <i>{"pies"}</i>
+                    </FeedItem>
+                  }
+                  secondary={"Friendly gift"}
+                  date={moment().format("DD MMM")}
                 />
-                <WrapperNew>
-                  <Select
-                    styles={customStylesTwo}
-                    onChange={props.openStuff}
-                    value={{ value: null, label: "Add new..." }}
-                    options={[
-                      { value: "requirement", label: "Add a new requirement" },
-                      { value: "process", label: "Add a new process" }
-                    ]}
-                  />
-                </WrapperNew>
-              </SmartSentence>
-              
+                </TabPanel>
+                <TabPanel>test</TabPanel>
+              </Tabs>
             </Overview>
           </Inside>
         </Content>
       </Wrapper>
     </Body>
   );
-}
+};
 
-const WrapperNew = styled.div`
-  cursor: pointer;
-  box-sizing: border-box;
-  width: 180px;
-  position: relative;
-  z-index: 99999;
-  margin-right: 16px;
-  margin-top: 10px;
-  flex: 1;
+
+const StyledTabList = styled(TabList)`
+  border-bottom: 4px solid #485c7a42;
+  margin: 10px;
+  padding: 0;
+  border-radius: 2px;
+  
 `;
 
-const Img = styled.div`
-  width: 34px;
-  height: 34px;
-  background: ${props => props.theme.color.p150};
-  border-radius: 100px;
+const StyledTabPanel = styled(TabPanel)`
+  margin-top: 32px;
+`;
+
+const StyledTab = styled(Tab)`
   display: inline-block;
-  margin-right: 8px;
-  margin-left: 16px;
-  margin-top: 18px;
-  vertical-align: middle;
-  background-size: cover;
+  border-bottom: none;
+  bottom: -1px;
+  position: relative;
+  list-style: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  background: transparent !important;
+  color: ${props =>
+    props.selected ? "#333 !important" : "#33333360 !important"};
+  font-size: 13px;
+  font-weight: 500 !important;
+  letter-spacing: 1px;
+  margin-right: 24px;
+  padding: 0;
+  border: 0;
+  padding-bottom: 12px;
+  ${props =>
+    props.selected &&
+    css`
+      &:before {
+        position: absolute;
+        content: "";
+        bottom: -3px;
+        width: 100%;
+        height: 4px;
+        background-color: #53d2b2;
+        display: block;
+        border-radius: 20px;
+      }
+    `};
+`;
+
+
+const B = styled.b`
+  font-weight: 500;
+  color: #32211b;
+`;
+
+const Tagline = styled.div`
+  height: 30px;
+  margin: 10px;
+  margin-top: 20px;
+  background: #e6ecf2;
+  line-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #d6dbdf;
+  font-size: 13px;
+  color: #535050;
+  letter-spacing: 1px;
+  font-weight: 500;
+  border-radius: 4px;
 `;
 
 const SmartSentence = styled.div`
-  height: 70px;
   background: #fff;
   display: flex;
   flex-direction: row;
   margin-bottom: 16px;
   border: 1px solid #dadada;
   border-radius: 4px;
+  padding: 10px;
+  margin: 10px;
 `;
 
 const Wrapper = styled.div`
@@ -108,6 +162,7 @@ const Inside = styled.div`
 
 const Overview = styled.div`
   flex: 1;
+
   ${media.lessThan("medium")`
   width: 100%;
   margin-top: 16px;
@@ -120,44 +175,7 @@ const Body = styled.div`
   flex-direction: row;
 `;
 
-const customStylesTwo = {
-  control: base => ({
-    ...base,
-    background: "#e3ebf2;",
-    border: "0px solid #396ea6",
-    color: "#32211B80",
-    fontWeight: 500,
-    fontSize: "13px",
-    minHeight: "50px",
-    height: "50px",
-    borderRadius: "6px"
-  }),
-  input: base => ({
-    ...base,
-    color: "#32211B80",
-    fontWeight: 500,
-    fontSize: "13px",
-    height: "50px",
-    minHeight: "50px"
-  }),
-  singleValue: base => ({
-    ...base,
-    color: "#32211B80",
-    fontWeight: 500,
-    fontSize: "13px"
-  }),
-  option: base => ({
-    ...base,
-    fontSize: "13px"
-  }),
-  menuList: base => ({
-    ...base,
-    fontSize: "13px"
-  }),
-  placeholder: base => ({
-    ...base,
-    color: "#32211B80",
-    fontWeight: 500,
-    fontSize: "13px"
-  })
-};
+const FeedItem = styled.div`
+  font-size: ${props => props.theme.fontSize.h3};
+  color: ${props => props.theme.color.p900};
+`;

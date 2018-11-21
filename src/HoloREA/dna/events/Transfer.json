@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/events/Transfer",
+  "title": "Transfer",
+  "description": "A resource flow that occurs as part of an event",
+  "properties": {
+    "transferClassifiedAs": {
+      "type": "string",
+      "description": "a #TransferClassification describing the type of the transfer"
+    },
+    "inputs": {
+      "type": "string",
+      "description": "The #EconomicEvent this transfer inputs from (needs links on inputOf)"
+    },
+    "outputs": {
+      "type": "string",
+      "description": "The #EconomicEvent this transfer outputs to (needs links on outputOf)"
+    }
+  },
+  "required": ["transferClassifiedAs", "inputs", "outputs"],
+  "additionalProperties": { "$ref": "../common/VfObject.json" }
+}

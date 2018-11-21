@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/events/EconomicEvent",
+  "title": "EconomicEvent",
+  "description": "An event modifies the quantity of resources available to one or more agents",
+  "properties": {
+    "action": {
+      "type": "string",
+      "description": "The hash of an Action object whose behavior defines this event's effects"
+    },
+    "inputOf": {
+      "type": "string",
+      "description": "The hash of a Transfer object whose inputs property is this event"
+    },
+    "outputOf": {
+      "type": "string",
+      "description": "The hash of a Transfer object whose outputs property is this event"
+    },
+    "affects": {
+      "type": "string",
+      "description": "The hash of the EconomicResource affected by this event"
+    },
+    "receiver": {
+      "type": "string",
+      "description": "The hash of an Agent who is affected by this event"
+    },
+    "provider": {
+      "type": "string",
+      "description": "The hash of an Agent who enabled this event"
+    },
+    "scope": {
+      "type": "string",
+      "description": "A Hash of anything that is the context of this event"
+    },
+    "affectedQuantity": {
+      "description": "The quantity of this.affects that is affected",
+      "type": { "$ref": "../common/QuantityValue" }
+    },
+    "start": { "$ref": "../common/Date" },
+    "duration": { "$ref": "../common/Date" }
+  },
+  "required": ["affects", "affectedQuantity", "action"],
+  "additionalProperties": { "$ref": "../common/VfObject.json" }
+}

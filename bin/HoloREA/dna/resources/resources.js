@@ -1492,7 +1492,7 @@ function getAffectingEvents(_a) {
     return TrackTrace.get(resource, "affectedBy").types("EconomicEvent").hashes();
 }
 // CRUD
-function createEconomicResource(_a) {
+function createResource(_a) {
     var props = _a.properties, thing = _a.event;
     var it, err;
     var event;

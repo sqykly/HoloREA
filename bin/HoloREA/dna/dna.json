@@ -243,11 +243,6 @@
               "Exposure": "public"
             },
             {
-              "Name": "allPosted",
-              "CallingType": "json",
-              "Exposure": "public"
-            },
-            {
               "Name": "sortEvents",
               "CallingType": "json",
               "Exposure": "public"
@@ -311,7 +306,7 @@
               "Exposure": "public"
             },
             {
-              "Name": "createEconomicResource",
+              "Name": "createResource",
               "CallingType": "json",
               "Exposure": "public"
             },

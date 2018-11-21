@@ -1642,7 +1642,7 @@ function getAffectingEvents({resource}: {resource: Hash<EconomicResource>}): Has
 
 // CRUD
 
-function createEconomicResource(
+function createResource(
   {properties: props, event: thing}: {
     properties: resources.EconomicResource,
     event: HoloThing<events.EconomicEvent>

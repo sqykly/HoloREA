@@ -64,3 +64,8 @@ for zome in $ZOMES; do
   tsc --project $STAGING/${zome}/ --outFile $BINDNA/${zome}/_${zome}.js
   cat $STAGING/shims.js $BINDNA/${zome}/_${zome}.js > $BINDNA/${zome}/${zome}.js
 done
+
+tsc ./json/inline.ts
+cd json
+node ./inline.js
+cd ..

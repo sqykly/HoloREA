@@ -1,0 +1,13 @@
+{
+  "main": "./inline.js",
+  "name": "refInlinerForHoloREA",
+  "version": "0.0.1",
+  "description": "If you don't already have it, you don't need it",
+  "keywords": ["inline", "$ref"],
+  "homepage": "github.com/sqykly/HoloREA",
+  "bugs": { "url": "github.com/sqykly/HoloREA" },
+  "license": "UNLICENSED",
+  "author": { "name": "sqykly" },
+  "scripts": {},
+  "dependencies": {}
+}

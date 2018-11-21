@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/events/TransferClassification",
+  "title": "TransferClassification",
+  "description": "Nominal categorization of Transfers",
+  "properties": {
+    "name": { "type": "string" }
+  },
+  "required": ["name"],
+  "additionalProperties": { "$ref": "../common/VfObject.json" }
+}

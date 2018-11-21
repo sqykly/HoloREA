@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+   	"outDir": "./",
+   	"rootDir": "./",
+   	"allowJs": false,
+    "target": "es6",
+    "lib" : ["es5", "es6"],
+    "newLine" : "lf",
+    "module": "commonjs",
+    "downlevelIteration": true,
+    "esModuleInterop": true
+  },
+  "files": ["inline.ts"]
+}

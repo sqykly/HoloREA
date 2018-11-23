@@ -5,11 +5,34 @@ _as of 10/29_
 ## Calling functions through the web server API
 [call]: #calling-functions-through-the-web-server-api 'call'
 
+### The native Holochain way
+
 Holochain applications are divided into modules ("zomes"), which are defined in the application package index ("DNA").  The Zomes each have a section in the DNA that lists the functions they expose publicly.  The web server then responds to POST requests to URLs like this:
 
-_`domain and such`_`/zomeName/functionName`
+_`domain and such`_`/fn/zomeName/functionName`
 
 The POST request body must contain _exactly one_ argument to the function.  This is a JSON object whose form is defined by the function itself.  Similarly, the value returned by the server is in the form of a JSON object in the response body.  Since there is no `.json` extension in the URL, the MIME type for the request and response should be set to `"application/json"`.
+
+### A neater way with less work
+
+Somewhere in your code, import `lib/zomes.js`.  This will provide:
+
+- `object`:
+  - `agents`: The `agents` zome as a `Zome`.
+  - `events`: The `events` zome as a `Zome`.
+  - `resources`: The `resources` zome as a `Zome`.
+
+The `Zome` objects' methods are the zome functions this document
+describes.  Because the server is running asynchronously, the methods
+will return `Promise` objects that will deliver the documented return
+objects.  Example:
+
+    agents.getOwnedResources([hashOfMyAgent]).then((stuff) => {
+        populateListOfStuff(stuff);
+    });
+
+_Note: At present, this runs on jQuery `Promise`s, not ES6
+`Promise`s.  If this is is an issue for any reason, I can change it_
 
 ## Classes
 [class]: #classes
@@ -35,13 +58,13 @@ I'll have to open an endpoint for it, and there is likely to be a catch, e.g.
 you need to know the exact identity of part of what you are looking for.  We'll
 work something out, though.
 
+The lone exception to this resistance to querying is the `links` type.
+
 ## Holochain's `links` types
 
 _Not sure if this will come up for UI purposes, as there are no functions exposed by the Holochain web server directly.  At present, I don't return them on the HoloREA web interface either, but I could if it would be helpful.  I include this information because the HoloREA web interface DOES make extensive use of `links`, and understanding them may help rationalize the way these functions work._
 
-The Holochain DHT is not a database and it does not support SQL or anything like it.  The only query one can make on the DHT is for one entry by its primary key (its hash).
-
-Enter `links` types.
+`links` types provide a very general purpose, highly abstract way to relate entries to other entries in the DHT.  They are particularly useful because they are uniquely able within the Holo-API to return an easily mutable array of hashes (or, technically, of anything).  As long as you can obtain a hash at the base of the link, it is _very_ simple to implement a query for the objects that are targetted by that link.  If you need lists of entries for any reason, see if there are links to them, or tell me what hash you have and which ones you want.
 
 ### Is any of this important for UI?
 
@@ -156,7 +179,7 @@ Holochain stores data in a distributed hash table (DHT).  Entries into the DHT (
 ### `QuantityValue` struct
 [`QuantityValue`]: #quantityvalue-struct
 
-A POD struct that expresses a unit of measure and quantity.  HoloREA uses these _strictly_ by value, never storing them on the DHT and never referring to them by a `Hash`.
+A POD struct that expresses a unit of measure and quantity.  HoloREA uses these _strictly_ by value, never storing them on the DHT and never referring to them by a [`Hash`].
 
 *Properties*
 - `string` `units`: The unit of measure.  If, for some reason, you need complicated units:
@@ -180,17 +203,18 @@ it is never stored and thus never relies on the holochain API functions.
 ### `Date` type
 [`Date`]: #date-type
 
-Alias for `unsigned integer`.  The number of milliseconds since January 1, 1970.  Not useful to humans, but easy to compare and calculate differences on, so this is how it's stored internally.  Convert it to a real date using:
+Alias for `unsigned integer`.  The number of milliseconds since January 1, 1970.  Not useful to humans, but easy to compare and calculate differences on, so this is how it's stored internally.  Convert it to a real `Date` using:
 
     realDate = new Date().setTime(wackyIntegerDate);
 
 ### `PhysicalLocation` type
 [`PhysicalLocation`]: #physicallocation-type
 
-This will have to do for now.  It's just an array of strings that should be
-joined with line breaks or other unambiguous delimiters.  e.g.
+This will have to do for now.  It's just an array of strings that
+should be joined with line breaks or other unambiguous delimiters.
+e.g:
 
-    const demogorgon: Agent = /*...*/;
+    const demogorgon = /*...*/;
     demogorgon.primaryLocation = [
       `The Demogorgon`
       `c/o White House`,
@@ -200,7 +224,6 @@ joined with line breaks or other unambiguous delimiters.  e.g.
 
 ### `VfObject` [class]
 [`VfObject`]: #vfobject-class
-
 
 Carries the properties that any object in the ValueFlows ontology can have.
 
@@ -235,10 +258,11 @@ Any one of:
   - [`Hash`]`<T>`
   - [`CrudResponse`]`<T>`
 
-In cases where the API will accept this, I felt really bad about making you
-memorize what was a hash or an object you got from the API or the actual data
-that came with it.  Made myself a set of functions that get each of them from
-the others, and now you don't have to memorize all that.
+In cases where the API will accept this, I felt really bad about
+making you memorize what was a hash or an object you got from the API
+or the actual data that came with it.  Made myself a set of functions
+that get each of them from the others, and now you don't have to
+memorize all that.
 
 ## `agents` module
 [agents]: #agents-module
@@ -260,7 +284,9 @@ terminology is deprecated and will change when VF defines Agent Resource Roles._
 
 Creates an agent and returns its data, hash, and any errors.
 
-- to [call]: POST /agents/createAgent/
+- to [call]:
+  - POST fn/agents/createAgent/
+  - `agents.createAgent(...).then(...)`
 - argument: [`EconomicAgent`] The properties of the agent to create.
 - returns: [`CrudResponse`]`<`[`EconomicAgent`]`>` Any errors or the data and hash of the agent.
 
@@ -269,7 +295,9 @@ Creates an agent and returns its data, hash, and any errors.
 
 Returns the resources belonging to the specified agents.  _The "ownership" terminology is deprecated and will be replaced by agent resource roles._
 
-- to [call]: POST /agents/getOwnedResources/
+- to [call]:
+  - POST fn/agents/getOwnedResources/
+  - `agents.getOwnedResources(...).then(...)`
 
 - argument: `object`
   - [`Hash`]`<`[`EconomicAgent`]`>[]` `agents`: the agents whose resources should be catalogued.
@@ -277,8 +305,8 @@ Returns the resources belonging to the specified agents.  _The "ownership" termi
 
 - returns: dictionary of [`Hash`]`<`[`EconomicAgent`]`>`: a hash from `agents`.  All valid agents from `agents` should be included.
   - dictionary of [`Hash`]`<`[`ResourceClassification`]`>`: a resource classification hash.  Child elements under this key belong to this classification.  If the given agent is not the owner of one or more resources of this class, the key will be missing.
-    - [`Hash`]`<`[`EconomicResource`]`>[]` The resources of the keyed class in
-    the custodianship of the keyed agent.
+    - [`Hash`]`<`[`EconomicResource`]`>[]` The resources of the keyed
+    class in the custodianship of the keyed agent.
 
 
 ## `resources` module
@@ -293,6 +321,15 @@ A categorization of resources.  Mostly nominal.
 - `string` `defaultUnits`: a resource instance will have these units by default.
 - **[link]** `classifies -= resourceClassifiedAs: `[`EconomicResource`].  All resource
 instances that are classified as this.
+
+**Fixtures**
+- `Currency`: Money.
+- `Work`: Labor
+  - `defaultUnits` = hours
+
+**See**
+- [`createResourceClassification`]
+- [`createResource`]
 
 ### `EconomicResource`: [class] `extends` [`VfObject`]
 [`EconomicResource`]: #economicresource-class-extends-vfobject
@@ -321,17 +358,22 @@ resource.  Implemented only nominally.
 
 Creates a resource classification.
 
-- to [call]: POST /resources/createResourceClassification
+- to [call]:
+  - POST fn/resources/createResourceClassification
+  - `resources.createResourceClassification(...).then(...)`
 - argument: [`ResourceClassification`] the properties for the classification to
 be created.
 - returns: [`CrudResponse`]`<`[`ResourceClassification`]`>`
 
-### `createEconomicResource`: function
-[`createEconomicResource`]: #createeconomicresource-function
+### `createResource`: function
+[`createEconomicResource`]: #createresource-function
+[`createResource`]: #createresource-function
 
 Create a resource through an event.
 
-- to [call]: POST /resources/createEconomicResource/
+- to [call]:
+  - POST fn/resources/createResource/
+  - `resources.createResource(...).then(...)`
 - argument: `object`
   - [`EconomicResource`] `resource`: the properties you would like the resource
   to have.
@@ -345,7 +387,7 @@ Create a resource through an event.
     - `action`
       - Unless you are trying to create a debt of some kind, ensure that this is
       the hash of an action with `behavior: '+'`.  In terms of fixtures as of
-      11/12/18, from [`events/getFixtures`] `.Action.Receive` or `.Action.Adjust`
+      11/12/18, from [`events.getFixtures`] `.Action.Receive` or `.Action.Adjust`
       are what you are looking for.  If left blank, it will default to `Adjust`.
 - returns: [`CrudResponse`]`<`[`EconomicResource`]`>`
   - The event seen in this structure as `affectedBy` has already been created; do not run over to [`createEvent`] and make another.
@@ -356,7 +398,9 @@ terms of the event.
 ### `getResourcesInClass`: `function`
 Get a list hashes of all resources belonging to a classification.
 
-- to call: POST /resources/getResourcesInClass/
+- to call:
+  - POST fn/resources/getResourcesInClass/
+  - `resources.getResourcesInClass(...).then(...)`
 - argument: `object`
   - [`Hash`](#hashtype-type)`<`[`ResourceClassification`](#resourceclassification-class-extends-vfobject)`>` `classification`: The classification whose instances should be returned.
 - returns: [`Hash`](#hashtype-type)`<`[`EconomicResource`](#economicresource-class-extends-vfobject)`>`[]
@@ -364,10 +408,21 @@ Get a list hashes of all resources belonging to a classification.
 ### `getAffectingEvents`: `function`
 Get the hashes of all events that have affected a single resource.
 
-- to call: POST /resources/getaffectingevents/
+- to call:
+  - POST /resources/getaffectingevents/
 - argument: `object`
   - [`Hash`]`<`[`EconomicResource`]`>` `resource`: The hash of the resource to trace.
 - returns [`Hash`]`<`[`EconomicEvent`]`>[]`
+
+### `resources.getFixtures` function
+[`resources.getFixtures`]: #resourcesgetfixturesfunction
+
+- To [call]:
+  - POST fn/resources/getFixtures
+  - `resources.getFixtures(...).then(...)`
+- Returns `object`:
+  - `ResourceClassification`: See [`ResourceClassification`]
+
 
 ## `events` module
 
@@ -503,7 +558,9 @@ See
 [`createTransferClass`]: #createtransferclass-function
 
 Create a new transfer class.  It doesn't do much yet, but you still need one.
-- To [call]: POST /events/createTransferClass/
+- To [call]:
+  - POST fn/events/createTransferClass/
+  - `events.createTransferClass(...).then(...)`
 - Argument: [`TransferClassification`] The desired properties.
 - Returns: [`CrudResponse`]`<`[`TransferClassification`]`>` the new object.
 
@@ -511,10 +568,12 @@ Create a new transfer class.  It doesn't do much yet, but you still need one.
 ### `createTransfer` `function`
 [`createTransfer`]: #createtransfer-function
 
-Creates a new Transfer object.  Don't forget to bring the hash of a
-[`TransferClassification`]!
+Creates a new [`Transfer`] object.  Don't forget to bring the hash
+of a [`TransferClassification`]!
 
-- To [call],  POST /events/createTransfer
+- To [call]:
+  - POST fn/events/createTransfer
+  - `events.createTransfer(...).then(...)`
 - Argument [`Transfer`] Properties the object should have.
 - Returns [`CrudResponse`]`<`[`Transfer`]`>` a new transfer object
 
@@ -525,7 +584,9 @@ Creates an [`Action`].  You will need one to create an [`EconomicEvent`].
 Use this function if none of the fixtures in [`events.getFixtures`] suits your
 needs.
 
-- To [call] POST /events/createAction
+- To [call]:
+  - POST fn/events/createAction
+  - `events.createAction(...).then(...)`
 - Argument [`Action`] The properties the object should have.
 - Returns [`CrudResponse`]`<`[`Action`]`>` The new object
 
@@ -535,7 +596,9 @@ needs.
 Creates an event object.  Have the [`Action`], [`Transfer`], [`EconomicResource`],
 and [`Agent`] hashes ready.
 
-- To [call] POST /events/createEvent
+- To [call]:
+  - POST fn/events/createEvent
+  - `events.createEvent(...).then(...)`
 - Argument [`EconomicEvent`] the properties the event should have.
   - [`Hash`]`<`[`Action`]`> action`: this **must** exist and be included.
   - [`Hash`]`<`[`EconomicResource`]`> affects`: this **must** exist beforehand
@@ -557,7 +620,9 @@ and [`Agent`] hashes ready.
 
 Query a set of events and retrieve the transfers that were their inputs.
 
-- To [call], POST /events/traceEvents/
+- To [call]:
+  - POST fn/events/traceEvents/
+  - `events.traceEvents(...).then(...)`
 - Argument [`Hash`]`<`[`EconomicEvent`]`>[]`: the events you would like to trace
 - Returns [`CrudResponse`]`<`[`Transfer`]`>[]`: the transfers that trace those
 events.
@@ -568,7 +633,9 @@ events.
 
 Query a set of events and retrieve the transfers that are their outputs
 
-- To [call], POST /events/trackEvents/
+- To [call]:
+  - POST fn/events/trackEvents/
+  - `events.trackEvents(...).then(...)`
 - Argument [`Hash`]`<`[`EconomicEvent`]`>[]`: a list of events to query
 - Returns [`CrudResponse`]`<`[`Transfer`]`>[]`: the transfers that track the
 events
@@ -580,7 +647,9 @@ events
 Query a set of transfers and retrieve the events (some day processes too) that
 are their inputs.
 
-- To [call], POST /events/traceTransfers/
+- To [call]:
+  - POST fn/events/traceTransfers/
+  - `events.traceTransfers(...).then(...)`
 - Argument [`Hash`]`<`[`Transfer`]`>[]`: the transfers to trace
 - Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]`: the events that were inputs
 of the transfers.
@@ -590,7 +659,9 @@ of the transfers.
 
 Query a set of transfers to follow their outputs.
 
-- To [call], POST /events/trackTransfers/
+- To [call]:
+  - POST /events/trackTransfers/
+  - `events.trackTransfers(...).then(...)`
 - Argument [`Hash`]`<`[`Transfer`]`>[]` The transfers to track
 - Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]` The events that are the
 outputs of the given transfers.
@@ -600,7 +671,9 @@ outputs of the given transfers.
 
 Order the events given by their start or end date.
 
-- To [call], POST /events/sortEvents/
+- To [call]:
+  - POST fn/events/sortEvents/
+  - `events.sortEvents(...).then(...)`
 - Argument `object`
   - [`Hash`]`<`[`EconomicEvent`]`> events[]`: The events to be sorted.
   - `string by`
@@ -620,7 +693,9 @@ order, excluding filter-out elements.
 
 Filter a set of events down to those started before a time of your choice.
 
-- To [call], POST /events/eventsStartedBefore
+- To [call]:
+  - POST fn/events/eventsStartedBefore
+  - `events.eventsStartedBefore(...).then(...)`
 - Argument [`TimeFilter`] The events and the time to filter the start date under
 - Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]` events in `events` that started
 before `when`
@@ -630,7 +705,9 @@ before `when`
 
 Filter a set of events down to those started after a time of your choice.
 
-- To [call], POST /events/eventsStartedAfter
+- To [call]:
+  - POST fn/events/eventsStartedAfter
+  - `events.eventsStartedAfter(...).then(...)`
 - Argument [`TimeFilter`] The events and the time to filter the start date after
 - Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]` events in `events` that started
 after `when`.
@@ -640,7 +717,9 @@ after `when`.
 
 Filter a set of events down to those ended before a time of your choice.
 
-- To [call], POST /events/eventsEndedBefore
+- To [call]:
+  - POST fn/events/eventsEndedBefore
+  - `events.eventsEndedBefore(...).then(...)`
 - Argument [`TimeFilter`] The events and the time to filter the end date before
 - Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]` events in `events` that ended
 before `when`.
@@ -650,7 +729,9 @@ before `when`.
 
 Filter a set of events down to those ended after a time of your choice.
 
-- To [call], POST /events/eventsEndedAfter
+- To [call]:
+  - POST fn/events/eventsEndedAfter
+  - `events.eventsEndedAfter(...).then(...)`
 - Argument [`TimeFilter`] The events and the time to filter the end date after
 - Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]` events in `events` that ended
 after `when`.
@@ -662,7 +743,9 @@ For a set of events, construct a table detailing the state of the resources when
 the events occurred and the effect they had on that state.  Only resources affected
 by the events are shown are traced.
 
-- To [call], POST /events/eventSubtotals
+- To [call]:
+  - POST fn/events/eventSubtotals
+  - `events.eventSubtotals(...).then(...)`
 - Argument [`Hash`]`<`[`EconomicEvent`]`>[]` These events will appear as rows
 in the table.
 - Returns [`Subtotals`] A table showing how the given events have affected their
@@ -673,7 +756,9 @@ resources over time.
 
 Creates a resource and an event to account for its existence.
 
-- To [call] POST /events/resourceCreationEvent
+- To [call]:
+  - POST fn/events/resourceCreationEvent
+  - `events.resourceCreationEvent(...).then(...)`
 - Argument `object`
   - [`EconomicResource`] `resource`: The resource that should be
   created along with the event.
@@ -690,3 +775,15 @@ Creates a resource and an event to account for its existence.
     ms after it started.
 - Returns [`CrudResponse`]`<`[`EconomicEvent`]`>`: The event that has
 now created the resource.
+
+### `events.getFixtures` function
+[`events.getFixtures`]: #eventsgetfixturesfunction
+
+Returns built-in fixtures from this zome.
+
+- To [call]:
+  - POST fn/events/getFixtures
+  - `events.getFixtures().then(...)`
+- Returns `object`:
+  - `Action`: see [`Action`]
+  - `TransferClassification`: see [`TransferClassification`]

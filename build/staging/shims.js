@@ -55,3 +55,27 @@ var Map = (function (_super) {
 
   return Map;
 })(Set)
+
+/**
+ * It also doesn't know about Object.assign.....
+ */
+
+Object.assign = function (dest, src) {
+  if (!dest || typeof dest !== "object") throw new TypeError("Can't assign to non-object");
+  if (src && typeof src === "object") {
+
+    var keys = Object.keys(src);
+    var i = keys.length;
+    var key;
+
+    while (i--) {
+      key = keys[i];
+      dest[key] = src[key];
+    }
+
+  }
+  if (arguments.length > 2) {
+    var more = [dest].concat([].slice.call(arguments, 2));
+    Object.assign.apply(this, more);
+  }
+}

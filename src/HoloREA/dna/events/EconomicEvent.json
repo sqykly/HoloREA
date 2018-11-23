@@ -32,13 +32,10 @@
       "type": "string",
       "description": "A Hash of anything that is the context of this event"
     },
-    "affectedQuantity": {
-      "description": "The quantity of this.affects that is affected",
-      "type": { "$ref": "../common/QuantityValue" }
-    },
+    "affectedQuantity": { "$ref": "../common/QuantityValue" },
     "start": { "$ref": "../common/Date" },
     "duration": { "$ref": "../common/Date" }
   },
   "required": ["affects", "affectedQuantity", "action"],
-  "additionalProperties": { "$ref": "../common/VfObject.json" }
+  "$extends": "../common/VfObject.json"
 }

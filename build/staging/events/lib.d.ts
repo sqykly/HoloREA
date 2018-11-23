@@ -342,7 +342,7 @@ class Agent<T = {}> extends VfObject<T & AgentEntry & typeof VfObject.entryType>
     static className: string;
     className: string;
     static entryType: AgentEntry & typeof VfObject.entryType;
-    static entryDefaults: VfEntry & object & AgentEntry;
+    static entryDefaults: VfEntry & object;
     static get(hash: Hash<Agent>): Agent;
     static create(entry: AgentEntry & typeof VfObject.entryType): Agent;
     constructor(entry?: T & AgentEntry & typeof VfObject.entryType, hash?: Hash<Agent>);
@@ -375,7 +375,7 @@ class ResourceClassification<T = {}> extends VfObject<T & RcEntry & typeof VfObj
     static className: string;
     className: string;
     static entryType: RcEntry & typeof VfObject.entryType;
-    static entryDefaults: VfEntry & object & RcEntry;
+    static entryDefaults: VfEntry & object;
     static get(hash: Hash<ResourceClassification>): ResourceClassification;
     static create(entry: RcEntry & typeof VfObject.entryType): ResourceClassification;
     constructor(entry?: T & RcEntry & typeof VfObject.entryType, hash?: Hash<ResourceClassification>);

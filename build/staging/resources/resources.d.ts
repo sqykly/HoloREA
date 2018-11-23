@@ -18,7 +18,7 @@ class ResourceClassification<T = {}> extends VfObject<T & RcEntry & typeof VfObj
     static className: string;
     className: string;
     static entryType: RcEntry & typeof VfObject.entryType;
-    static entryDefaults: VfEntry & object & RcEntry;
+    static entryDefaults: VfEntry & object;
     static get(hash: Hash<ResourceClassification>): ResourceClassification;
     static create(entry: RcEntry & typeof VfObject.entryType): ResourceClassification;
     constructor(entry?: T & RcEntry & typeof VfObject.entryType, hash?: Hash<ResourceClassification>);

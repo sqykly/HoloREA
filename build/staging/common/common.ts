@@ -313,7 +313,7 @@ export /**/class QuantityValue implements QVlike {
       dict: {[key: string]: number} = {};
 
       for (let unit of decomp) {
-        let [match, unitName, expo] = /^([^\^]*)(?:\^([^]+))?$/.exec(unit);
+        let [match, unitName, expo] = /^([^\^]*)(?:\^(\d+(?:\.\d+)?))?$/.exec(unit);
         let n: number = parseFloat(expo || "1");
 
         if (dict.hasOwnProperty(unitName)) {

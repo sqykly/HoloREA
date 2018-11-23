@@ -1,6 +1,6 @@
 ## To Build
 
-    $ source build/staging.sh
+    $ source build/bin.sh
 
 Note that many, many errors will appear in the console.  They are irrelevant; upon inspection, the code that arrives in `bin/dna` is perfectly good.  The errors are due to TypeScript freaking out that the Holochain API was not defined in the project's code.  The API is a set of properties and methods on the global object, so they will be there at runtime.
 
@@ -96,6 +96,38 @@ Recommended off during development.  Anything needed to propagate type definitio
     function zomePublicFunction() ...
 
     function genesis() ...
+    /*/
     /**/
 
 Recommended on during development.  Any code the is shared with Holochain but not other modules should be wrapped like that.
+
+### Schemas
+
+Due to some missing capabilities in the Holochain JSON validator, schemas beyond
+basic POD structs will need to be "compiled" for a build.  As such, the originals
+have been moved into the `src` directory.
+
+The keyword properties `$ref` and `dependencies` are buggy if not missing.  
+Probably the most common cases of `dependencies` look like this:
+
+    "properties": {
+      "foo": {
+        "type": "string",
+        "dependencies": ["bar", "baz"]
+      }
+    }
+
+I've seen errors that _imply_ that that may work.  However, I was using the more
+complicated form to specify an actual schema for those dependent properties, and
+that is not happening.  Thus, the build script also triggers a node module that:
+
+- inlines all `$ref` to replace objects directly
+- implements a new keyword, `$extends`.  The value is a reference to another
+source JSON schema, and any fields in that schema that are not overwritten by the
+first schema will be placed directly into the first schema.  That is a whole-file
+deep merge, so anything in super's `properties` will appear in the sub-schema's
+`properties`.  If the super has `required` properties, they will be appended to
+the sub's `required`.  Doesn't do anything surprising.
+
+After the build script runs, the zomes in `bin` are so simple that
+misinterpreting them is impossible.

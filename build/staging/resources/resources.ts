@@ -313,7 +313,7 @@ export /**/class QuantityValue implements QVlike {
       dict: {[key: string]: number} = {};
 
       for (let unit of decomp) {
-        let [match, unitName, expo] = /^([^\^]*)(?:\^([^]+))?$/.exec(unit);
+        let [match, unitName, expo] = /^([^\^]*)(?:\^(\d+(?:\.\d+)?))?$/.exec(unit);
         let n: number = parseFloat(expo || "1");
 
         if (dict.hasOwnProperty(unitName)) {
@@ -1243,7 +1243,7 @@ export /**/class VfObject<T extends object = {}> extends HoloObject<VfEntry & ty
 // <reference path="../events/events"/>
 /* IMPORT
 //import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf } from "../../../lib/ts/common";
-import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf } from "../common/common";
+import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf, deepAssign } from "../common/common";
 import events from "../events/events";
 import agents from "../agents/agents";
 /*/
@@ -1326,7 +1326,7 @@ class ResourceClassification<T = {}> extends VfObject<T & RcEntry & typeof VfObj
   static className = "ResourceClassification";
   className = "ResourceClassification";
   static entryType: RcEntry & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <RcEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <RcEntry> {
       defaultUnits: ''
     });
 

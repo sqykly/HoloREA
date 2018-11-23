@@ -55,6 +55,30 @@ var Map = (function (_super) {
 
   return Map;
 })(Set)
+
+/**
+ * It also doesn't know about Object.assign.....
+ */
+
+Object.assign = function (dest, src) {
+  if (!dest || typeof dest !== "object") throw new TypeError("Can't assign to non-object");
+  if (src && typeof src === "object") {
+
+    var keys = Object.keys(src);
+    var i = keys.length;
+    var key;
+
+    while (i--) {
+      key = keys[i];
+      dest[key] = src[key];
+    }
+
+  }
+  if (arguments.length > 2) {
+    var more = [dest].concat([].slice.call(arguments, 2));
+    Object.assign.apply(this, more);
+  }
+}
 // <reference path="./es6.d.ts"/>
 // <reference path="./holochain-proto.d.ts"/>
 /* IMPORT
@@ -311,7 +335,7 @@ export /**/ var QuantityValue = /** @class */ (function () {
         var decomp = units.split("*"), dict = {};
         for (var _i = 0, decomp_1 = decomp; _i < decomp_1.length; _i++) {
             var unit = decomp_1[_i];
-            var _a = /^([^\^]*)(?:\^([^]+))?$/.exec(unit), match = _a[0], unitName = _a[1], expo = _a[2];
+            var _a = /^([^\^]*)(?:\^(\d+(?:\.\d+)?))?$/.exec(unit), match = _a[0], unitName = _a[1], expo = _a[2];
             var n = parseFloat(expo || "1");
             if (dict.hasOwnProperty(unitName)) {
                 n += dict[unitName];
@@ -1187,7 +1211,7 @@ var Action = /** @class */ (function (_super) {
     });
     Action.className = "Action";
     //protected myEntry: T & typeof Action.entryType;
-    Action.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
+    Action.entryDefaults = deepAssign({}, VfObject.entryDefaults, {
         behavior: '0'
     });
     return Action;
@@ -1206,7 +1230,7 @@ var Process = /** @class */ (function (_super) {
         return _super.create.call(this, entry);
     };
     Process.className = "Process";
-    Process.entryDefaults = Object.assign({}, VfObject.entryDefaults, {});
+    Process.entryDefaults = deepAssign({}, VfObject.entryDefaults, {});
     return Process;
 }(VfObject));
 var TransferClassification = /** @class */ (function (_super) {
@@ -1223,7 +1247,7 @@ var TransferClassification = /** @class */ (function (_super) {
         return _super.create.call(this, entry);
     };
     TransferClassification.className = "TransferClassification";
-    TransferClassification.entryDefaults = Object.assign({}, VfObject.entryDefaults, {});
+    TransferClassification.entryDefaults = deepAssign({}, VfObject.entryDefaults, {});
     return TransferClassification;
 }(VfObject));
 var fixtures = {
@@ -1308,7 +1332,7 @@ var Transfer = /** @class */ (function (_super) {
         return _super.prototype.remove.call(this, msg);
     };
     Transfer.className = "Transfer";
-    Transfer.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
+    Transfer.entryDefaults = deepAssign({}, VfObject.entryDefaults, {
         transferClassifiedAs: "",
         inputs: "",
         outputs: ""
@@ -1349,7 +1373,6 @@ var EconomicEvent = /** @class */ (function (_super) {
                 EventLinks.remove(this.hash, my.action, "action");
             }
             my.action = to;
-            this.update();
             EventLinks.put(this.hash, to, "action");
         },
         enumerable: true,
@@ -1375,7 +1398,6 @@ var EconomicEvent = /** @class */ (function (_super) {
             }
             my.inputOf = hash;
             EventLinks.put(this.myHash, hash, "inputOf");
-            this.myHash = this.update();
         },
         enumerable: true,
         configurable: true
@@ -1549,7 +1571,7 @@ var EconomicEvent = /** @class */ (function (_super) {
     };
     // begin mandatory overrides
     EconomicEvent.className = "EconomicEvent";
-    EconomicEvent.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
+    EconomicEvent.entryDefaults = deepAssign({}, VfObject.entryDefaults, {
         action: fixtures.Action.Adjust,
         affects: "",
         affectedQuantity: { units: "", quantity: 0 },

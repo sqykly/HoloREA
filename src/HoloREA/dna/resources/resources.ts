@@ -3,7 +3,7 @@
 // <reference path="../events/events"/>
 //* IMPORT
 //import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf } from "../../../lib/ts/common";
-import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf } from "../common/common";
+import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf, deepAssign } from "../common/common";
 import events from "../events/events";
 import agents from "../agents/agents";
 /*/
@@ -86,7 +86,7 @@ class ResourceClassification<T = {}> extends VfObject<T & RcEntry & typeof VfObj
   static className = "ResourceClassification";
   className = "ResourceClassification";
   static entryType: RcEntry & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <RcEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <RcEntry> {
       defaultUnits: ''
     });
 

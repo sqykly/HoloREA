@@ -11,5 +11,5 @@
     "primaryLocation": { "$ref": "../common/Location.json" }
   },
   "required": ["name"],
-  "additionalProperties": { "$ref": "../common/VfObject.json" }
+  "$extends": "../common/VfObject.json"
 }

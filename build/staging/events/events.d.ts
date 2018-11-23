@@ -9,7 +9,7 @@ class Action<T = {}> extends VfObject<ActEntry & T & typeof VfObject.entryType> 
     className: string;
     static className: string;
     static entryType: ActEntry & typeof VfObject.entryType;
-    static entryDefaults: VfEntry & object & ActEntry;
+    static entryDefaults: VfEntry & object;
     static get(hash: Hash<Action>): Action;
     static create(entry: ActEntry & typeof VfObject.entryType): Action;
     constructor(entry?: T & ActEntry & typeof VfObject.entryType, hash?: Hash<Action>);
@@ -26,7 +26,7 @@ class Process<T = {}> extends VfObject<T & ProcEntry & typeof VfObject.entryType
     static className: string;
     className: string;
     static entryType: ProcEntry & typeof VfObject.entryType;
-    static entryDefaults: VfEntry & object & ProcEntry;
+    static entryDefaults: VfEntry & object;
     static get(hash: Hash<Process>): Process;
     static create(entry: ProcEntry & typeof VfObject.entryType): Process;
     constructor(entry?: T & ProcEntry & typeof VfObject.entryType, hash?: Hash<Process>);
@@ -38,7 +38,7 @@ class TransferClassification<T = {}> extends VfObject<T & XferClassEntry & typeo
     static className: string;
     className: string;
     static entryType: XferClassEntry & typeof VfObject.entryType;
-    static entryDefaults: VfEntry & object & XferClassEntry;
+    static entryDefaults: VfEntry & object;
     static get(hash: Hash<TransferClassification>): TransferClassification;
     static create(entry: XferClassEntry & typeof VfObject.entryType): TransferClassification;
     constructor(entry?: T & XferClassEntry & typeof VfObject.entryType, hash?: Hash<TransferClassification>);
@@ -52,7 +52,7 @@ class Transfer<T = {}> extends VfObject<T & typeof VfObject.entryType & XferEntr
     className: string;
     static className: string;
     static entryType: XferEntry & typeof VfObject.entryType;
-    static entryDefaults: VfEntry & object & XferEntry;
+    static entryDefaults: VfEntry & object;
     static get(hash: Hash<Transfer>): Transfer;
     static create(entry?: XferEntry & typeof VfObject.entryType): Transfer;
     constructor(entry?: T & XferEntry & typeof VfObject.entryType, hash?: Hash<Transfer>);
@@ -77,7 +77,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
     static className: string;
     className: string;
     static entryType: EeEntry & typeof VfObject.entryType;
-    static entryDefaults: VfEntry & object & EeEntry;
+    static entryDefaults: VfEntry & object;
     static get(hash: Hash<EconomicEvent>): EconomicEvent;
     static create(entry: EeEntry & typeof VfObject.entryType): EconomicEvent;
     constructor(entry?: EeEntry & T & typeof VfObject.entryType, hash?: Hash<EconomicEvent>);

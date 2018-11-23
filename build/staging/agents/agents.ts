@@ -313,7 +313,7 @@ export /**/class QuantityValue implements QVlike {
       dict: {[key: string]: number} = {};
 
       for (let unit of decomp) {
-        let [match, unitName, expo] = /^([^\^]*)(?:\^([^]+))?$/.exec(unit);
+        let [match, unitName, expo] = /^([^\^]*)(?:\^(\d+(?:\.\d+)?))?$/.exec(unit);
         let n: number = parseFloat(expo || "1");
 
         if (dict.hasOwnProperty(unitName)) {
@@ -1242,7 +1242,7 @@ export /**/class VfObject<T extends object = {}> extends HoloObject<VfEntry & ty
 // <reference path="../resources/resources.ts"/>
 /* IMPORT
 //import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../../../lib/ts/common";
-import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../common/common";
+import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError, deepAssign } from "../common/common";
 import "../common/holochain-proto";
 import "../common/es6";
 import resources from "../resources/resources";
@@ -1268,7 +1268,7 @@ class Agent<T = {}> extends VfObject<T & AgentEntry & typeof VfObject.entryType>
   static className = "Agent";
   className = "Agent";
   static entryType: AgentEntry & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <AgentEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <AgentEntry> {
       primaryLocation: [`middle of nowhere`, `placeville, XX 12345`]
     });
 

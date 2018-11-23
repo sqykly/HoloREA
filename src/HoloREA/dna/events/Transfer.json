@@ -18,5 +18,5 @@
     }
   },
   "required": ["transferClassifiedAs", "inputs", "outputs"],
-  "additionalProperties": { "$ref": "../common/VfObject.json" }
+  "$extends": "../common/VfObject.json"
 }

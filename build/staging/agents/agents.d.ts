@@ -11,7 +11,7 @@ class Agent<T = {}> extends VfObject<T & AgentEntry & typeof VfObject.entryType>
     static className: string;
     className: string;
     static entryType: AgentEntry & typeof VfObject.entryType;
-    static entryDefaults: VfEntry & object & AgentEntry;
+    static entryDefaults: VfEntry & object;
     static get(hash: Hash<Agent>): Agent;
     static create(entry: AgentEntry & typeof VfObject.entryType): Agent;
     constructor(entry?: T & AgentEntry & typeof VfObject.entryType, hash?: Hash<Agent>);

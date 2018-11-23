@@ -11,5 +11,5 @@
     }
   },
   "required": ["name", "behavior"],
-  "additionalProperties": { "$ref": "../common/VfObject.json" }
+  "$extends": "../common/VfObject.json" 
 }

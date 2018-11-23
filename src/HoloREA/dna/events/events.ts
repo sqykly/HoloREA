@@ -3,7 +3,7 @@
 // <reference path="../resources/resources"/>
 //* IMPORTS
 //import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../../../lib/ts/common";
-import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../common/common";
+import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass, deepAssign } from "../common/common";
 import resources from "../resources/resources";
 import agents from "../agents/agents";
 /*/
@@ -60,7 +60,7 @@ class Action<T = {}> extends VfObject<ActEntry & T & typeof VfObject.entryType> 
   static className = "Action";
   static entryType: ActEntry & typeof VfObject.entryType;
   //protected myEntry: T & typeof Action.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <ActEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <ActEntry> {
       behavior: '0'
     });
 
@@ -112,7 +112,7 @@ class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryTyp
   static className = "Process";
   className = "Process";
   static entryType: ProcEntry  & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <ProcEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <ProcEntry> {
 
     });
 
@@ -137,7 +137,7 @@ class TransferClassification<T = {}> extends VfObject<T & XferClassEntry & typeo
   static className = "TransferClassification";
   className = "TransferClassification";
   static entryType: XferClassEntry & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <XferClassEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <XferClassEntry> {
 
     });
 
@@ -176,7 +176,7 @@ class Transfer<T = {}> extends VfObject<T & typeof VfObject.entryType & XferEntr
   className = "Transfer";
   static className = "Transfer";
   static entryType: XferEntry & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <XferEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <XferEntry> {
     transferClassifiedAs: ``,
     inputs: ``,
     outputs: ``
@@ -258,7 +258,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
   static className = "EconomicEvent";
   className = "EconomicEvent";
   static entryType: EeEntry & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <EeEntry>{
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <EeEntry>{
     action: fixtures.Action.Adjust,
     affects: ``,
     affectedQuantity: { units: ``, quantity: 0 },
@@ -295,7 +295,6 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
       EventLinks.remove(this.hash, my.action, `action`);
     }
     my.action = to;
-    this.update();
     EventLinks.put(this.hash, to, `action`);
   }
 
@@ -319,7 +318,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
     }
     my.inputOf = hash;
     EventLinks.put(this.myHash, hash, `inputOf`);
-    this.myHash = this.update();
+
   }
 
   get outputOf(): Transfer {

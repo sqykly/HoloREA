@@ -55,6 +55,30 @@ var Map = (function (_super) {
 
   return Map;
 })(Set)
+
+/**
+ * It also doesn't know about Object.assign.....
+ */
+
+Object.assign = function (dest, src) {
+  if (!dest || typeof dest !== "object") throw new TypeError("Can't assign to non-object");
+  if (src && typeof src === "object") {
+
+    var keys = Object.keys(src);
+    var i = keys.length;
+    var key;
+
+    while (i--) {
+      key = keys[i];
+      dest[key] = src[key];
+    }
+
+  }
+  if (arguments.length > 2) {
+    var more = [dest].concat([].slice.call(arguments, 2));
+    Object.assign.apply(this, more);
+  }
+}
 // <reference path="./es6.d.ts"/>
 // <reference path="./holochain-proto.d.ts"/>
 /* IMPORT
@@ -311,7 +335,7 @@ export /**/ var QuantityValue = /** @class */ (function () {
         var decomp = units.split("*"), dict = {};
         for (var _i = 0, decomp_1 = decomp; _i < decomp_1.length; _i++) {
             var unit = decomp_1[_i];
-            var _a = /^([^\^]*)(?:\^([^]+))?$/.exec(unit), match = _a[0], unitName = _a[1], expo = _a[2];
+            var _a = /^([^\^]*)(?:\^(\d+(?:\.\d+)?))?$/.exec(unit), match = _a[0], unitName = _a[1], expo = _a[2];
             var n = parseFloat(expo || "1");
             if (dict.hasOwnProperty(unitName)) {
                 n += dict[unitName];
@@ -1140,7 +1164,7 @@ var Agent = /** @class */ (function (_super) {
         return _super.create.call(this, entry);
     };
     Agent.className = "Agent";
-    Agent.entryDefaults = Object.assign({}, VfObject.entryDefaults, {
+    Agent.entryDefaults = deepAssign({}, VfObject.entryDefaults, {
         primaryLocation: ["middle of nowhere", "placeville, XX 12345"]
     });
     return Agent;

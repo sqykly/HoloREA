@@ -11,5 +11,5 @@
     "name": { "type": "string" }
   },
   "required": ["name"],
-  "additionalProperties": { "$ref": "../common/VfObject"}
+  "$extends": "../common/VfObject"
 }

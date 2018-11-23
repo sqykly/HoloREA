@@ -2,7 +2,7 @@
 // <reference path="../resources/resources.ts"/>
 //* IMPORT
 //import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../../../lib/ts/common";
-import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../common/common";
+import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError, deepAssign } from "../common/common";
 import "../common/holochain-proto";
 import "../common/es6";
 import resources from "../resources/resources";
@@ -28,7 +28,7 @@ class Agent<T = {}> extends VfObject<T & AgentEntry & typeof VfObject.entryType>
   static className = "Agent";
   className = "Agent";
   static entryType: AgentEntry & typeof VfObject.entryType;
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <AgentEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <AgentEntry> {
       primaryLocation: [`middle of nowhere`, `placeville, XX 12345`]
     });
 

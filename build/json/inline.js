@@ -84,7 +84,13 @@ function main() {
             for (let p of Object.keys(src)) {
                 let v;
                 if (typeof src[p] == `object`) {
-                    v = deepAssign(dest[p] || {}, src[p]);
+                    if (src[p] instanceof Array) {
+                        dest[p] = mergeArrays(dest[p] || [], src[p]);
+                        continue;
+                    }
+                    else {
+                        v = deepAssign(dest[p] || {}, src[p]);
+                    }
                 }
                 else {
                     v = src[p];
@@ -98,6 +104,46 @@ function main() {
             else {
                 return dest;
             }
+        }
+        function mergeArrays(a1, a2) {
+            if (!a1)
+                return [...a2];
+            if (!a2)
+                return [...a1];
+            if (!(a1 instanceof Array)) {
+                a1 = [a1];
+            }
+            if (!(a2 instanceof Array)) {
+                a2 = [a2];
+            }
+            return a1.concat(a2);
+        }
+        function deepExtend(dest, src, ...more) {
+            for (let key of Object.keys(src)) {
+                if (dest.hasOwnProperty(key)) {
+                    let t = dest[key];
+                    let u = src[key];
+                    if ((typeof t === `object` && t instanceof Array) ||
+                        (typeof u === `object` && u instanceof Array)) {
+                        console.log(`merging array property ${key}`);
+                        dest[key] = mergeArrays(t, u);
+                    }
+                    else if (typeof t === `object` && typeof u === `object`) {
+                        console.log(`deep extending property ${key}`);
+                        let vt = t, vu = u;
+                        dest[key] = deepExtend(vt, vu);
+                    }
+                }
+                else if (typeof src[key] === `object`) {
+                    console.log(`deep cloning super property ${key}`);
+                    dest[key] = deepAssign({}, src[key]);
+                }
+                else {
+                    console.log(`adding super property ${key}`);
+                    dest[key] = src[key];
+                }
+            }
+            return dest;
         }
         function prop(fname, val, ...keys) {
             let change = false;
@@ -116,6 +162,14 @@ function main() {
                         $ref = `${$ref}.json`;
                     prop(fname, replace(fname, $ref, pathToObj.get(fname), ...keys), ...keys);
                 }
+                else if (val.$extends) {
+                    let { $extends } = val;
+                    if (!path.extname($extends))
+                        $extends = `${$extends}.json`;
+                    console.log(`(${fname}).${keys.join('.')} extends ${$extends}`);
+                    extend(fname, $extends, val, ...keys);
+                    return prop(fname, val, ...keys) || true;
+                }
                 else {
                     for (let key of Object.keys(val)) {
                         change = prop(fname, val[key], ...keys, key) || change;
@@ -127,6 +181,7 @@ function main() {
         function stripForImport(mapName) {
             let obj;
             if (done.has(mapName)) {
+                console.log(`stripping cached copy of finished ${mapName}`);
                 obj = deepAssign({}, done.get(mapName));
             }
             else {
@@ -136,8 +191,8 @@ function main() {
             function strip(obj) {
                 let foundImport = false;
                 for (let key of Object.keys(obj)) {
-                    if (key === `$ref`) {
-                        console.log(`leaving $ref alone in ${mapName}`);
+                    if (key === `$ref` || key === `$extends`) {
+                        console.log(`leaving ${key} alone in ${mapName}`);
                         foundImport = true;
                     }
                     else if (/^\$/.test(key)) {
@@ -176,6 +231,20 @@ function main() {
             target[lastKey] = it;
             return it;
         }
+        function extend(inFile, fromFile, obj, ...keys) {
+            const mapKey = path.join(path.dirname(inFile), fromFile);
+            console.log(`(${inFile}).${keys.join('.')} inherits from ${mapKey}`);
+            delete obj.$extends;
+            let src;
+            if (!stripped.has(mapKey)) {
+                src = stripForImport(mapKey);
+            }
+            else {
+                console.log(`using cached ${mapKey}`);
+                src = stripped.get(mapKey);
+            }
+            return deepExtend(obj, src);
+        }
         pathToObj.forEach((json, fname) => {
             console.log(`working on ${fname}`);
             if (prop(fname, json)) {
@@ -199,5 +268,4 @@ function main() {
         console.log(`something went wrong: ${e}`);
     });
 }
-exports.main = main;
 main();

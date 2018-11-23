@@ -28,5 +28,5 @@
     }
   },
   "required": ["currentQuantity", "resourceClassifiedAs"],
-  "additionalProperties": { "$ref": "../common/VfObject" }
+  "$extends": "../common/VfObject"
 }

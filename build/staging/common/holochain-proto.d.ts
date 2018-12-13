@@ -39,7 +39,7 @@
 // holochain ambient type defs for API
 
 // ADDED: there is apparently an isError()
-declare function isError<T>(thing: holochain.CanError<T>): thing is holochain.HolochainError;
+declare function isErr<T>(thing: holochain.CanError<T>): thing is holochain.HolochainError;
 
 // REPLACED declare function property(name: string): string;
 declare function property(name: string): holochain.CanError<string>;

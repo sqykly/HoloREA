@@ -5,8 +5,10 @@ BINDNA=$ROOT/bin/HoloREA/dna
 COMMON=$SRCDNA/common/
 ZOMES="agents events resources"
 MODULES="${ZOMES} common"
-LIBPATH=$STAGING/common/
-LIBS="$LIBPATH/holochain-proto.d.ts"
+LIBPATH="$STAGING/common/"
+REPOPATH=~/LinkRepo/bin
+JSLIBS=$REPOPATH/LinkRepo.js
+DTSLIBS="$LIBPATH/holochain-proto.d.ts $REPOPATH/LinkRepo.d.ts"
 
 function allow {
   echo s:^/\\* $1://\\* $1:g
@@ -15,9 +17,11 @@ function block {
   echo s:^//\\* $1:/\\* $1:g
 }
 
+# Now that I have some separate libraries, this needs to glom them all together
+# instead of just copying
 # cp: common to staging/common.
 cp $COMMON -r $STAGING/
-
+cp $REPOPATH/LinkRepo.js $STAGING/
 
 # cp: zomes to staging as zome.ts
 for zome in $MODULES; do
@@ -44,13 +48,13 @@ done
 
 # accumulate all of the symbol imports of each zome to a default lib (lib.d.ts)
 # agents
-cat $LIBS $STAGING/events/_events.d.ts $STAGING/resources/_resources.d.ts > $STAGING/agents/lib.d.ts
+cat $DTSLIBS $STAGING/events/_events.d.ts $STAGING/resources/_resources.d.ts > $STAGING/agents/lib.d.ts
 
 # events
-cat $LIBS $STAGING/agents/_agents.d.ts $STAGING/resources/_resources.d.ts > $STAGING/events/lib.d.ts
+cat $DTSLIBS $STAGING/agents/_agents.d.ts $STAGING/resources/_resources.d.ts > $STAGING/events/lib.d.ts
 
 # resources
-cat $LIBS $STAGING/agents/_agents.d.ts $STAGING/events/_events.d.ts > $STAGING/resources/lib.d.ts
+cat $DTSLIBS $STAGING/agents/_agents.d.ts $STAGING/events/_events.d.ts > $STAGING/resources/lib.d.ts
 
 # apply new settings for the output (-TYPE-SCOPE +HOLO-SCOPE) and inline code imports
 for zome in $ZOMES; do
@@ -60,9 +64,10 @@ for zome in $ZOMES; do
 done
 
 # compile each zome with module: None to bin and add Map & Set shims.
+# All shims are now included in LinkRepo.js
 for zome in $ZOMES; do
   tsc --project $STAGING/${zome}/ --outFile $BINDNA/${zome}/_${zome}.js
-  cat $STAGING/shims.js $BINDNA/${zome}/_${zome}.js > $BINDNA/${zome}/${zome}.js
+  cat $STAGING/LinkRepo.js $BINDNA/${zome}/_${zome}.js > $BINDNA/${zome}/${zome}.js
 done
 
 tsc ./json/inline.ts

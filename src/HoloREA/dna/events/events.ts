@@ -3,9 +3,13 @@
 // <reference path="../resources/resources"/>
 //* IMPORTS
 //import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../../../lib/ts/common";
-import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass, deepAssign } from "../common/common";
+import {
+  Hash, QuantityValue, VfObject, QVlike, HoloObject, CrudResponse, bisect,
+  HoloThing, hashOf, notError, HoloClass, deepAssign, Fixture, Initializer
+} from "../common/common";
 import resources from "../resources/resources";
 import agents from "../agents/agents";
+import { LinkRepo } from "../common/LinkRepo";
 /*/
 /**/
 
@@ -60,7 +64,7 @@ class Action<T = {}> extends VfObject<ActEntry & T & typeof VfObject.entryType> 
   static className = "Action";
   static entryType: ActEntry & typeof VfObject.entryType;
   //protected myEntry: T & typeof Action.entryType;
-  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <ActEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <Initializer<ActEntry>> {
       behavior: '0'
     });
 
@@ -102,6 +106,10 @@ class Action<T = {}> extends VfObject<ActEntry & T & typeof VfObject.entryType> 
       case "0": return 0;
     }
   }
+
+  get events(): EconomicEvent[] {
+    return EventLinks.get(this.myHash, `actionOf`).hashes().map((hash) => EconomicEvent.get(hash));
+  }
 }
 
 interface ProcEntry {
@@ -112,7 +120,8 @@ class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryTyp
   static className = "Process";
   className = "Process";
   static entryType: ProcEntry  & typeof VfObject.entryType;
-  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <ProcEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults,
+    <Initializer<ProcEntry>> {
 
     });
 
@@ -137,7 +146,7 @@ class TransferClassification<T = {}> extends VfObject<T & XferClassEntry & typeo
   static className = "TransferClassification";
   className = "TransferClassification";
   static entryType: XferClassEntry & typeof VfObject.entryType;
-  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <XferClassEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <Initializer<XferClassEntry>> {
 
     });
 
@@ -153,18 +162,7 @@ class TransferClassification<T = {}> extends VfObject<T & XferClassEntry & typeo
 
 }
 
-const fixtures = {
-  Action: {
-    Give: new Action({name: `Give`, behavior: '-'}).commit(),
-    Receive: new Action({name: `Receive`, behavior: '+'}).commit(),
-    Adjust: new Action({name: `Adjust`, behavior: '+'}).commit()
-  },
-  TransferClassification: {
-    Stub: new TransferClassification({
-      name: `Transfer Classification Stub`
-    }).commit()
-  }
-};
+// Can't have DHT functions at the top level like this.
 
 interface XferEntry {
   transferClassifiedAs: Hash<TransferClassification>;
@@ -176,7 +174,7 @@ class Transfer<T = {}> extends VfObject<T & typeof VfObject.entryType & XferEntr
   className = "Transfer";
   static className = "Transfer";
   static entryType: XferEntry & typeof VfObject.entryType;
-  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <XferEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <Initializer<XferEntry>> {
     transferClassifiedAs: ``,
     inputs: ``,
     outputs: ``
@@ -258,12 +256,15 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
   static className = "EconomicEvent";
   className = "EconomicEvent";
   static entryType: EeEntry & typeof VfObject.entryType;
-  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <EeEntry>{
-    action: fixtures.Action.Adjust,
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <Initializer<EeEntry>>{
+    // Using fixtures in an initializer is asking for trouble.
+    action: () => getFixtures(null).Action.Adjust,
     affects: ``,
     affectedQuantity: { units: ``, quantity: 0 },
     start: 0,
-    duration: 0
+    duration: 0,
+    provider: ``,
+    receiver: ``
   });
   static get(hash: Hash<EconomicEvent>): EconomicEvent {
     return <EconomicEvent> super.get(hash);
@@ -288,7 +289,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
         throw new Error(`economicEvent.action is a required field; can't be set to ${obj}`);
       }
     }
-    let to = obj.hash;
+    let to = obj.commit();
 
 
     if (!!my.action && to !== my.action) {
@@ -311,7 +312,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
       return;
     }
 
-    let hash = to.hash;
+    let hash = to.commit();
     if (!!my.inputOf && my.inputOf !== hash) {
       EventLinks.remove(this.hash, my.inputOf, `inputOf`);
       // somehow get the other instance to reload its fields?
@@ -395,7 +396,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
     return this.myEntry.affects;
   }
 
-  private updateLinks(hash?: Hash<this>): Hash<this> {
+  protected updateLinks(hash?: Hash<this>): Hash<this> {
     hash = hash || this.hash
     let my = this.myEntry;
     let linksOut = EventLinks.get(this.myHash);
@@ -520,7 +521,7 @@ export default events;
 // <Zome exports> (call() functions)
 //* HOLO-SCOPE
 // for <DRY> purposes
-function trackTrace<T, U>(subjects: Hash<T>[], tag: string): Hash<U>[] {
+function trackTrace<T, U>(subjects: Hash<T>[], tag: "inputs"|"outputs"|"outputOf"|"inputOf"): Hash<U>[] {
   return subjects.reduce((response: Hash<U>[], subject: Hash<T>) => {
     return response.concat(EventLinks.get(subject, tag).hashes());
   }, []);
@@ -671,10 +672,26 @@ function eventSubtotals(hashes: Hash<EconomicEvent>[]): Subtotals {
 }
 
 // <fixtures>
+let fixtures: {
+  Action: Fixture<Action>,
+  TransferClassification: Fixture<TransferClassification>
+};
 
 
 function getFixtures(dontCare: any): typeof fixtures {
-  return fixtures;
+  return {
+    Action: {
+      Give: new Action({name: `Give`, behavior: '-'}).commit(),
+      Receive: new Action({name: `Receive`, behavior: '+'}).commit(),
+      Adjust: new Action({name: `Adjust`, behavior: '+'}).commit()
+    },
+    TransferClassification: {
+      Stub: new TransferClassification({
+        name: `Transfer Classification Stub`
+      }).commit()
+    }
+  };
+
 }
 
 // </fixures>

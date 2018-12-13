@@ -339,8 +339,6 @@ Represents an observed quantity of some resource.
 **Properties**
 - [`QuantityValue`] `currentQuantity`: as of the last calculation, this is how much of the resource there is.
 
-- [`Date`] `quantityLastCalculated`: The `currentQuantity` is from this moment.  If there are events that affect it more recently, the `currentQuantity` is no longer valid.  Any method returning a resource will check on this, so don't worry about it.
-
 - **aliased [link]** `resourceClassifiedAs =- classifies: `[`ResourceClassification`].  The
 class that defines the resource.  Or it will, there's not much to it right now.
 
@@ -420,6 +418,9 @@ Get the hashes of all events that have affected a single resource.
 - To [call]:
   - POST fn/resources/getFixtures
   - `resources.getFixtures(...).then(...)`
+- Arguments `object`:
+  - No properties, or any properties, they won't matter.
+  but you do have to use it.
 - Returns `object`:
   - `ResourceClassification`: See [`ResourceClassification`]
 
@@ -449,7 +450,7 @@ A directed flow of resources connecting processes and events to each other.
 Doesn't really do much right now.
 
 **Properties**
-- `transferClassifiedAs` **aliased link** `classifiedAs =- classifies` [`TransferClassification`]:
+- `transferClassifiedAs` **aliased [link]** `classifiedAs =- classifies:`[`TransferClassification`]:
 This is how you will know what kind of transfer this is.
 - **aliased link** `inputs -- inputOf` [`EconomicEvent`]`|Process`
 - **aliased link** `outputs -- outputOf` [`EconomicEvent`]`|Process`
@@ -480,7 +481,7 @@ resource's quantity?
 - `Action` `Adjust`: Sync system impression of a resource with reality, or enter
 a previously unmodeled resource into the system (e.g. when setting up HoloREA)
 
-See [`createAction`].
+See [`createAction`], [`events.getFixtures`].
 
 ### `EconomicEvent`: [class] `extends` [`VfObject`]
 [`EconomicEvent`]: #economicevent-class-extends-vfobject
@@ -534,6 +535,11 @@ the final quantity of each requested resource after all events in `events` are c
   - dictionary [`QuantityValue`] `subtotals[`[`Hash`]`<`[`EconomicResource`]`>]`:
   the state of each requested resource before `event` happened.
 - [`Hash`]`<`[`EconomicResource`]`> resources[]` A list of the resource hashes that this [`Subtotals`] is concerned with.
+
+_Note: I don't like all the naked hashes in here.  They should be
+[`CrudResponse<T>`]s when not being used as keys.  Let's say that
+those hashes will become [`Anything<T>`] for the next version, then
+[`CrudResponse<T>`] in the one after that._
 
 See [`eventSubtotals`].
 
@@ -608,7 +614,7 @@ and [`Agent`] hashes ready.
     - `provider`
     - `receiver`
   - [`Hash`]`<`[`Transfer`]`>`: Not required, but if you don't include them,
-  you can't do it later.
+  you can't do it later (right now).
     - `inputOf`
     - `outputOf`
   - [`QuantityValue`] `affectedQuantity`: not strictly required, but if left out,

@@ -2,7 +2,11 @@
 // <reference path="../resources/resources.ts"/>
 //* IMPORT
 //import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError } from "../../../lib/ts/common";
-import { HoloObject, LinkRepo, Hash, VfObject, PhysicalLocation, Dict, CrudResponse, notError, deepAssign } from "../common/common";
+import {
+  HoloObject, Hash, VfObject, PhysicalLocation, Dict, CrudResponse,
+  notError, deepAssign, Initializer, reader
+} from "../common/common";
+import {LinkRepo} from "../common/LinkRepo"
 import "../common/holochain-proto";
 import "../common/es6";
 import resources from "../resources/resources";
@@ -115,6 +119,8 @@ function getOwnedResources(
 
   return agentDicts;
 }
+
+const readAgents = reader(Agent);
 
 // callbacks
 function genesis() {

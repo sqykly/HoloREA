@@ -279,7 +279,7 @@ Exists nominally.  Use the inherited properties or the location to make it uniqu
 - **[link]** `<-= owns: `[`EconomicResource`] Things the agent owns.  _This
 terminology is deprecated and will change when VF defines Agent Resource Roles._
 
-### `createAgent`: `function`
+### `createAgent` `function`
 [`createAgent`]: #createagent-function
 
 Creates an agent and returns its data, hash, and any errors.
@@ -289,6 +289,19 @@ Creates an agent and returns its data, hash, and any errors.
   - `agents.createAgent(...).then(...)`
 - argument: [`EconomicAgent`] The properties of the agent to create.
 - returns: [`CrudResponse`]`<`[`EconomicAgent`]`>` Any errors or the data and hash of the agent.
+
+### `readAgents` `function`
+[`readAgents`]: #readagents-function
+
+Read [`Agent`] data for a set of hashes.
+
+- to [call]:
+  - POST fn/agents/readAgents
+  - `agents.readAgents(...).then(...)`
+- argument [`Hash`]`<`[`Agent`]`>[] agents`: An array of Agent
+hashes.
+- returns [`CrudResponse`]`<`[`Agent`]`>[]` The full data on the
+agents requested.
 
 ### `getOwnedResources`: `function`
 [`getOwnedResources`]: #getownedresources-function
@@ -363,6 +376,19 @@ Creates a resource classification.
 be created.
 - returns: [`CrudResponse`]`<`[`ResourceClassification`]`>`
 
+### `readResourceClasses` `function`
+[`readResourceClasses`]: #readresourceclasses-function
+
+Read data on a set of [`ResourceClassification`]s.
+
+- To [call]:
+  - POST fn/resources/readResourceClasses
+  - `resources.readResourceClasses(...).then(...)`
+- Argument [`Hash`]`<`[`ResourceClassification`]`>[] classes`: The
+hashes of the resource classifications to read.
+- Returns [`CrudResponse`]`<`[`ResourceClassification`]`>[]`: Full
+data on the requested resource classifications.
+
 ### `createResource`: function
 [`createEconomicResource`]: #createresource-function
 [`createResource`]: #createresource-function
@@ -392,6 +418,19 @@ Create a resource through an event.
 
 Alternatively, consider using [`resourceCreationEvent`], which is more robust in
 terms of the event.
+
+### `readResources` `function`
+[`readResources`]: #readresources-function
+
+Read data on a set of [`EconomicResource`]s.
+
+- To [call]:
+  - POST fn/resources/readResources
+  - `resources.readResources(...).then(...)`
+- Argument [`Hash`]`<`[`EconomicResource`]`>[] resources`: The
+hashes of the resources to read.
+- Returns [`CrudResponse`]`<`[`EconomicResource`]`>[]`: Full
+data on the requested resources.
 
 ### `getResourcesInClass`: `function`
 Get a list hashes of all resources belonging to a classification.
@@ -570,6 +609,18 @@ Create a new transfer class.  It doesn't do much yet, but you still need one.
 - Argument: [`TransferClassification`] The desired properties.
 - Returns: [`CrudResponse`]`<`[`TransferClassification`]`>` the new object.
 
+### `readTransferClasses` `function`
+[`readTransferClasses`]: #readtransferclasses-function
+
+Read data on a set of [`TransferClassification`]s.
+
+- To [call]:
+  - POST fn/events/readTransferClasses
+  - `events.readTransferClasses(...).then(...)`
+- Argument [`Hash`]`<`[`TransferClassification`]`>[] classes`: The
+hashes of the transfer classifications to read.
+- Returns [`CrudResponse`]`<`[`TransferClassification`]`>[]`: Full
+data on the requested transfer classifications.
 
 ### `createTransfer` `function`
 [`createTransfer`]: #createtransfer-function
@@ -583,6 +634,19 @@ of a [`TransferClassification`]!
 - Argument [`Transfer`] Properties the object should have.
 - Returns [`CrudResponse`]`<`[`Transfer`]`>` a new transfer object
 
+### `readTransfers` `function`
+[`readTransfers`]: #readtransfers-function
+
+Read data on a set of [`Transfer`]s.
+
+- To [call]:
+  - POST fn/events/readTransfers
+  - `events.readTransfers(...).then(...)`
+- Argument [`Hash`]`<`[`Transfer`]`>[] transfers`: The
+hashes of the transfers to read.
+- Returns [`CrudResponse`]`<`[`Transfer`]`>[]`: Full
+data on the requested transfers.
+
 ### `createAction` `function`
 [`createAction`]: #createaction-function
 
@@ -595,6 +659,19 @@ needs.
   - `events.createAction(...).then(...)`
 - Argument [`Action`] The properties the object should have.
 - Returns [`CrudResponse`]`<`[`Action`]`>` The new object
+
+### `readActions` `function`
+[`readActions`]: #readactions-function
+
+Read data on a set of [`Action`]s.
+
+- To [call]:
+  - POST fn/events/readTransferClasses
+  - `events.readActions(...).then(...)`
+- Argument [`Hash`]`<`[`Action`]`>[] classes`: The
+hashes of the actions to read.
+- Returns [`CrudResponse`]`<`[`Action`]`>[]`: Full
+data on the requested actions.
 
 ### `createEvent`: `function`
 [`createEvent`]: #createevent-function
@@ -620,6 +697,19 @@ and [`Agent`] hashes ready.
   - [`QuantityValue`] `affectedQuantity`: not strictly required, but if left out,
   it defaults to 0, which means the event will have no effect.
 - Returns [`CrudResponse`]`<`[`EconomicEvent`]`>` The new event object.
+
+### `readEvents` `function`
+[`readEvents`]: #readevents-function
+
+Read data on a set of [`Event`]s.
+
+- To [call]:
+  - POST fn/events/readEvents
+  - `events.readEvents(...).then(...)`
+- Argument [`Hash`]`<`[`EconomicEvent`]`>[] events`: The
+hashes of the events to read.
+- Returns [`CrudResponse`]`<`[`EconomicEvent`]`>[]`: Full
+data on the requested events.
 
 ### `traceEvents` `function`
 [`traceEvents`]: #traceEvents-function
@@ -775,7 +865,7 @@ Creates a resource and an event to account for its existence.
       units will be used.
       - `quantity`: must not be 0.
     - `owner`: must not be left blank.
-  - (optional) `object` [`times`]: defaults to now.
+  - (optional) `object` `dates`: defaults to now.
     - [`Date`] `start`: when the event started
     - (optional) [`Date`] `end`: when the event ended.  Defaults to 1
     ms after it started.

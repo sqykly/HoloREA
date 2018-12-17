@@ -77,6 +77,21 @@ export /**/interface CrudResponse<T extends object> {
   type?: string;
 }
 
+//* EXPORT
+export/**/function reader<
+  I extends HoloObject<T["entryType"]>,
+  T extends HoloClass<I,E> = HoloClass<I,E>,
+  E extends holochain.JsonEntry = T["entryType"]
+>( Hc: T ): (hashes: Hash<E>[]) => CrudResponse<E>[] {
+  function crudR(hashes: Hash<E>[]): CrudResponse<E>[] {
+    return hashes.map(hash => Hc.get(hash).portable());
+  }
+  var foo: typeof Hc.entryType;
+  return crudR;
+}
+
+
+
 /**
  * merges an object, src, into another object, dest.  It's like Object.assign,
  * but it doesn't copy over inner objects.  Instead, it copies properties over,

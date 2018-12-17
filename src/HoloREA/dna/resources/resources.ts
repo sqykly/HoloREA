@@ -3,7 +3,11 @@
 // <reference path="../events/events"/>
 //* IMPORT
 //import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf } from "../../../lib/ts/common";
-import { LinkRepo, VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse, PhysicalLocation, HoloThing, entryOf, hashOf, deepAssign } from "../common/common";
+import {
+  VfObject, QuantityValue, Hash, QVlike, notError, CrudResponse,
+  PhysicalLocation, HoloThing, entryOf, hashOf, deepAssign, Initializer, Fixture, reader
+} from "../common/common";
+import {LinkRepo} from "../common/LinkRepo";
 import events from "../events/events";
 import agents from "../agents/agents";
 /*/
@@ -180,7 +184,7 @@ class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.en
       const mine = contains.select(({hash: link}) => link === my.contains);
       let more = contains.select(({hash: link}) => link !== my.contains);
       if (more.length) {
-        mine.removeAll()
+        mine.removeAll();
         let pop = more.hashes()[0];
         more.select(({hash: link}) => link !== pop).removeAll();
         my.contains = pop;
@@ -194,7 +198,7 @@ class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.en
       const mine = classy.select(({hash: link}) => link === my.resourceClassifiedAs);
       let more = classy.select(({hash: link}) => link !== my.resourceClassifiedAs);
       if (more.length) {
-        mine.removeAll()
+        mine.removeAll();
         let pop = more.hashes()[0];
         more.select(({hash: link}) => link !== pop).removeAll();
         my.resourceClassifiedAs = pop;
@@ -223,13 +227,14 @@ class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.en
 
     return it;
   }
-  protected constructor(entry: T & ErEntry & typeof VfObject.entryType | null, hash?: Hash<EconomicResource>) {
+  constructor(entry: T & ErEntry & typeof VfObject.entryType | null, hash?: Hash<EconomicResource>) {
     super(entry, hash);
   }
-  static entryDefaults = Object.assign({}, VfObject.entryDefaults, {
+  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <Initializer<ErEntry>>{
     currentQuantity: {units: '', quantity: 0},
-    resourceClassifiedAs: ``,
-    quantityLastCalculated: 0
+    resourceClassifiedAs: () => getFixtures(null).ResourceClassification.Currency,
+    quantityLastCalculated: 0,
+    owner: ``
   });
 
   // </mandatory overrides>
@@ -371,13 +376,7 @@ export default resources;
 // </export>
 
 // <fixtures>
-const fixtures = {
-  ResourceClassification: {
-    Currency: new ResourceClassification({name: `Currency`, defaultUnits: ``}).commit(),
-    Work: new ResourceClassification({name: `Work`, defaultUnits: `hours`}).commit(),
-    Idea: new ResourceClassification({name: `Idea`, defaultUnits: `citations`}).commit()
-  }
-}
+
 // </fixtures>
 
 // public <zome> functions
@@ -452,10 +451,24 @@ function createResource(
       event.affectedQuantity = evQv;
     }
   }
+  if (!err) {
+    if (!event.receiver) {
+      event.receiver = props.owner || event.provider;
+    }
+    if (!event.provider) {
+      event.provider = props.owner || event.receiver;
+    }
+    if (!props.owner) {
+      props.owner = event.receiver || event.provider;
+    }
+    if (!props.trackingIdentifier) {
+      props.trackingIdentifier = new Date().toString();
+    }
+  }
   if (!err) try {
     it = notError<EconomicResource>(EconomicResource.create(props));
     event.affects = it.hash;
-    call(`events`, `createEconomicResource`, event);
+    call(`events`, `createEvent`, event);
   } catch (e) {
     err = e;
   }
@@ -466,6 +479,8 @@ function createResource(
     type: err ? "error" : it.className
   };
 }
+
+const readResources = reader(EconomicResource);
 
 function createResourceClassification(props?: typeof ResourceClassification.entryType): CrudResponse<typeof ResourceClassification.entryType> {
   let it: ResourceClassification, err: Error;
@@ -482,8 +497,17 @@ function createResourceClassification(props?: typeof ResourceClassification.entr
   };
 }
 
-function getFixtures(dontCare: {}): typeof fixtures {
-  return fixtures;
+const readResourceClasses = reader(ResourceClassification);
+
+function getFixtures(dontCare: {}): {ResourceClassification: Fixture<ResourceClassification>} {
+  return {
+    ResourceClassification: {
+      Thing: new ResourceClassification({name: `Thing`, defaultUnits: ``}).commit(),
+      Currency: new ResourceClassification({name: `Currency`, defaultUnits: ``}).commit(),
+      Work: new ResourceClassification({name: `Work`, defaultUnits: `hours`}).commit(),
+      Idea: new ResourceClassification({name: `Idea`, defaultUnits: `citations`}).commit()
+    }
+  }
 }
 
 function affect({resource, quantity}:{

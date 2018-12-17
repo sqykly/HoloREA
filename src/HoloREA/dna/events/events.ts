@@ -5,7 +5,7 @@
 //import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../../../lib/ts/common";
 import {
   Hash, QuantityValue, VfObject, QVlike, HoloObject, CrudResponse, bisect,
-  HoloThing, hashOf, notError, HoloClass, deepAssign, Fixture, Initializer
+  HoloThing, hashOf, notError, HoloClass, deepAssign, Fixture, Initializer, reader
 } from "../common/common";
 import resources from "../resources/resources";
 import agents from "../agents/agents";
@@ -257,7 +257,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
   className = "EconomicEvent";
   static entryType: EeEntry & typeof VfObject.entryType;
   static entryDefaults = deepAssign({}, VfObject.entryDefaults, <Initializer<EeEntry>>{
-    // Using fixtures in an initializer is asking for trouble.
+
     action: () => getFixtures(null).Action.Adjust,
     affects: ``,
     affectedQuantity: { units: ``, quantity: 0 },
@@ -701,7 +701,7 @@ function resourceCreationEvent(
     resource: resources.EconomicResource, dates?:{start: number, end?:number}
   }
 ): CrudResponse<events.EconomicEvent> {
-  let adjustHash: Hash<Action> = fixtures.Action.Adjust;
+  let adjustHash: Hash<Action> = getFixtures({}).Action.Adjust;
   let qv = resource.currentQuantity;
   let start: number, end: number;
   if (dates) {
@@ -757,6 +757,8 @@ function createEvent(init: typeof EconomicEvent.entryType): CrudResponse<typeof 
   };
 }
 
+const readEvents = reader(EconomicEvent);
+
 function createTransfer(init: typeof Transfer.entryType): CrudResponse<typeof Transfer.entryType> {
   let it: Transfer, err: Error;
   try {
@@ -770,6 +772,8 @@ function createTransfer(init: typeof Transfer.entryType): CrudResponse<typeof Tr
     entry: it.entry
   };
 }
+
+const readTransfers = reader(Transfer);
 
 function createTransferClass(init: typeof TransferClassification.entryType): CrudResponse<typeof TransferClassification.entryType> {
   let it: TransferClassification, err: Error;
@@ -785,6 +789,8 @@ function createTransferClass(init: typeof TransferClassification.entryType): Cru
   };
 }
 
+const readTransferClasses = reader(TransferClassification);
+
 function createAction(init: typeof Action.entryType): CrudResponse<typeof Action.entryType> {
   let it: Action, err: Error;
 
@@ -799,6 +805,8 @@ function createAction(init: typeof Action.entryType): CrudResponse<typeof Action
     entry: it.entry
   };
 }
+
+const readActions = reader(Action);
 
 // callbacks
 function genesis() {

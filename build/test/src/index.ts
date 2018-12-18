@@ -13,7 +13,15 @@ interface Scenario {
   stuff: { [name:string]: CrudResponse<resources.EconomicResource> },
   types: { [name:string]: CrudResponse<resources.ResourceClassification> },
   actions: { [name:string]: CrudResponse<events.Action> },
-  events: { [name:string]: CrudResponse<events.EconomicEvent> }
+  events: { [name:string]: CrudResponse<events.EconomicEvent> },
+  verbs: { [name:string]:
+    (
+      quantity: number,
+      when?: IntDate,
+      ...targets: Hash<any>[]
+    ) => Promise<CrudResponse<events.EconomicEvent>>
+  },
+  facts: { [name:string]: number }
 }
 
 function scenario(): Scenario {
@@ -22,7 +30,9 @@ function scenario(): Scenario {
     stuff: {},
     types: {},
     actions: {},
-    events: {}
+    events: {},
+    facts: {},
+    verbs: {}
   };
 }
 
@@ -255,9 +265,12 @@ prep = prep.then(async (my) => {
 
   let {al, bea, chloe} = my.agents,
     {apples, beans, turnovers, coffee} = my.types,
-    {pick, bake, gather, brew, give, take, adjust} = my.actions;
+    {pick, bake, gather, brew, give, take, adjust, consume} = my.actions;
 
-  let [alApples, beaBeans] = await Promise.all([
+  let [
+    alApples, beaBeans, chloeCoffee, chloeBeans,
+    chloeApples, chloeTurnovers, alCoffee, beaTurnovers
+  ] = await Promise.all([
     resources.createResource({
       resource: {
         resourceClassifiedAs: apples.hash,
@@ -360,14 +373,197 @@ prep = prep.then(async (my) => {
       expectIt.to.have.property(`owner`, chloe.hash, `Chloe`);
 
       return res;
-    })
-  ])
+    }),
 
+    events.resourceCreationEvent({
+      resource: {
+        resourceClassifiedAs: beans.hash,
+        owner: chloe.hash,
+        currentQuantity: { units: `kg`, quantity: 0 },
+        trackingIdentifier: `Chloe's coffee beans`
+      },
+      dates: {
+        start: await tick()
+      }
+    }).then(
+      (ev) => resources.readResources([ev.entry.affects])
+    ).then(
+      ([res]) => res
+    ),
+
+    events.resourceCreationEvent({
+      resource: {
+        resourceClassifiedAs: apples.hash,
+        owner: chloe.hash,
+        currentQuantity: { units: ``, quantity: 0 },
+        trackingIdentifier: `Chloe's apples`
+      },
+      dates: { start: await tick() }
+    }).then(
+      (ev) => resources.readResources([ev.entry.affects])
+    ).then(
+      ([res]) => res
+    ),
+
+    events.resourceCreationEvent({
+      resource: {
+        resourceClassifiedAs: turnovers.hash,
+        owner: chloe.hash,
+        currentQuantity: { units: ``, quantity: 0 },
+        trackingIdentifier: `Chloe's apple turnovers`
+      },
+      dates: { start: await tick() }
+    }).then(
+      (ev) => resources.readResources([ev.entry.affects])
+    ).then(
+      ([res]) => res
+    ),
+
+    events.resourceCreationEvent({
+      resource: {
+        resourceClassifiedAs: coffee.hash,
+        owner: al.hash,
+        currentQuantity: { units: `mL`, quantity: 0 },
+        trackingIdentifier: `Al's coffee`
+      },
+      dates: { start: await tick() }
+    }).then(
+      (ev) => resources.readResources([ev.entry.affects])
+    ).then(
+      ([res]) => res
+    ),
+
+    events.resourceCreationEvent({
+      resource: {
+        resourceClassifiedAs: turnovers.hash,
+        owner: bea.hash,
+        currentQuantity: { units: ``, quantity: 0 },
+        trackingIdentifier: `Bea's apple turnovers`
+      },
+      dates: { start: await tick() }
+    }).then(
+      (ev) => resources.readResources([ev.entry.affects])
+    ).then(
+      ([res]) => res
+    )
+  ]);
+
+  my.stuff = { alApples, beaBeans, chloeCoffee, chloeBeans }
+
+  my.facts = (() => {
+    let gramsPerSpoon: number = 2.5;
+    let spoonsPerCup: number = 1;
+    let mlPerCup: number = 236.588;
+    let applesPerTurnover: number = 3;
+    let secondsPerHour: number = 3600;
+    // not sure where this ranks him, but Al can pick an apple every 5 seconds.
+    let applesPerHour: number = (1/5)*secondsPerHour;
+    let kgPerLb: number = 0.453592;
+    // Bea is a "good picker" by NCAUSA.org standards.
+    let beansPerHour: number = 30*kgPerLb/8;
+    let coffeePerHour: number = (12/*cups*//10/*min*/)*mlPerCup*60/*min/hr*/;
+    let bakeTime: number = 25*60;
+
+    return {
+      gramsPerSpoon, spoonsPerCup, mlPerCup, applesPerTurnover,
+      secondsPerHour, applesPerHour, kgPerLb, beansPerHour,
+      coffeePerHour, bakeTime
+    };
+  })();
+
+  let facts = my.facts;
+
+  async function pickApples(
+    howMany: number,
+    when: number = 0,
+    resource: Hash<resources.EconomicResource> = alApples.hash
+  ): Promise<CrudResponse<events.EconomicEvent>> {
+    when = when || await tick();
+
+    return events.createEvent({
+      action: pick.hash,
+      provider: david.hash,
+      receiver: al.hash,
+      start: when,
+      duration: howMany*1000*facts.secondsPerHour/facts.applesPerHour,
+      affects: resource,
+      affectedQuantity: { units: ``, quantity: howMany }
+    });
+  }
+  my.verbs.pickApples = pickApples;
+
+  async function gatherBeans(
+    howMuch: number,
+    when: number = 0,
+    resource: Hash<resources.EconomicResource> = beaBeans.hash
+  ): Promise<CrudResponse<events.EconomicEvent>> {
+    when = when || await tick();
+
+    return events.createEvent({
+      action: gather.hash,
+      provider: david.hash,
+      receiver: bea.hash,
+      start: when,
+      duration: howMuch*1000*facts.secondsPerHour/facts.beansPerHour,
+      affects: resource,
+      affectedQuantity: { units: `kg`, quantity: howMuch }
+    });
+  }
+  my.verbs.gatherBeans = gatherBeans;
+
+  async function brewCoffee(
+    cups: number,
+    when: number = 0,
+    beanRes: Hash<resources.EconomicResource> = chloeBeans.hash,
+    coffeeRes: Hash<resources.EconomicResource> = chloeCoffee.hash
+  ): Promise<CrudResponse<events.EconomicEvent>> {
+    when = when || await tick();
+
+    let beansNeeded = facts.spoonsPerCup*facts.gramsPerSpoon*cups/1000;
+    let beansHad =
+      (await resources.readResources([beanRes]))[0]
+      .entry.currentQuantity.quantity;
+
+    if (beansHad < beansNeeded) {
+      return Promise.reject(
+        `can't make ${cups} cups of coffee with only ${beansHad} kg of coffee beans`
+      );
+    }
+    
+    let [consumeEv, brewEv] = await Promise.all([
+      events.createEvent({
+        action: consume.hash,
+        provider: chloe.hash,
+        receiver: chloe.hash,
+        start: when,
+        duration: 1,
+        affects: beanRes,
+        affectedQuantity: { units: `kg`, quantity: beansNeeded }
+      }),
+      events.createEvent({
+        action: brew.hash,
+        provider: chloe.hash,
+        receiver: chloe.hash,
+        start: when,
+        duration: 1000*cups*facts.mlPerCup*facts.secondsPerHour/facts.coffeePerHour,
+        affects: coffeeRes,
+        affectedQuantity: { units: `mL`, quantity: cups*facts.mlPerCup }
+      })
+    ]);
+
+    return events.createTransfer({
+      transferClassifiedAs: stub.hash,
+      inputs: consumeEv.hash,
+      outputs: brewEv.hash
+    }).then((xfer) => brewEv);
+
+  }
+  my.verbs.brewCoffee = brewCoffee;
 
   return my;
 })
 
-// Come back to: resources.createResource
+// Come back to:
 //  resources.getResourcesInClass
 //  resources.getFixtures?
 // Come back to: agents.getOwnedResources

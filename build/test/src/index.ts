@@ -448,7 +448,10 @@ prep = prep.then(async (my) => {
     )
   ]);
 
-  my.stuff = { alApples, beaBeans, chloeCoffee, chloeBeans }
+  my.stuff = {
+    alApples, beaBeans, chloeCoffee, chloeBeans,
+    chloeApples, chloeTurnovers, alCoffee, beaTurnovers
+  };
 
   my.facts = (() => {
     let gramsPerSpoon: number = 2.5;
@@ -461,7 +464,7 @@ prep = prep.then(async (my) => {
     let kgPerLb: number = 0.453592;
     // Bea is a "good picker" by NCAUSA.org standards.
     let beansPerHour: number = 30*kgPerLb/8;
-    let coffeePerHour: number = (12/*cups*//10/*min*/)*mlPerCup*60/*min/hr*/;
+    let coffeePerHour: number = (12/10)*mlPerCup*60;
     let bakeTime: number = 25*60;
 
     return {
@@ -529,7 +532,7 @@ prep = prep.then(async (my) => {
         `can't make ${cups} cups of coffee with only ${beansHad} kg of coffee beans`
       );
     }
-    
+
     let [consumeEv, brewEv] = await Promise.all([
       events.createEvent({
         action: consume.hash,
@@ -555,7 +558,7 @@ prep = prep.then(async (my) => {
       transferClassifiedAs: stub.hash,
       inputs: consumeEv.hash,
       outputs: brewEv.hash
-    }).then((xfer) => brewEv);
+    }).then(() => brewEv);
 
   }
   my.verbs.brewCoffee = brewCoffee;

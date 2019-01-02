@@ -11,6 +11,10 @@ declare class Set<T extends string|number> {
   keys(): T[];
   values(): T[];
   forEach(cb: (t:T) => void, thisVal?: object): void;
+  clear();
+  union(other: Set<T>): Set<T>;
+  intersect(other: Set<T>): Set<T>;
+  disjunct(other: Set<T>): Set<T>;
 }
 
 declare class Map<K, T> {
@@ -98,12 +102,21 @@ declare class LinkSet<B, L, Tags extends string = string, T extends L = L> exten
    */
   readonly TAGS: Tags;
   /**
-   *
+   * This is the type you expect to get from the entry field.
    */
   readonly TYPE: T;
+
   private origin: LinkRepo<B,L,Tags>;
   private baseHash: Hash<T>;
   private loaded: boolean;
+  /**
+   * If true, the LinkSet will keep its repo in sync with itself.  While false, no
+   * operation on this set or its descendents will modify the links on the DHT,
+   * including remove, add, and replace, until the save() method is called.
+   * True by default.
+   * @see LinkSet.save
+   */
+  public sync: boolean;
   /**
    * Don't new this.
    */
@@ -118,7 +131,7 @@ declare class LinkSet<B, L, Tags extends string = string, T extends L = L> exten
    * Filter by any number of entryTypes, which you should probably get from HoloObj.className
    * returns a new LinkSet.
    * if you like typesafety, use the type parameter to narrow the types, too.
-   * @arg C Type or union of types that the result should contain.  These are classes, not names.
+   * @arg {class} C Type or union of types that the result should contain.  These are classes, not names.
    * @params {string} typeNames is the list of types that the result should have.
    *  these are the type names, not the classes.
    * @returns {LinkSet<C>}
@@ -169,13 +182,44 @@ declare class LinkSet<B, L, Tags extends string = string, T extends L = L> exten
 
   private desc(): string[];
 
+  /**
+   * Returns a new LinkSet with the elements of this that are not also in the
+   * given argument.  Useful when you need to negate a filter.
+   * @param {LinkSet} ls the set with which the result will be disjoint.
+   * @returns {LinkSet}
+   */
   notIn<Bn extends B, Ln extends L, TagsN extends Tags, Tn extends Ln>
   (ls: LinkSet<Bn,Ln,TagsN,Tn>): LinkSet<B,L,Tags,T>;
 
+  /**
+   * Returns a new LinkSet with the elements this set and another have in common.
+   * Useful when you need to run several independent filters.
+   * @param {LinkSet} ls the set to filter over.
+   * @returns {LinkSet}
+   */
   andIn<La extends L, TagsA extends string, Ta extends La>
   (ls: LinkSet<B,La,TagsA,Ta>): LinkSet<B, L, Tags, T>;
 
+  /**
+   * Pushes a new link into the set and adds it in its repo, if sync is enabled.
+   * @param {Tags} tag The tag for the link to be added.
+   * @param {Hash} hash The target to link to
+   * @param {string} type The type name of the target
+   * @returns {ThisType} chainable
+   */
+  add(tag: Tags, hash: Hash<L>, type: string): this;
 
+  /**
+   * If this set is not synchronized with its repo, save any changes made to it
+   * to the DHT.
+   * @param {Boolean?} add If true, links missing from the DHT will be committed.
+   *  defaults to true.
+   * @param {Boolean?} rem If true, links missing from this set will be removed
+   *  from the DHT.  Don't use unless the set is certain to hold every link you
+   *  want with the same tags.  Default is false.
+   * @returns {ThisType} chainable
+   */
+  save(add?: boolean, rem?: boolean): this;
 }
 
 declare interface Tag<B,L, T extends string> {
@@ -221,13 +265,13 @@ declare interface Tag<B,L, T extends string> {
  *  character, '|'; union the strings themselves like "foo"|"bar"|"baz"
  */
 declare class LinkRepo<B, L, T extends string = string> {
-  public readonly name: string;
   /**
    * @param {string} name the exact dna.zomes[].Entries.Name that this repo will
    *  represent.
    */
   constructor (name: string);
-
+  name: string;
+  
   protected backLinks: Map<T, Tag<L|B,B|L, T|string>[]>;
   /*
   protected recurseGuard: Map<T, number>();

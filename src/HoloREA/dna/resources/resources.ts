@@ -521,7 +521,7 @@ function affect({resource, quantity}:{
       let current = res.currentQuantity.add(quantity);
       res.currentQuantity = current;
       return entry;
-    }).update();
+    }).close().hash;
   } catch (e) {
     err = e;
   }

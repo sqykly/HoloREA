@@ -5,11 +5,12 @@
 //import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../../../lib/ts/common";
 import {
   Hash, QuantityValue, VfObject, QVlike, HoloObject, CrudResponse, bisect,
-  HoloThing, hashOf, notError, HoloClass, deepAssign, Fixture, Initializer, reader
+  HoloThing, hashOf, notError, HoloClass, deepAssign, Fixture, Initializer, reader, holoSet, HoloSet, entryOf, creator
 } from "../common/common";
 import resources from "../resources/resources";
 import agents from "../agents/agents";
 import { LinkRepo } from "../common/LinkRepo";
+import { LinkSet } from "../common/LinkRepo";
 /*/
 /**/
 
@@ -112,8 +113,48 @@ class Action<T = {}> extends VfObject<ActEntry & T & typeof VfObject.entryType> 
   }
 }
 
+interface ProcClass {
+  label: string;
+}
+
+class ProcessClassification<T = {}> extends VfObject<T & ProcClass & typeof VfObject.entryType> {
+  static className = "ProcessClassification";
+  className = "ProcessClassification";
+  static entryType: ProcClass & typeof VfObject.entryType;
+  static entryDefaults = Object.assign({}, VfObject.entryDefaults, <Initializer<ProcClass>> {
+
+    });
+
+  static get(hash: Hash<ProcessClassification>): ProcessClassification {
+    return <ProcessClassification> super.get(hash);
+  }
+  static create(entry: ProcClass & typeof VfObject.entryType): ProcessClassification {
+    return <ProcessClassification> super.create(entry);
+  }
+  constructor(entry?: T & ProcClass & typeof VfObject.entryType, hash?: Hash<ProcessClassification>) {
+    super(entry, hash);
+  }
+
+}
+
 interface ProcEntry {
   name: string;
+  plannedStart: number;
+  plannedDuration: number;
+  isFinished: boolean;
+  note: string;
+  processClassifiedAs: Hash<ProcessClassification>;
+}
+
+type VfProc = ProcEntry & typeof VfObject.entryType & {
+  inputs?: Hash<EconomicEvent>[];
+  outputs?: Hash<EconomicEvent>[];
+}
+
+interface ProcLinks {
+  processClassifiedAs: LinkRepo<ProcEntry, ProcClass, "classifiedAs"|"classifies">,
+  inputs: LinkRepo<ProcEntry, typeof EconomicEvent.entryType, "inputs"|"inputOf">,
+  outputs: LinkRepo<ProcEntry, typeof EconomicEvent.entryType, "outputs"|"outputOf">
 }
 
 class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryType> {
@@ -122,12 +163,62 @@ class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryTyp
   static entryType: ProcEntry  & typeof VfObject.entryType;
   static entryDefaults = deepAssign({}, VfObject.entryDefaults,
     <Initializer<ProcEntry>> {
-
+      plannedStart: 0,
+      plannedDuration: 0,
+      isFinished: false,
+      note: ``
     });
 
-  static get(hash: Hash<Process>): Process {
-    return <Process> super.get(hash);
+  private static readonly links: ProcLinks = {
+    processClassifiedAs: new LinkRepo<ProcEntry, ProcClass, "classifies"|"classifiedAs">(`Classifications`)
+      .linkBack(`classifiedAs`, `classifies`)
+      .linkBack(`classifies`, `classifiedAs`)
+      .singular(`classifiedAs`),
+    inputs: new LinkRepo<ProcEntry, typeof EconomicEvent.entryType, "inputs"|"inputOf">(`EventLinks`)
+      .linkBack(`inputs`, `inputOf`)
+      .linkBack(`inputOf`, `inputs`)
+      .singular(`inputOf`),
+    outputs: new LinkRepo<ProcEntry, typeof EconomicEvent.entryType, "outputs"|"outputOf">(`EventLinks`)
+      .linkBack(`outputs`, `outputOf`)
+      .linkBack(`outputOf`, `outputs`)
+      .singular(`outputOf`)
   }
+
+  private readonly links: typeof Process.links = Process.links;
+
+  private loadLinks() {
+    this.myEntry.processClassifiedAs = this.links.processClassifiedAs
+      .get(this.myHash, `classifiedAs`).hashes()[0];
+
+    this.inputs = this.links.inputs.get(this.myHash, `inputs`).types(`EconomicEvent`);
+    this.inputs.forEach(({Hash}, i, inputs) => {
+      inputs[i].Entry = EconomicEvent.get(Hash);
+    });
+    this.inputs.sync = false;
+
+    this.outputs = this.links.outputs.get(this.myHash, `outputs`).types(`EconomicEvent`);
+    this.outputs.forEach(({Hash}, i, outputs) => {
+      outputs[i].Entry = EconomicEvent.get(Hash);
+    });
+    this.outputs.sync = false;
+
+  }
+  private saveLinks(hash: Hash<ProcEntry>): Hash<ProcEntry> {
+    this.links.processClassifiedAs.put(this.myHash, this.myEntry.processClassifiedAs, `classifiedAs`);
+
+    this.inputs.save(true, true);
+
+    this.outputs.save(true, true);
+
+    return hash;
+  }
+
+  static get(hash: Hash<Process>): Process {
+    let proc = <Process> super.get(hash);
+    proc.loadLinks();
+    return proc;
+  }
+
   static create(entry: ProcEntry  & typeof VfObject.entryType): Process {
     return <Process> super.create(entry);
   }
@@ -135,7 +226,162 @@ class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryTyp
     super(entry, hash);
   }
 
-  // methods
+  inputs: LinkSet<ProcEntry, EeEntry>;
+  outputs: LinkSet<ProcEntry, EeEntry>;
+  protected linksChanged(): boolean {
+    let {inputs, outputs, hash} = this;
+    let oldInputs = this.links.inputs.get(hash, `inputs`);
+    let oldOutputs = this.links.outputs.get(hash, `outputs`);
+    if (inputs.notIn(oldInputs).length || oldInputs.notIn(inputs).length) {
+      return true;
+    }
+    if (outputs.notIn(oldOutputs).length || oldOutputs.notIn(outputs).length) {
+      return true;
+    }
+    return false;
+  }
+
+  get processClassifiedAs(): ProcessClassification {
+    return ProcessClassification.get(this.myEntry.processClassifiedAs);
+  }
+
+  set processClassifiedAs(to: ProcessClassification) {
+    this.myEntry.processClassifiedAs = to.hash;
+  }
+
+  get plannedDuration(): number {
+    return this.myEntry.plannedDuration;
+  }
+
+  set plannedDuration(to: number) {
+    this.myEntry.plannedDuration = to;
+  }
+
+  get plannedStart(): number {
+    return this.myEntry.plannedStart;
+  }
+  set plannedStart(to: number) {
+    this.myEntry.plannedStart = to;
+  }
+
+  get plannedEnd(): number {
+    let my = this.myEntry;
+    return my.plannedStart + (my.plannedDuration || Infinity);
+  }
+  set plannedEnd(to: number) {
+    let my = this.myEntry;
+    if (!to || to === Infinity) {
+      my.plannedDuration = 0;
+    } else {
+      my.plannedDuration = to - my.plannedStart;
+    }
+  }
+
+  get isFinished(): boolean {
+    return this.myEntry.isFinished;
+  }
+  set isFinished(to: boolean) {
+    this.myEntry.isFinished = to;
+  }
+
+  get start(): number {
+    let now = Date.now();
+    let t = this.inputs.data().concat(this.outputs.data()).reduce(
+      ((early, {start}) => (start < early ? start : early)),
+      now
+    );
+    if (t === now) {
+      return 0;
+    } else {
+      return t;
+    }
+  }
+
+  get end(): number {
+    if (!this.myEntry.isFinished) return 0;
+
+    let then = 0;
+
+    let t = this.inputs.data().concat(this.outputs.data()).reduce(
+      ((later, {start, duration}) => {
+        if (duration === 0) return later;
+        let end = start + duration;
+        return end > later ? end : later;
+      }),
+      then
+    );
+
+    return t;
+  }
+
+  addInputs(...events: EconomicEvent[]): this {
+    for (let event of events) {
+      this.inputs.add(`inputs`, event.hash, event.className);
+    }
+    return this;
+  }
+
+  addOutputs(...events: EconomicEvent[]): this {
+    for (let event of events) {
+      this.outputs.add(`outputs`, event.hash, event.className);
+    }
+    return this;
+  }
+
+  getInputs(): EconomicEvent[];
+  getInputs(i: number): EconomicEvent;
+  getInputs(i?: number) {
+    if (!i && i !== 0) {
+      return this.inputs.hashes().map(EconomicEvent.get);
+    } else {
+      let len = this.inputs.length;
+      if (i >= len || i < 0) throw new RangeError(`invalid index ${i} for length ${len}`);
+
+      return EconomicEvent.get(this.inputs[i].Hash);
+    }
+  }
+
+  getOutputs(): EconomicEvent[];
+  getOutputs(i: number): EconomicEvent;
+  getOutputs(i?: number) {
+    if (!i && i !== 0) {
+      return this.outputs.hashes().map(EconomicEvent.get);
+    } else {
+      let len = this.outputs.length;
+      if (i >= len || i < 0) throw new RangeError(`invalid index ${i} for length ${len}`);
+
+      return EconomicEvent.get(this.outputs[i].Hash);
+    }
+  }
+
+  netEffectOn(res: HoloThing<resources.EconomicResource>): QuantityValue {
+    let resHash: Hash<resources.EconomicResource> = hashOf(res);
+    return this.getOutputs().concat(this.getInputs())
+      .filter((ev) => ev.affects === resHash)
+      .reduce(
+        (sum, ev) => {
+          let term = ev.affectedQuantity.mul({quantity: ev.action.sign, units: ``});
+          if (sum) term = term.add(sum);
+          return term;
+        },
+        null
+      );
+  }
+
+  commit(): Hash<Process> {
+    return this.saveLinks(super.commit());
+  }
+
+  update(): Hash<Process> {
+    return this.saveLinks(super.update());
+  }
+
+  remove(): this {
+    this.links.inputs.get(this.myHash, `input`).removeAll();
+    this.links.outputs.get(this.myHash, `output`).removeAll();
+    this.links.processClassifiedAs.remove(this.myHash, this.myEntry.processClassifiedAs, `processClassifiedAs`);
+    return super.remove();
+  }
 }
 
 interface XferClassEntry {
@@ -166,8 +412,8 @@ class TransferClassification<T = {}> extends VfObject<T & XferClassEntry & typeo
 
 interface XferEntry {
   transferClassifiedAs: Hash<TransferClassification>;
-  inputs: Hash<EconomicEvent|Process>;
-  outputs: Hash<EconomicEvent|Process>;
+  inputs: Hash<EconomicEvent>;
+  outputs: Hash<EconomicEvent>;
 }
 
 class Transfer<T = {}> extends VfObject<T & typeof VfObject.entryType & XferEntry> {
@@ -236,6 +482,45 @@ class Transfer<T = {}> extends VfObject<T & typeof VfObject.entryType & XferEntr
     }
     return super.remove(msg);
   }
+
+  private saveLinks(hash: Hash<this>) {
+    let my = this.myEntry;
+    let links = EventLinks.get(this.myHash).tags(`inputs`, `outputs`);
+
+    let inputs = links.tags(`inputs`);
+    if (inputs.length) {
+      if (inputs[0].Hash !== my.inputs) {
+        inputs.removeAll();
+      }
+    }
+    if (my.inputs) EventLinks.put(hash, my.inputs, `inputs`);
+
+    let outputs = links.tags(`outputs`);
+    if (outputs.length) {
+      if (outputs[0].Hash !== my.outputs) {
+        outputs.removeAll();
+      }
+    }
+    if (my.outputs) EventLinks.put(hash, my.outputs, `outputs`);
+
+    let cl = Classifications.get(this.myHash, `classifiedAs`);
+    if (cl.length) {
+      if (cl[0].Hash !== my.transferClassifiedAs) {
+        cl.removeAll();
+      }
+    }
+    if (my.transferClassifiedAs) Classifications.put(hash, my.transferClassifiedAs, `classifiedAs`);
+
+    return hash;
+  }
+
+  commit(): Hash<this> {
+    return this.saveLinks(super.commit());
+  }
+
+  update(): Hash<this> {
+    return this.saveLinks(super.update());
+  }
 }
 
 interface EeEntry {
@@ -289,37 +574,41 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
         throw new Error(`economicEvent.action is a required field; can't be set to ${obj}`);
       }
     }
-    let to = obj.commit();
+    let to = obj.hash;
 
 
     if (!!my.action && to !== my.action) {
       EventLinks.remove(this.hash, my.action, `action`);
     }
     my.action = to;
-    EventLinks.put(this.hash, to, `action`);
+    //EventLinks.put(this.hash, to, `action`);
   }
 
-  get inputOf(): Transfer {
+  get inputOf(): Transfer|Process {
     return this.myEntry.inputOf && Transfer.get(this.myEntry.inputOf) || null;
   }
-  set inputOf(to: Transfer) {
+  set inputOf(to: Transfer|Process) {
     let my = this.myEntry;
     if (!to) {
-      if (my.outputOf) {
-        EventLinks.remove(this.myHash, my.outputOf, `outputOf`);
-        my.outputOf = null;
+      if (my.inputOf) {
+        EventLinks.remove(this.myHash, my.inputOf, `outputOf`);
+        my.inputOf = null;
       }
       return;
     }
 
-    let hash = to.commit();
+    let hash = to.hash;
     if (!!my.inputOf && my.inputOf !== hash) {
       EventLinks.remove(this.hash, my.inputOf, `inputOf`);
       // somehow get the other instance to reload its fields?
     }
     my.inputOf = hash;
-    EventLinks.put(this.myHash, hash, `inputOf`);
+    //EventLinks.put(this.myHash, hash, `inputOf`);
 
+  }
+
+  get inputOfProcess(): Process {
+    return Process.get(this.myEntry.inputOf);
   }
 
   get outputOf(): Transfer {
@@ -390,7 +679,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
       TrackTrace.remove(this.hash, my.affects, `affects`);
     }
     my.affects = hash;
-    this.update();
+    //this.update();
   }
   get affects(): HoloThing<EconomicResource> {
     return this.myEntry.affects;
@@ -409,7 +698,7 @@ class EconomicEvent<T = {}> extends VfObject<EeEntry & T & typeof VfObject.entry
       }
     }
 
-    let inputOf = linksOut.tags(`outputOf`);
+    let inputOf = linksOut.tags(`inputOf`);
     if (my.inputOf && (!inputOf.length || inputOf.hashes()[0] !== my.inputOf)) {
       EventLinks.put(hash, my.inputOf, `inputOf`);
       if (inputOf.length) {
@@ -487,6 +776,7 @@ namespace events {
   export type EconomicEvent = typeof EconomicEvent.entryType;
   export type TransferClassification = typeof TransferClassification.entryType;
   export type Transfer = typeof Transfer.entryType;
+  export type ProcessClassification = typeof ProcessClassification.entryType;
   export type Process = typeof Process.entryType;
   export type Classifications = typeof Classifications;
   export type EventLinks = typeof EventLinks;
@@ -674,24 +964,28 @@ function eventSubtotals(hashes: Hash<EconomicEvent>[]): Subtotals {
 // <fixtures>
 let fixtures: {
   Action: Fixture<Action>,
-  TransferClassification: Fixture<TransferClassification>
+  TransferClassification: Fixture<TransferClassification>,
+  ProcessClassification: Fixture<ProcessClassification>
 };
-
 
 function getFixtures(dontCare: any): typeof fixtures {
   return {
     Action: {
-      Give: new Action({name: `Give`, behavior: '-'}).commit(),
-      Receive: new Action({name: `Receive`, behavior: '+'}).commit(),
-      Adjust: new Action({name: `Adjust`, behavior: '+'}).commit()
+      give: new Action({name: `Give`, behavior: '-'}).commit(),
+      receive: new Action({name: `Receive`, behavior: '+'}).commit(),
+      adjust: new Action({name: `Adjust`, behavior: '+'}).commit(),
+      produce: new Action({name: `Produce`, behavior: '+'}).commit(),
+      consume: new Action({name: `Consume`, behavior: '-'}).commit()
     },
     TransferClassification: {
-      Stub: new TransferClassification({
+      stub: new TransferClassification({
         name: `Transfer Classification Stub`
       }).commit()
+    },
+    ProcessClassification: {
+      stub: new ProcessClassification({label: `Process Class Stub`}).commit()
     }
   };
-
 }
 
 // </fixures>
@@ -742,71 +1036,139 @@ function resourceCreationEvent(
 
 // CRUD
 function createEvent(init: typeof EconomicEvent.entryType): CrudResponse<typeof EconomicEvent.entryType> {
-  let it: EconomicEvent, err: Error;
+  let it: EconomicEvent = null, err: Error;
   try {
     it = EconomicEvent.create(init);
-    let affect = it.affects;
 
+    if (it.affects) {
+      call(`resources`, `affect`, {
+        resource: it.affects,
+        quantity: it.quantity.mul({ units: ``, quantity: it.action.sign })
+      });
+    }
+
+    return it.portable();
   } catch (e) {
-    err = e;
+    return {
+      error: e,
+      hash: it && it.hash,
+      entry: it && it.entry,
+      type: it && it.className
+    };
   }
-  return {
-    error: err,
-    hash: it.hash,
-    entry: it.entry
-  };
 }
 
 const readEvents = reader(EconomicEvent);
 
-function createTransfer(init: typeof Transfer.entryType): CrudResponse<typeof Transfer.entryType> {
-  let it: Transfer, err: Error;
+type ExtXfer = typeof VfObject.entryType & {
+  transferClassifiedAs: Hash<TransferClassification>,
+  inputs: HoloThing<typeof EconomicEvent.entryType>,
+  outputs: HoloThing<typeof EconomicEvent.entryType>
+};
+
+function createTransfer(init: ExtXfer): CrudResponse<typeof Transfer.entryType> {
+  let it: Transfer = null, err: Error;
   try {
-    it = Transfer.create(init);
+    let inputs: Hash<events.EconomicEvent>;
+    if (typeof init.inputs === `string`) {
+      inputs = init.inputs;
+    } else {
+      let that = createEvent(entryOf(init.inputs));
+      if (that.error) throw that.error;
+      inputs = that.hash;
+    }
+
+    let outputs: Hash<events.EconomicEvent>
+    if (typeof init.outputs === `string`) {
+      outputs = init.outputs;
+    } else {
+      let that = createEvent(entryOf(init.outputs));
+      if (that.error) throw that.error;
+      outputs = that.hash;
+    }
+
+    let props: events.Transfer = {
+      transferClassifiedAs: init.transferClassifiedAs,
+      inputs, outputs
+    };
+    it = Transfer.create(props);
+    it.commit();
+    return it.portable();
   } catch (e) {
     err = e;
+    return {
+      error: err,
+      hash: it && it.hash,
+      entry: it && it.entry,
+      type: it && it.className
+    };
   }
-  return {
-    error: err,
-    hash: it.hash,
-    entry: it.entry
-  };
 }
 
 const readTransfers = reader(Transfer);
 
-function createTransferClass(init: typeof TransferClassification.entryType): CrudResponse<typeof TransferClassification.entryType> {
-  let it: TransferClassification, err: Error;
-  try {
-    it = TransferClassification.create(init);
-  } catch (e) {
-    err = e;
-  }
-  return {
-    error: err,
-    hash: it.hash,
-    entry: it.entry
-  };
-}
-
+const createTransferClass = creator(TransferClassification);
 const readTransferClasses = reader(TransferClassification);
 
-function createAction(init: typeof Action.entryType): CrudResponse<typeof Action.entryType> {
-  let it: Action, err: Error;
+const createAction = creator(Action);
+const readActions = reader(Action);
 
-  try {
-    it = Action.create(init);
-  } catch (e) {
-    err = e;
-  }
-  return {
-    error: err,
-    hash: it.hash,
-    entry: it.entry
+const createProcessClass = creator(ProcessClassification);
+const readProcessClasses = reader(ProcessClassification);
+
+function createProcess(init: VfProc): CrudResponse<events.Process> {
+  let props = {
+    image: init.image,
+    isFinished: init.isFinished,
+    name: init.name,
+    note: init.note,
+    plannedStart: init.plannedStart,
+    plannedDuration: init.plannedDuration,
+    processClassifiedAs: init.processClassifiedAs
   };
+
+  let it: Process;
+  try {
+    it = Process.create(props);
+    it.addInputs(...init.inputs.map(EconomicEvent.get));
+    it.addOutputs(...init.outputs.map(EconomicEvent.get));
+    it.commit();
+    return it.portable();
+  } catch (e) {
+    return {
+      error: e,
+      hash: it && it.hash,
+      entry: it && it.entry,
+      type: it && it.className
+    };
+  }
 }
 
-const readActions = reader(Action);
+function readProcesses(hashes: Hash<ProcEntry>[]): CrudResponse<VfProc>[] {
+  return hashes.map((hash) => {
+    let proc: Process;
+    try {
+
+      let proc = Process.get(hash);
+      return deepAssign(proc.portable(), {
+        entry: {
+          inputs: proc.inputs.hashes(),
+          outputs: proc.outputs.hashes()
+        }
+      });
+
+    } catch (e) {
+
+      return {
+        error: e,
+        hash: proc && proc.hash,
+        entry: proc && proc.entry,
+        type: proc && proc.className
+      }
+
+    }
+  });
+}
 
 // callbacks
 function genesis() {

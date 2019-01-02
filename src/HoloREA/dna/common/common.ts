@@ -3,7 +3,8 @@
 //* IMPORT
 //import "./es6";
 import "./holochain-proto";
-import "./LinkRepo";
+import { LinkRepo, LinkSet, LinkReplace, LinkReplacement } from "./LinkRepo";
+
 /*/
 /**/
 
@@ -86,11 +87,33 @@ export/**/function reader<
   function crudR(hashes: Hash<E>[]): CrudResponse<E>[] {
     return hashes.map(hash => Hc.get(hash).portable());
   }
-  var foo: typeof Hc.entryType;
+
   return crudR;
 }
 
+//* EXPORT
+export/**/function creator<
+  I extends HoloObject<T["entryType"]>,
+  T extends HoloClass<I, E>,
+  E extends holochain.JsonEntry
+>( Hc: T ): (props: E) => CrudResponse<E> {
 
+  return function crudC(props: E): CrudResponse<E> {
+    let it: I;
+    try {
+      it = Hc.create(props);
+      it.commit();
+      return it.portable();
+    } catch (e) {
+      return {
+        error: e,
+        hash: it && it.hash,
+        entry: it && it.entry,
+        type: Hc.entryType
+      };
+    }
+  }
+}
 
 /**
  * merges an object, src, into another object, dest.  It's like Object.assign,
@@ -191,7 +214,7 @@ function isCrud<T extends object>(thing: HoloThing<T>): thing is CrudResponse<T>
  *  and without that, it can't be hashed.
  */
 //* EXPORT
-export /**/function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
+export /**/function hashOf<T extends object>(thing: HoloThing<T>, type?: string): Hash<T> {
   if (typeof thing == `string`) {
     return thing;
   } else if (thing instanceof HoloObject) {
@@ -201,6 +224,8 @@ export /**/function hashOf<T extends object>(thing: HoloThing<T>): Hash<T> {
       thing.hash = notError(makeHash(thing.type, thing.entry));
     }
     return thing.hash;
+  } else if (type && typeof thing === `object`) {
+    return notError(commit(type, thing));
   } else {
     throw new Error(`hashOf can't hash ${thing} without a typename`);
   }
@@ -242,6 +267,9 @@ export /**/function responseOf<T extends object>(thing: HoloThing<T>): CrudRespo
   try {
     let hash = response.hash = hashOf(thing);
     let entry = response.entry = entryOf(thing);
+    if (isCrud(thing)) {
+      response.type = thing.type;
+    }
   } catch (e) {
     response.error = e;
   }

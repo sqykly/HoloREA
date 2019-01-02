@@ -23,7 +23,7 @@ var Set, Map;
 
     var proto = Set.prototype = Object.create(_super.prototype);
     proto.add = function (item) {
-      if (!this.keys[''+item]) this.size++;
+      if (!this._keys[''+item]) this.size++;
       this._keys[''+item] = true;
       return this;
     };
@@ -40,7 +40,7 @@ var Set, Map;
       return Object.keys(keys).filter(function (key) {
         return keys[key] === true;
       });
-    }
+    };
 
     proto.forEach = function (cb, thisVal) {
       thisVal = thisVal || this;
@@ -49,6 +49,33 @@ var Set, Map;
       while (i--) {
         cb.call(thisVal, keys[i], this);
       }
+    };
+
+    proto.clear = function () {
+      this._keys = {};
+      this.size = 0;
+    };
+
+    proto.union = function (other) {
+      var u = new Set();
+      var size = -this.values().filter(function (v) {
+        return other.has(v);
+      }).length;
+      Object.assign(u._keys, this._keys, other._keys);
+      u.size = size + this.size + other.size;
+      return u;
+    };
+
+    proto.intersect = function (that) {
+      return new Set(this.values().filter(function (v) {
+        return that.has(v);
+      }));
+    };
+
+    proto.disjunct = function (other) {
+      return new Set(this.values().filter(function (v) {
+        return !other.has(v);
+      }));
     }
 
     return Set;
@@ -196,18 +223,23 @@ var LinkSet = /** @class */ (function (_super) {
     /**
      * Don't new this.
      */
-    function LinkSet(array, origin, baseHash, onlyTag, loaded) {
+    function LinkSet(array, origin, baseHash, onlyTag, loaded, sync) {
         if (loaded === void 0) { loaded = true; }
+        if (sync === void 0) { sync = true; }
         var _this = _super.apply(this, array) || this;
         _this.origin = origin;
         _this.baseHash = baseHash;
         _this.loaded = loaded;
-        if (onlyTag) {
-            _this.forEach(function (item) {
-                item.Tag = onlyTag;
-            });
-        }
+        _this.sync = true;
+        _this.sync = sync;
         return _this;
+        /*// I do not recall what I was doing here.
+        if (onlyTag) {
+          this.forEach((item: holochain.GetLinksResponse) => {
+            item.Tag = onlyTag;
+          });
+        }
+        */
     }
     /**
      * Filter by any number of tags.  Returns a new LinkSet of the same type.
@@ -283,23 +315,34 @@ var LinkSet = /** @class */ (function (_super) {
      */
     LinkSet.prototype.removeAll = function () {
         var _this = this;
-        /*
-        this.forEach( (link: holochain.GetLinksResponse, index:number) => {
-          let target = link.Hash, tag = link.Tag;
-          try {
-            this.origin.remove(this.baseHash, target, <Tags>tag);
-          } catch (e) {
-            // don't care, just keep deleting them.
-          }
-        });
-        let foo = this.splice(0, this.length);
-        /*/
-        commit(this.origin.name, { Links: this.map(function (link) { return ({
-                Base: _this.baseHash,
+        //*
+        if (this.sync)
+            this.forEach(function (link, index) {
+                var target = link.Hash, tag = link.Tag;
+                try {
+                    _this.origin.remove(_this.baseHash, target, tag);
+                }
+                catch (e) {
+                    // don't care, just keep deleting them.
+                }
+            });
+        this.splice(0, this.length);
+        /*/// Why did I think this would work?
+        if (this.sync) {
+          commit(
+            this.origin.name,
+            {
+              Links: this.map(link => ({
+                Base: this.baseHash,
                 Link: link.Hash,
                 Tag: link.Tag,
                 LinkAction: HC.LinkAction.Del
-            }); }) });
+              }))
+            }
+          );
+        } else {
+          this.splice(0);
+        }
         /**/
     };
     /**
@@ -320,9 +363,10 @@ var LinkSet = /** @class */ (function (_super) {
             var tag = this[i].Tag;
             var entry = get(hash);
             if (!isErr(entry)) {
-                var rep = fn({ hash: hash, tag: tag, type: type, entry: entry });
+                var rep = fn({ hash: hash, tag: tag, type: type, entry: entry }, i, this);
                 if (rep === null) {
-                    origin.remove(this.baseHash, hash, tag);
+                    if (this.sync)
+                        origin.remove(this.baseHash, hash, tag);
                     removals.push(i);
                 }
                 else if (rep === false) {
@@ -360,13 +404,21 @@ var LinkSet = /** @class */ (function (_super) {
      */
     LinkSet.prototype.select = function (fn) {
         var chosen = new LinkSet([], this.origin, this.baseHash);
-        for (var _i = 0, _a = this; _i < _a.length; _i++) {
-            var response = _a[_i];
+        var _loop_1 = function (response) {
             var type = response.EntryType, hash = response.Hash;
             var tag = response.Tag;
-            var entry = notError(get(hash));
-            if (fn({ type: type, entry: entry, hash: hash, tag: tag }))
+            var lr = {
+                hash: hash, tag: tag, type: type,
+                get entry() {
+                    return notError(get(hash));
+                }
+            };
+            if (fn(lr))
                 chosen.push(response);
+        };
+        for (var _i = 0, _a = this; _i < _a.length; _i++) {
+            var response = _a[_i];
+            _loop_1(response);
         }
         return chosen;
     };
@@ -377,6 +429,15 @@ var LinkSet = /** @class */ (function (_super) {
     LinkSet.prototype.desc = function () {
         return this.map(this.descEntry);
     };
+    /**
+     * Return this LinkSet without the links that are present in another LinkSet.
+     * Useful to negate the other filtering methods, e.g. foo.notIn(foo.tags(`not this tag`))
+     * If the LinkSet is not from the same LinkRepo or isn't the same link base,
+     * the returned object will have the same elements.
+     * @param {LinkSet} ls The disjoint LinkSet
+     * @returns {LinkSet} A LinkSet with all elements of this linkset except those
+     *  in the provided disjoint LinkSet.
+     */
     LinkSet.prototype.notIn = function (ls) {
         var _this = this;
         if (ls.origin !== this.origin || ls.baseHash !== this.baseHash) {
@@ -385,15 +446,55 @@ var LinkSet = /** @class */ (function (_super) {
         var inLs = new Set(ls.desc());
         return new LinkSet(this.filter(function (link) {
             return !inLs.has(_this.descEntry(link));
-        }), this.origin, this.baseHash, undefined, this.loaded);
+        }), this.origin, this.baseHash, undefined, this.loaded, this.sync);
     };
+    /**
+     * Returns the links that are in both this linkset and another.  Useful if
+     * you have two independent filtering operations.
+     * @param {LinkSet} ls The intersecting LinkSet
+     * @returns {LinkSet} LinkSet with elements in both this and ls
+     */
     LinkSet.prototype.andIn = function (ls) {
         var _this = this;
         if (this.baseHash !== ls.baseHash) {
             return new LinkSet([], this.origin, this.baseHash);
         }
         var inLs = new Set(ls.desc());
-        return new LinkSet(this.filter(function (link) { return inLs.has(_this.descEntry(link)); }), this.origin, this.baseHash, undefined, this.loaded);
+        return new LinkSet(this.filter(function (link) { return inLs.has(_this.descEntry(link)); }), this.origin, this.baseHash, undefined, this.loaded, this.sync);
+    };
+    LinkSet.prototype.add = function (tag, hash, type) {
+        if (this.sync)
+            this.origin.put(this.baseHash, hash, tag);
+        this.push({
+            Hash: hash,
+            Tag: tag,
+            EntryType: type,
+            Source: App.Agent.Hash
+        });
+        return this;
+    };
+    LinkSet.prototype.save = function (add, rem) {
+        if (add === void 0) { add = true; }
+        if (rem === void 0) { rem = false; }
+        if (this.sync)
+            return this;
+        var tags = new Set(this.map(function (_a) {
+            var Tag = _a.Tag;
+            return Tag;
+        }));
+        for (var _i = 0, _a = tags.values(); _i < _a.length; _i++) {
+            var tag = _a[_i];
+            var existing = this.origin.get(this.baseHash, tag);
+            if (add)
+                for (var _b = 0, _c = this.notIn(existing).hashes(); _b < _c.length; _b++) {
+                    var hash = _c[_b];
+                    this.origin.put(this.baseHash, hash, tag);
+                }
+            if (rem) {
+                existing.notIn(this).removeAll();
+            }
+        }
+        return this;
     };
     return LinkSet;
 }(ExArray));
@@ -628,9 +729,10 @@ var LinkRepo = /** @class */ (function () {
         return this;
     };
     /**
-     * NOT WELL TESTED
      * When adding a link with the given tag, this repo will first remove any links
      * with the same tag.  This is for one-to-one and one end of a one-to-many.
+     * @param {T} tag The tag to become singular
+     * @returns {this} Chainable.
      */
     LinkRepo.prototype.singular = function (tag) {
         this.exclusive.add(tag);

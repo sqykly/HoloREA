@@ -149,6 +149,13 @@
               "Sharing": "public"
             },
             {
+              "Name": "Process",
+              "Description": "A directed transformation of resources through multiple events",
+              "DataFormat": "json",
+              "SchemaFile": "Process.json",
+              "Sharing": "public"
+            }
+            {
               "Name": "Action",
               "Description": "Describes the behavior of an event",
               "DataFormat": "json",
@@ -163,11 +170,19 @@
               "Sharing": "public"
             },
             {
+              "Name": "ProcessClassification",
+              "Description": "Nominally identifies a category of Process",
+              "DataFormat": "json",
+              "SchemaFile": "ProcessClassification.json",
+              "Sharing": "public"
+            },
+            {
               "Name": "Classifications",
-              "Description": "Links to express the categorization of transfer.  Poorly named.",
+              "Description": "Links to express the categorization of transfer and process.  Poorly named.",
               "DataFormat": "links",
               "Sharing": "public",
-              "Base": ["Transfer", "TransferClassification"],
+              "Base": ["Transfer", "TransferClassification", "Process", "ProcessClassification"],
+              "Link": ["Transfer", "TransferClassification", "Process", "ProcessClassification"],
               "Tag": ["classifiedAs", "classifies"]
             }
           ],
@@ -214,6 +229,26 @@
             },
             {
               "Name": "readTransfers",
+              "CallingType":"json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "createProcess",
+              "CallingType":"json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "readProcesses",
+              "CallingType":"json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "createProcessClass",
+              "CallingType":"json",
+              "Exposure": "public"
+            },
+            {
+              "Name": "readProcessClasses",
               "CallingType":"json",
               "Exposure": "public"
             },

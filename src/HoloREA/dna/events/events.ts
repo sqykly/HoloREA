@@ -5,7 +5,8 @@
 //import { Hash, QuantityValue, LinkRepo, VfObject, QVlike, HoloObject, CrudResponse, bisect, HoloThing, hashOf, notError, HoloClass } from "../../../lib/ts/common";
 import {
   Hash, QuantityValue, VfObject, QVlike, HoloObject, CrudResponse, bisect,
-  HoloThing, hashOf, notError, HoloClass, deepAssign, Fixture, Initializer, reader, holoSet, HoloSet, entryOf, creator
+  HoloThing, hashOf, notError, HoloClass, deepAssign, Fixture, Initializer,
+  reader, entryOf, creator
 } from "../common/common";
 import resources from "../resources/resources";
 import agents from "../agents/agents";
@@ -163,6 +164,7 @@ class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryTyp
   static entryType: ProcEntry  & typeof VfObject.entryType;
   static entryDefaults = deepAssign({}, VfObject.entryDefaults,
     <Initializer<ProcEntry>> {
+      processClassifiedAs: () => (getFixtures({}).ProcessClassification.stub),
       plannedStart: 0,
       plannedDuration: 0,
       isFinished: false,
@@ -226,8 +228,9 @@ class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryTyp
     super(entry, hash);
   }
 
-  inputs: LinkSet<ProcEntry, EeEntry>;
-  outputs: LinkSet<ProcEntry, EeEntry>;
+  inputs: LinkSet<ProcEntry, EeEntry, "inputs"|"inputOf">;
+  outputs: LinkSet<ProcEntry, EeEntry, "outputs"|"outputOf">;
+
   protected linksChanged(): boolean {
     let {inputs, outputs, hash} = this;
     let oldInputs = this.links.inputs.get(hash, `inputs`);
@@ -359,8 +362,8 @@ class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryTyp
     return this.getOutputs().concat(this.getInputs())
       .filter((ev) => ev.affects === resHash)
       .reduce(
-        (sum, ev) => {
-          let term = ev.affectedQuantity.mul({quantity: ev.action.sign, units: ``});
+        (sum: QuantityValue, ev) => {
+          let term = ev.quantity.mul({quantity: ev.action.sign, units: ``});
           if (sum) term = term.add(sum);
           return term;
         },
@@ -377,9 +380,9 @@ class Process<T = {}> extends VfObject<T & ProcEntry  & typeof VfObject.entryTyp
   }
 
   remove(): this {
-    this.links.inputs.get(this.myHash, `input`).removeAll();
-    this.links.outputs.get(this.myHash, `output`).removeAll();
-    this.links.processClassifiedAs.remove(this.myHash, this.myEntry.processClassifiedAs, `processClassifiedAs`);
+    this.links.inputs.get(this.myHash, `inputs`).removeAll();
+    this.links.outputs.get(this.myHash, `outputs`).removeAll();
+    this.links.processClassifiedAs.remove(this.myHash, this.myEntry.processClassifiedAs, `classifiedAs`);
     return super.remove();
   }
 }

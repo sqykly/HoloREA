@@ -10,7 +10,7 @@ const superClass: LinkRepo<
 const subClass = superClass;
 
 superClass.linkBack(`superClass`, `subClass`);
-
+subClass.linkBack(`subClass`, `superClass`);
 
 interface ClassEntry {
   label: string;
@@ -27,7 +27,6 @@ class Classification<T extends VfObject, U = {}> extends VfObject<U & ClassEntry
 
   classRepo: LinkRepo<T, Classification<T,U>, "classifies"|"classifiedAs">;
   private HASH: Hash<Classification<T,U>>;
-
 
   static get<T extends VfObject, U = {}>(hash: Hash<Classification<T,U>>): Classification<T, U> {
     return <Classification<T,U>> super.get(hash);
@@ -182,10 +181,15 @@ class Classification<T extends VfObject, U = {}> extends VfObject<U & ClassEntry
     return new Set(this.classRepo.get(this.myHash, `classifies`).hashes());
   }
 
-  allInstances(): Set<Hash<T>> {
+  allInstances(lock: Set<Hash<Classification<T,U>>> = new Set()): Set<Hash<T>> {
     let instances = this.directInstances();
-    for (let sub of this.directSubClasses()) {
-      instances = instances.union(sub.allInstances());
+    lock.add(this.myHash);
+
+    let subs = this.directSubClasses().filter(({hash}) => !lock.has(hash));
+    lock = lock.union(new Set(subs.map(({hash}) => hash)));
+
+    for (let sub of subs) {
+      instances = instances.union(sub.allInstances(lock));
     }
 
     return instances;
@@ -201,6 +205,6 @@ class Classification<T extends VfObject, U = {}> extends VfObject<U & ClassEntry
     this.directInstances().forEach(hash => {
       this.classRepo.remove(this.myHash, hash, `classifies`);
     });
-    return super.remove();
+    return super.remove(msg);
   }
 }

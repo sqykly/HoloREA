@@ -29,7 +29,8 @@ export /**/type Catalog<K extends string, T> = {[key: string]: T}
 //* EXPORT
 export /**/type PhysicalLocation = string[];
 
-export type Fixture<T> = { [k:string]: Hash<T>};
+//* EXPORT
+export/**/type Fixture<T> = { [k:string]: Hash<T>};
 
 /**
  * I can write a good bisect of a sorted list in my sleep.  And I think I did,
@@ -64,17 +65,17 @@ export /**/function bisect(array: number[], min: number): number {
  */
 //* EXPORT
 export /**/interface CrudResponse<T extends object> {
-  /** @prop {Error} error this error is why you can't have the other fields */
+  /** @prop {Error} this error is why you can't have the other fields */
   error?: {
     name: string;
     message: string;
     stack?: string;
   };
-  /** @prop {Hash<T>} hash the hash of a T; if there is an entry, this is its hash */
+  /** @prop {Hash} the hash of a T; if there is an entry, this is its hash */
   hash?: Hash<T>;
-  /** @prop {T} entry this is the T you asked for/gave */
+  /** @prop {T} this is the T you asked for/gave */
   entry?: T;
-  /** @prop {string} type this is the name of T as specified in the DNA. */
+  /** @prop {string} this is the name of T as specified in the DNA. */
   type?: string;
 }
 
@@ -109,7 +110,7 @@ export/**/function creator<
         error: e,
         hash: it && it.hash,
         entry: it && it.entry,
-        type: Hc.entryType
+        type: Hc.className
       };
     }
   }
@@ -157,10 +158,15 @@ export /**/function deepAssign<T extends object, U extends object>(dest: T, src:
 }
 
 //* EXPORT
-export/**/ type Initializer<T extends holochain.JsonEntry> = {
-  [K in keyof T]: T[K] extends object ? Initializer<T[K]> : T[K] | ((it:T) => T[K]);
-};
-
+export/**/ type Initializer<T, U = void> =
+  (
+    T extends object
+      ? { [K in keyof T]?: Initializer<T[K], T> }
+      : T
+  ) | (
+    (it:U) => T
+  );
+var foo: Initializer<string> = () => { return "baz"; };
 //* EXPORT
 export/**/ function deepInit<T extends holochain.JsonEntry>(
   target: object,
@@ -601,7 +607,7 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
     let entry: typeof entryProps = {};
     let defs = this.entryDefaults;
 
-    deepInit(entry, this.entryDefaults);
+    deepInit(entry, defs);
     if (entryProps) deepAssign(entry, entryProps);
     return new this(entry);
   }
@@ -878,7 +884,7 @@ interface VfEntry {
  * @arg T Use this type argument to convey the entry type of a subclass.
  */
 //* EXPORT
-export /**/class VfObject<T extends object = {}> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
+export /**/class VfObject<T extends object = {}> extends HoloObject<VfEntry/* & typeof HoloObject.entryType */& T> {
   static entryType: VfEntry & typeof HoloObject.entryType;
   protected myEntry: VfEntry & typeof HoloObject.entryType & T;
   static className = "VfObject";

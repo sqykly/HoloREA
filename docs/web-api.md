@@ -411,8 +411,8 @@ Create a resource through an event.
     - `action`
       - Unless you are trying to create a debt of some kind, ensure that this is
       the hash of an action with `behavior: '+'`.  In terms of fixtures as of
-      11/12/18, from [`events.getFixtures`] `.Action.Receive` or `.Action.Adjust`
-      are what you are looking for.  If left blank, it will default to `Adjust`.
+      11/12/18, from [`events.getFixtures`] `.Action.receive` or `.Action.adjust`
+      are what you are looking for.  If left blank, it will default to `adjust`.
 - returns: [`CrudResponse`]`<`[`EconomicResource`]`>`
   - The event seen in this structure as `affectedBy` has already been created; do not run over to [`createEvent`] and make another.
 
@@ -433,6 +433,8 @@ hashes of the resources to read.
 data on the requested resources.
 
 ### `getResourcesInClass`: `function`
+[`getResourcesInClass`]: #getresourcesinclass-function
+
 Get a list hashes of all resources belonging to a classification.
 
 - to call:
@@ -443,6 +445,8 @@ Get a list hashes of all resources belonging to a classification.
 - returns: [`Hash`](#hashtype-type)`<`[`EconomicResource`](#economicresource-class-extends-vfobject)`>`[]
 
 ### `getAffectingEvents`: `function`
+[`getAffectingEvents`]: #getaffectingevents-function
+
 Get the hashes of all events that have affected a single resource.
 
 - to call:
@@ -482,6 +486,23 @@ to identify it with a hash.
 no purpose except being required to make a [`Transfer`], the `Stub`
 fixture can be used as the classification of any transfer.
 
+### `ProcessClassification`: [class] `extends` [`VfObject`]
+[`ProcessClassification`]: #processclassification-class-extends-vfobject
+
+This class exists.
+
+**Properties**
+- **link** `classifies -= classifiedAs:`[`Process`]
+- `string label`: A name for the classification.
+
+**Fixtures**
+- `stub`: A stub process classification until they _do_ something.
+
+**See**
+- [`createProcessClass`]
+- [`readProcessClasses`]
+- [`events.getFixtures`]
+
 ### `Transfer`: [class] `extends` [`VfObject`]
 [`Transfer`]: #transfer-class-extends-vfobject
 
@@ -491,8 +512,8 @@ Doesn't really do much right now.
 **Properties**
 - `transferClassifiedAs` **aliased [link]** `classifiedAs =- classifies:`[`TransferClassification`]:
 This is how you will know what kind of transfer this is.
-- **aliased link** `inputs -- inputOf` [`EconomicEvent`]`|Process`
-- **aliased link** `outputs -- outputOf` [`EconomicEvent`]`|Process`
+- **aliased link** `inputs -- inputOf` [`EconomicEvent`]
+- **aliased link** `outputs -- outputOf` [`EconomicEvent`]
 
 **See**
 - Creation
@@ -503,6 +524,32 @@ This is how you will know what kind of transfer this is.
   - [`traceEvents`]
   - [`trackEvents`]
 
+### `Process`: [class] `extends` [`VfObject`]
+[`Process`]: #process-class-extends-vfobject
+
+Models a set of events through which resources are transformed.
+
+**Properties**
+- `processClassifiedAs` **aliased [link]** `classifiedAs =- classifies`[`ProcessClassification`]
+**aliased** `processClassifiedAs`
+- **aliased link** `inputs -= inputOf`[`EconomicEvent`]
+  - The aliasing property's type is [`Hash`]`<`[`EconomicEvent`]`>[]`
+- **aliased link** `outputs -= outputOf`[`EconomicEvent`]
+  - The aliasing property's type is [`Hash`]`<`[`EconomicEvent`]`>[]`
+- `boolean isFinished`: `true` if the events and dates will never change.
+- [`Date`]` plannedStart`: When events should start going into the
+`Process`, according to plans.
+- [`Date`]` plannedDuration`: How long events should continue according to plans.
+
+**See**
+- CRUD
+  - [`createProcess`]
+  - [`readProcesses`]
+- Mutators
+  - Adding events to `inputs` and `outputs`
+    - [`createEvent`]
+    - [`resourceCreationEvent`]
+    - [`createResource`]
 
 ### `Action`: [class] `extends` [`VfObject`]
 [`Action`]: #action-class-extends-vfobject
@@ -514,11 +561,14 @@ A categorization of how an event can affect a resource.
 resource's quantity?
 - **link** `actionOf -= action` [`EconomicEvent`]
 
-**Fixtures** _11/12/18_
-- `Action` `Give`: Give something away out of your stock.
-- `Action` `Receive`: Obtain something you didn't have before.
-- `Action` `Adjust`: Sync system impression of a resource with reality, or enter
+**Fixtures**
+- `Action` `give`: Give something away out of your stock.
+- `Action` `receive`: Obtain something you didn't have before.
+- `Action` `adjust`: Sync system impression of a resource with reality, or enter
 a previously unmodeled resource into the system (e.g. when setting up HoloREA)
+- `Action` `produce`: Create something that wasn't there before.
+- `Action` `consume`: Make use of a resource in such a way that it is gone
+afterward.
 
 See [`createAction`], [`events.getFixtures`].
 
@@ -537,7 +587,7 @@ that this event modifies.
 - [`Hash`]`<`[`Agent`]`>` `receiver`: The agent receiving the resource.
 - [`QuantityValue`] `affectedQuantity`: How much of the `affects` resource was
 gained or lost?
-- [`Hash`] `scope`: doesn't do anything yet.
+- (optional) [`Hash`] `scope`: doesn't do anything yet.
 - [`Date`] `start`: when the event began.  Use 0 if it hasn't begun (or wait)
 - [`Date`] `duration`: how long did it take?  Use 1, not 0, for an instantaneous
 event.  Use 0 if the event is not yet complete.
@@ -546,6 +596,8 @@ event.  Use 0 if the event is not yet complete.
 - Creating
   - [`createEvent`]
   - [`resourceCreationEvent`]
+  - [`createTransfer`]
+  - [`createResource`]
 - Sort and filter
   - [`sortEvents`]
   - [`eventsStartedAfter`]
@@ -558,6 +610,7 @@ event.  Use 0 if the event is not yet complete.
   - [`trackEvents`]
   - [`traceTransfers`]
   - [`trackTransfers`]
+  - [`getAffectingEvents`]
 
 ### `Subtotals` struct
 [`Subtotals`]: #subtotals-struct
@@ -622,6 +675,29 @@ hashes of the transfer classifications to read.
 - Returns [`CrudResponse`]`<`[`TransferClassification`]`>[]`: Full
 data on the requested transfer classifications.
 
+### `createProcessClass` `function`
+[`createProcessClass`]: #createprocessclass-function
+
+Create a [`ProcessClassification`] to use when creating [`Process`]es.
+
+- To [call]:
+  - POST fn/events/createProcessClass
+  - `events.createProcessClass(...).then(...)`
+- Argument [`ProcessClassification`]: The desired properties.
+- Returns [`CrudResponse`]`<`[`ProcessClassification`]`>`
+
+### `readProcessClasses` `function`
+[`readProcessClasses`]: #readprocessclasses-function
+
+Retrieve the properties of [`ProcessClassification`]s for some reason.
+
+- To [`call`]:
+  - POST fn/events/readProcessClasses
+  - `events.readProcessClasses(...).then(...)`
+- Argument: [`Hash`]`<`[`ProcessClassification`]`>[]` The hashes of the
+desired classifications
+- Returns: [`CrudResponse`]`<`[`ProcessClassification`]`>`
+
 ### `createTransfer` `function`
 [`createTransfer`]: #createtransfer-function
 
@@ -632,6 +708,11 @@ of a [`TransferClassification`]!
   - POST fn/events/createTransfer
   - `events.createTransfer(...).then(...)`
 - Argument [`Transfer`] Properties the object should have.
+  - The [`EconomicEvent`]s may be specified by [`Hash`] _or_ by an actual
+  [`EconomicEvent`].  If the full properties are given, the events will
+  be created, their effects will manifest on their affected resources, and
+  their hashes will be indicated in the structure returned.
+  - If a [`Hash`] is given, the existing events will be updated.
 - Returns [`CrudResponse`]`<`[`Transfer`]`>` a new transfer object
 
 ### `readTransfers` `function`
@@ -646,6 +727,35 @@ Read data on a set of [`Transfer`]s.
 hashes of the transfers to read.
 - Returns [`CrudResponse`]`<`[`Transfer`]`>[]`: Full
 data on the requested transfers.
+
+### `createProcess` `function`
+[`createProcess`]: #createprocess-function
+
+Create a [`Process`].
+
+- To [call]:
+  - POST fn/events/createProcess
+  - `events.createProcess(...).then(...)`
+- Argument [`Process`]: the properties of the new object.
+  - The following fields can't be modified after creation at this time:
+    - `isFinished`
+    - `plannedStart`
+    - `plannedDuration`
+    - `processClassifiedAs`
+- Returns [`CrudResponse`]`<`[`Process`]`>`: The data that was written
+
+### `readProcesses` `function`
+[`readProcesses`]: #readprocesses-function
+
+Retrieve the data on a list of [`Process`]es.
+
+- To [call]:
+  - POST fn/events/readProcesses
+  - `events.readProcesses(...).then(...)`
+- Argument [`Hash`]`<`[`Process`]`>[]`: The hashes of the desired
+processes.
+- Returns [`CrudResponse`]`<`[`Process`]`>[]`: full data on each of the
+requested objects.
 
 ### `createAction` `function`
 [`createAction`]: #createaction-function

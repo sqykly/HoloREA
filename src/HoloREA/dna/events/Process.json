@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/events/Process",
+  "$comment": "This is a schema for the DHT REPRESENTATION of vf:Process; inputs & outputs are stored in a separate Links type.  In input/output to the web API, inputs & outputs appear as arrays of hashes.",
+  "title": "Process",
+  "description": "A grouping of input and output events",
+  "type": "object",
+  "properties": {
+    "processClassifiedAs": {
+      "type": "string",
+      "description": "A ProcessClassification that classifies this Process"
+    },
+    "plannedStart": { "$ref": "../common/Date.json" },
+    "plannedDuration": { "$ref": "../common/Date.json" },
+    "isFinished": {
+      "type": "boolean",
+      "description": "Is the process complete, or is it possible that the events will change?"
+    }
+  },
+  "required": ["processClassifiedAs", "plannedStart", "plannedDuration", "isFinished"],
+  "$extends": "../common/VfObject.json"
+}

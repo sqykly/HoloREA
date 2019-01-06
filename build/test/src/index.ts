@@ -8,31 +8,87 @@ const expect = chai.expect;
  * Agents
  */
 
+class Person {
+  agent: CrudResponse<agents.Agent>;
+  apples: CrudResponse<resources.EconomicResource>;
+  beans: CrudResponse<resources.EconomicResource>;
+  coffee: CrudResponse<resources.EconomicResource>;
+  turnovers: CrudResponse<resources.EconomicResource>;
+}
+interface Verbs {
+
+  pickApples(
+    howMany: number,
+    when?: IntDate,
+    inventory?: Hash<resources.EconomicResource>
+  ): Promise<CrudResponse<events.EconomicEvent>>;
+
+  gatherBeans(
+    howMany: number,
+    when?: IntDate,
+    inventory?: Hash<resources.EconomicResource>
+  ): Promise<CrudResponse<events.EconomicEvent>>;
+
+  brewCoffee(
+    howMuch: number,
+    when?: IntDate,
+    useBeans?: Hash<resources.EconomicResource>,
+    inventory?: Hash<resources.EconomicResource>
+  ): Promise<CrudResponse<events.Process>>;
+
+  bakeTurnovers(
+    howMany: number,
+    when?: IntDate,
+    useApples?: Hash<resources.EconomicResource>,
+    inventory?: Hash<resources.EconomicResource>
+  ): Promise<CrudResponse<events.Process>>;
+
+  trade(
+    howMuch: number,
+    from: Hash<resources.EconomicResource>,
+    to: Hash<resources.EconomicResource>,
+    when?: IntDate
+  ): Promise<CrudResponse<events.Transfer>>
+
+}
 interface Scenario {
-  agents: { [name:string]: CrudResponse<agents.Agent> },
-  stuff: { [name:string]: CrudResponse<resources.EconomicResource> },
-  types: { [name:string]: CrudResponse<resources.ResourceClassification> },
+
+  al: Person,
+  bea: Person,
+  chloe: Person,
+  david: Person,
+
+  types: {
+    resource: { [name:string]: CrudResponse<resources.ResourceClassification> },
+    process: { [name:string]: CrudResponse<events.ProcessClassification> },
+    transfer: { [name:string]: CrudResponse<events.TransferClassification> }
+  },
+
   actions: { [name:string]: CrudResponse<events.Action> },
   events: { [name:string]: CrudResponse<events.EconomicEvent> },
-  verbs: { [name:string]:
-    (
-      quantity: number,
-      when?: IntDate,
-      ...targets: Hash<any>[]
-    ) => Promise<CrudResponse<events.EconomicEvent>>
-  },
+  transfers: { [name:string]: CrudResponse<events.Transfer> },
+  processes: { [name:string]: CrudResponse<events.Process> },
+  verbs: Verbs,
   facts: { [name:string]: number }
 }
 
 function scenario(): Scenario {
   return {
-    agents: {},
-    stuff: {},
-    types: {},
+    al: new Person(),
+    bea: new Person(),
+    chloe: new Person(),
+    david: new Person(),
+    types: {
+      resource: {},
+      transfer: {},
+      process: {}
+    },
     actions: {},
     events: {},
     facts: {},
-    verbs: {}
+    verbs: null,
+    transfers: {},
+    processes: {}
   };
 }
 
@@ -76,22 +132,28 @@ let prep: Promise<Scenario>;
       .that.deep.eq([`1 roady street`, `placeville, XX 12345`]);
 
     let my = scenario();
-    my.agents.al = al;
+    my.al.agent = al;
     return my;
   }).then((my) => Promise.all([
       agents.createAgent({name: `Bea`}).then((bea) => {
-        my.agents.bea = bea;
+        my.bea.agent = bea;
         return my;
       }),
       agents.createAgent({name: `Chloe`}).then((chloe) => {
-        my.agents.chloe = chloe;
+        my.chloe.agent = chloe;
         return my;
       })
     ]).then(() => my)
   ).then(async (my) => {
     // TEST agents.readAgents
-    let keys = Object.keys(my.agents);
-    let hashes = keys.map(key => my.agents[key].hash);
+    let {al, bea, chloe} = my;
+    let people = {
+      al: al.agent,
+      bea: bea.agent,
+      chloe: chloe.agent
+    };
+    let keys = Object.keys(people);
+    let hashes = keys.map(key => people[key].hash);
     const them = await agents.readAgents(hashes);
 
     let expectData = expect(them, `readAgents results`);
@@ -101,10 +163,10 @@ let prep: Promise<Scenario>;
     }, {});
 
     expectData.to.be.instanceOf(Array);
-    for (let person of Object.keys(my.agents)) {
-        let hash = my.agents[person].hash;
+    for (let person of Object.keys(people)) {
+        let hash = people[person].hash;
         expect(them[hashMap[hash]], `entry for agent ${person}`)
-            .to.deep.equal(my.agents[person], `previous agent data`);
+            .to.deep.equal(people[person], `previous agent data`);
     }
     return my;
   })
@@ -152,7 +214,7 @@ let prep: Promise<Scenario>;
       defaultUnits: `mL`
     })
   ]).then(([my, apples, beans, turnovers, coffee]) => {
-    my.types = {apples, beans, turnovers, coffee};
+    my.types.resource = {apples, beans, turnovers, coffee};
     return my;
   })
 }
@@ -160,7 +222,7 @@ let prep: Promise<Scenario>;
 // TEST resources.getResourcesInClass *returning none
 prep = prep.then(async (my) => {
   let emptyRes = await resources.getResourcesInClass({
-    classification: my.types.apples.hash
+    classification: my.types.resource.apples.hash
   });
 
   let expectRes = expect(
@@ -181,57 +243,89 @@ prep = prep.then(async (my) => {
 
   let tc = evFix.TransferClassification;
   let act = evFix.Action;
+  let pc = evFix.ProcessClassification;
 
-  // TEST events.readTransferClasses
-  let pStub = events.readTransferClasses([tc.Stub]).then(([stub]) => {
-    expect(stub.entry, `The stub transfer class`).to.have.property(`name`)
-      .that.is.a(`string`);
-    return stub;
+  events.getFixtures({}).then((fix) => {
+    expect(fix, `The second read of the event fixtures`)
+      .to.deep.equal(evFix);
   });
 
-  // TEST events.readActions
-  let [give, take, adjust] = await events.readActions([
-    act.Give, act.Receive, act.Adjust
+  // TEST events.readTransferClasses & readProcessClasses
+  let p = Promise.all([
+
+    events.readTransferClasses([tc.stub]).then(([stub]) => {
+      expect(stub.entry, `The stub transfer class`).to.have.property(`name`)
+        .that.is.a(`string`);
+      my.types.transfer.stub = stub;
+    }),
+
+    events.readProcessClasses([pc.stub]).then(([stub]) => {
+      expectGoodCrud(stub, `ProcessClassification`, `The process class stub crud`);
+      expect(stub.entry, `The stub process class`).to.have.property(`name`)
+        .that.is.a(`string`);
+      my.types.process.stub = stub;
+    })
   ]);
-  my.actions = {give, take, adjust};
+
+  // TEST events.readActions
+  let [give, take, adjust, produce, consume] = await events.readActions([
+    act.give, act.receive, act.adjust, act.produce, act.consume
+  ]);
+  my.actions = {give, take, adjust, produce, consume};
 
   expect(take, `action fixture take`).to.have.property(`behavior`, '+');
   expect(give, `action fixture give`).to.have.property(`behavior`, '-');
   expect(adjust, `action fixture adjust`).to.have.property(`behavior`, '+');
 
   // TEST events.createAction
-  let [bake, brew, pick, gather, consume] = await Promise.all([
-    events.createAction({name: `bake`, behavior: `+`}).then((bake) => {
-      expectGoodCrud(bake, `Action`, `action bake crud`)
+  let [pick, gather] = await Promise.all([
+    events.createAction({name: `pick`, behavior: '+'}).then((pick) => {
+      expectGoodCrud(pick, `Action`, `Action pick crud`);
 
-      let expectBake = expect(bake.entry, `action bake`);
-      expectBake.to.have.property(`name`, `bake`);
-      expectBake.to.have.property(`behavior`, '+');
-      return bake;
+      let expectPick = expect(pick.entry, `Action pick`);
+      expectPick.to.have.property(`name`, `pick`);
+      expectPick.to.have.property(`behavior`, '+');
+      return pick;
     }),
-
-    events.createAction({name: `brew`, behavior: '+'}),
-    events.createAction({name: `pick`, behavior: '+'}),
-    events.createAction({name: `gather`, behavior: '+'}),
-    events.createAction({name: `consume`, behavior: '-'})
+    events.createAction({name: `gather`, behavior: '+'})
   ]);
 
-  Object.assign(my.actions, {bake, brew, pick, gather, consume});
+  Object.assign(my.actions, {pick, gather});
 
-  [bake, consume] = await events.readActions([bake.hash, consume.hash]);
+  // TEST events.readActions
+  ([consume] = await events.readActions([consume.hash]));
 
-  expectGoodCrud(bake);
   expectGoodCrud(consume);
+  expect(consume.entry, `read-back action consume`).to.have.property(`behavior`, '-');
 
-  let expectBake = expect(bake.entry, `read-back action bake`);
-  let expectConsume = expect(consume.entry, `read-back action consume`);
+  // TEST events.createTransferClass
+  let trade = my.types.transfer.trade = await events.createTransferClass({name: `trade`});
+  expectGoodCrud(trade, `TransferClassification`, `crud from creation of trade transfer type`);
+  expect(trade.entry, `Transfer class trade`)
+    .to.have.property(`name`)
+      .a(`string`)
+      .that.equals(`trade`);
 
-  expectBake.to.have.property(`behavior`, '+');
+  // TEST events.createProcessClass
+  let [bake, brew] = await Promise.all([
+    events.createProcessClass({name: `bake`, label: `bake`}).then((bake) => {
+      expectGoodCrud(bake, `ProcessClassification`, `Bake process class`);
+      expect(bake.entry).to.have.property(`name`, `bake`);
+      expect(bake.entry).to.have.property(`label`, `bake`);
 
-  expectConsume.to.have.property(`behavior`, '-');
+      return bake;
+    }),
+    events.createProcessClass({name: `brew`, label: `brew`})
+  ]);
 
-  stub = await pStub;
-  return my;
+  {
+    let pcs = new Set<Hash<events.ProcessClassification>>([bake.hash, brew.hash, pc.stub]);
+    expect(pcs.size === 3, `all PC hashes should be unique`).to.be.true;
+  }
+
+  my.types.process = Object.assign(my.types.process, {bake, brew});
+
+  return p.then(() => my);
 });
 
 async function ms(n: number) {
@@ -262,14 +356,75 @@ prep = prep.then(async (my) => {
   });
 
   let time = await tick();
+  let al = my.al.agent,
+    bea = my.bea.agent,
+    chloe = my.chloe.agent;
+  let { apples, beans, turnovers, coffee } = my.types.resource,
+    { pick, gather, give, take, adjust, produce, consume } = my.actions,
+    { bake, brew } = my.types.process,
+    { trade } = my.types.transfer;
 
-  let {al, bea, chloe} = my.agents,
-    {apples, beans, turnovers, coffee} = my.types,
-    {pick, bake, gather, brew, give, take, adjust, consume} = my.actions;
+  async function setupInventory(person: Person) {
+    let name = person.agent.entry.name,
+      hash = person.agent.hash,
+      when = await tick();
+    if (!person.apples) {
+      person.apples = await resources.createResource({
+        resource: {
+          resourceClassifiedAs: apples.hash,
+          owner: hash,
+          currentQuantity: { units: '', quantity: 0 },
+          trackingIdentifier: `${name}:apples`
+        },
+        event: {
+          action: adjust.hash,
+          provider: hash,
+          receiver: hash,
+          start: when,
+          duration: 1
+        }
+      });
+    }
+
+    person.beans = person.beans || await events.resourceCreationEvent({
+      resource: {
+        resourceClassifiedAs: beans.hash,
+        owner: hash,
+        currentQuantity: { units: `kg`, quantity: 0 },
+        trackingIdentifier: `${name}:beans`
+      },
+      dates: { start: when }
+    })
+    .then((ev) => resources.readResources([ev.entry.affects]))
+    .then(([res]) => res);
+
+    person.coffee = person.coffee || await events.resourceCreationEvent({
+      resource: {
+        resourceClassifiedAs: coffee.hash,
+        owner: hash,
+        currentQuantity: { units: `mL`, quantity: 0 },
+        trackingIdentifier: `${name}:coffee`
+      },
+      dates: { start: when }
+    })
+    .then((ev) => resources.readResources([ev.entry.affects]))
+    .then(([res]) => res);
+
+    person.turnovers = person.turnovers || await events.resourceCreationEvent({
+      resource: {
+        resourceClassifiedAs: turnovers.hash,
+        owner: hash,
+        currentQuantity: { units: ``, quantity: 0 },
+        trackingIdentifier: `${name}:turnovers`
+      },
+      dates: { start: when }
+    })
+    .then((ev) => resources.readResources([ev.entry.affects]))
+    .then(([res]) => res);
+  }
 
   let [
-    alApples, beaBeans, chloeCoffee, chloeBeans,
-    chloeApples, chloeTurnovers, alCoffee, beaTurnovers
+    alApples, beaBeans, chloeCoffee
   ] = await Promise.all([
     resources.createResource({
       resource: {
@@ -280,7 +435,7 @@ prep = prep.then(async (my) => {
       },
       event: {
         action: pick.hash,
-        provider: david.hash,
+        provider: al.hash,
         receiver: al.hash,
         start: time,
         duration: 1
@@ -318,7 +473,7 @@ prep = prep.then(async (my) => {
       expectIt.to.have.property(`affectedQuantity`).an(`object`)
         .that.deep.equals({units: ``, quantity: 100});
 
-      return alApples;
+      return my.al.apples = alApples;
     }),
 
     resources.createResource({
@@ -330,17 +485,17 @@ prep = prep.then(async (my) => {
       },
       event: {
         action: gather.hash,
-        provider: david.hash,
+        provider: bea.hash,
         receiver: bea.hash,
         start: await tick(),
         duration: 1
       }
-    }),
+    }).then((bb) => (my.bea.beans = bb)),
 
     // TEST events.resourceCreationEvent
     events.resourceCreationEvent({
       resource: {
-        currentQuantity: { units: `mL`, quantity: 300},
+        currentQuantity: { units: `mL`, quantity: 300 },
         resourceClassifiedAs: coffee.hash,
         trackingIdentifier: `Chloe's coffee`,
         owner: chloe.hash
@@ -368,90 +523,15 @@ prep = prep.then(async (my) => {
       expectIt = expect(res.entry, `Chloe's coffee resource`);
       expectIt.to.have.property(`currentQuantity`).an(`object`)
         .that.does.exist
-        .that.deep.equals({ units: `mL`, quantity: 300}, `300 mL`);
+        .that.deep.equals({ units: `mL`, quantity: 300 }, `300 mL`);
       expectIt.to.have.property(`resourceClassifiedAs`, coffee.hash, `coffee`);
       expectIt.to.have.property(`owner`, chloe.hash, `Chloe`);
 
-      return res;
-    }),
-
-    events.resourceCreationEvent({
-      resource: {
-        resourceClassifiedAs: beans.hash,
-        owner: chloe.hash,
-        currentQuantity: { units: `kg`, quantity: 0 },
-        trackingIdentifier: `Chloe's coffee beans`
-      },
-      dates: {
-        start: await tick()
-      }
-    }).then(
-      (ev) => resources.readResources([ev.entry.affects])
-    ).then(
-      ([res]) => res
-    ),
-
-    events.resourceCreationEvent({
-      resource: {
-        resourceClassifiedAs: apples.hash,
-        owner: chloe.hash,
-        currentQuantity: { units: ``, quantity: 0 },
-        trackingIdentifier: `Chloe's apples`
-      },
-      dates: { start: await tick() }
-    }).then(
-      (ev) => resources.readResources([ev.entry.affects])
-    ).then(
-      ([res]) => res
-    ),
-
-    events.resourceCreationEvent({
-      resource: {
-        resourceClassifiedAs: turnovers.hash,
-        owner: chloe.hash,
-        currentQuantity: { units: ``, quantity: 0 },
-        trackingIdentifier: `Chloe's apple turnovers`
-      },
-      dates: { start: await tick() }
-    }).then(
-      (ev) => resources.readResources([ev.entry.affects])
-    ).then(
-      ([res]) => res
-    ),
-
-    events.resourceCreationEvent({
-      resource: {
-        resourceClassifiedAs: coffee.hash,
-        owner: al.hash,
-        currentQuantity: { units: `mL`, quantity: 0 },
-        trackingIdentifier: `Al's coffee`
-      },
-      dates: { start: await tick() }
-    }).then(
-      (ev) => resources.readResources([ev.entry.affects])
-    ).then(
-      ([res]) => res
-    ),
-
-    events.resourceCreationEvent({
-      resource: {
-        resourceClassifiedAs: turnovers.hash,
-        owner: bea.hash,
-        currentQuantity: { units: ``, quantity: 0 },
-        trackingIdentifier: `Bea's apple turnovers`
-      },
-      dates: { start: await tick() }
-    }).then(
-      (ev) => resources.readResources([ev.entry.affects])
-    ).then(
-      ([res]) => res
-    )
+      return my.chloe.coffee = res;
+    })
   ]);
 
-  my.stuff = {
-    alApples, beaBeans, chloeCoffee, chloeBeans,
-    chloeApples, chloeTurnovers, alCoffee, beaTurnovers
-  };
+  await Promise.all([my.al, my.bea, my.chloe].map(person => setupInventory(person)));
 
   my.facts = (() => {
     let gramsPerSpoon: number = 2.5;
@@ -479,13 +559,13 @@ prep = prep.then(async (my) => {
   async function pickApples(
     howMany: number,
     when: number = 0,
-    resource: Hash<resources.EconomicResource> = alApples.hash
+    resource: Hash<resources.EconomicResource> = my.al.apples.hash
   ): Promise<CrudResponse<events.EconomicEvent>> {
     when = when || await tick();
 
     return events.createEvent({
       action: pick.hash,
-      provider: david.hash,
+      provider: al.hash,
       receiver: al.hash,
       start: when,
       duration: howMany*1000*facts.secondsPerHour/facts.applesPerHour,
@@ -493,18 +573,18 @@ prep = prep.then(async (my) => {
       affectedQuantity: { units: ``, quantity: howMany }
     });
   }
-  my.verbs.pickApples = pickApples;
+
 
   async function gatherBeans(
     howMuch: number,
     when: number = 0,
-    resource: Hash<resources.EconomicResource> = beaBeans.hash
+    resource: Hash<resources.EconomicResource> = my.bea.beans.hash
   ): Promise<CrudResponse<events.EconomicEvent>> {
     when = when || await tick();
 
     return events.createEvent({
       action: gather.hash,
-      provider: david.hash,
+      provider: bea.hash,
       receiver: bea.hash,
       start: when,
       duration: howMuch*1000*facts.secondsPerHour/facts.beansPerHour,
@@ -512,14 +592,13 @@ prep = prep.then(async (my) => {
       affectedQuantity: { units: `kg`, quantity: howMuch }
     });
   }
-  my.verbs.gatherBeans = gatherBeans;
 
   async function brewCoffee(
     cups: number,
     when: number = 0,
-    beanRes: Hash<resources.EconomicResource> = chloeBeans.hash,
-    coffeeRes: Hash<resources.EconomicResource> = chloeCoffee.hash
-  ): Promise<CrudResponse<events.EconomicEvent>> {
+    beanRes: Hash<resources.EconomicResource> = my.chloe.beans.hash,
+    coffeeRes: Hash<resources.EconomicResource> = my.chloe.coffee.hash
+  ): Promise<CrudResponse<events.Process>> {
     when = when || await tick();
 
     let beansNeeded = facts.spoonsPerCup*facts.gramsPerSpoon*cups/1000;
@@ -544,7 +623,7 @@ prep = prep.then(async (my) => {
         affectedQuantity: { units: `kg`, quantity: beansNeeded }
       }),
       events.createEvent({
-        action: brew.hash,
+        action: produce.hash,
         provider: chloe.hash,
         receiver: chloe.hash,
         start: when,
@@ -554,14 +633,17 @@ prep = prep.then(async (my) => {
       })
     ]);
 
-    return events.createTransfer({
-      transferClassifiedAs: stub.hash,
-      inputs: consumeEv.hash,
-      outputs: brewEv.hash
-    }).then(() => brewEv);
+    return events.createProcess({
+      processClassifiedAs: brew.hash,
+      inputs: [consumeEv.hash],
+      outputs: [brewEv.hash],
+      plannedStart: when,
+      plannedDuration: 1000*cups*facts.mlPerCup*facts.secondsPerHour/facts.coffeePerHour,
+      isFinished: true
+    })
 
   }
-  my.verbs.brewCoffee = brewCoffee;
+
 
   return my;
 })
@@ -570,3 +652,5 @@ prep = prep.then(async (my) => {
 //  resources.getResourcesInClass
 //  resources.getFixtures?
 // Come back to: agents.getOwnedResources
+
+// hmmm I think I can organize this a little better

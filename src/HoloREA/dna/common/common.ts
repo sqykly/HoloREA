@@ -706,6 +706,18 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
     return notError<Hash<this>>(makeHash(this.className, this.entry));
   }
 
+  private _commit(): Hash<this> {
+
+    let hash = commit(this.className, <holochain.JsonEntry>this.myEntry);
+    if (!hash || isErr(hash)) {
+      throw new TypeError(`entry type mismatch or invalid data; hash ${this.myHash} is not a ${this.className}`);
+    } else {
+      this.isCommitted = true;
+      return hash;
+    }
+
+  }
+
   /**
    * Commit the entry to the chain.  If it's already up there, update it.
    * Override this method and update if there are link-aliased properties you
@@ -713,17 +725,18 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
    * @returns {Hash<this>}
    */
   commit(): Hash<this> {
+    if (!!this.openCount) return this.myHash;
+    if (this.openError) throw this.openError;
+
     if (this.isCommitted) {
-      return this.update();
+      return this._update();
     } else {
-      let hash = commit(this.className, <holochain.JsonEntry>this.myEntry);
-      if (isErr(hash)) {
-        throw new TypeError(`entry type mismatch or invalid data; hash ${this.myHash} is not a ${this.className}`);
-      } else {
-        this.isCommitted = true;
-        return hash;
-      }
+      return this._commit();
     }
+  }
+
+  private _update(): Hash<this> {
+    return this.myHash = notError<Hash<this>>(update(this.className, this.entry, this.myHash));
   }
 
   /**
@@ -733,13 +746,14 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
    */
   update(): Hash<this> {
     if (!!this.openCount) return this.myHash;
+    if (this.openError) throw this.openError;
+
     if (!this.isCommitted) {
-      return this.commit();
-    }
-    if (this.hasChanged()) {
-      return this.myHash = notError<Hash<this>>(update(this.className, this.entry, this.myHash));
+      return this._commit();
+    } else if (this.hasChanged()) {
+      return this._update();
     } else {
-      return this.myHash;
+      return this.myHash
     }
   }
 
@@ -815,8 +829,8 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
    */
   portable(): CrudResponse<tE> {
     return {
-      hash: this.hash,
-      entry: deepAssign({}, this.entry),
+      hash: this.commit(),
+      entry: this.entry,
       error: this.openError && deepAssign({}, this.openError),
       type: this.className
     };

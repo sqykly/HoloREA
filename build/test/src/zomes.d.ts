@@ -132,6 +132,12 @@ declare namespace events {
     outputs: Hash<EconomicEvent>;
   }
 
+  export interface TransferInitializer extends VfObject {
+    transferClassifiedAs: Hash<TransferClassification>;
+    inputs: Hash<EconomicEvent> | EconomicEvent;
+    outputs: Hash<EconomicEvent> | EconomicEvent;
+  }
+
   export interface Action extends VfObject {
     name: string;
     behavior: '+'|'-'|'0';
@@ -191,7 +197,7 @@ declare namespace events {
   ): Promise<CrudResponse<TransferClassification>[]>
 
   export function createTransfer(
-    props: Transfer
+    props: Transfer | TransferInitializer
   ): Promise<CrudResponse<Transfer>>
 
   export function readTransfers(

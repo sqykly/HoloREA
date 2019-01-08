@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "urn:uuid:e1d2d188-c8b3-11e8-9c63-b639e56260b8/events/ProcessClassification",
+  "title": "ProcessClassification",
+  "description": "A nominal object that can classify a Process, if you squint",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string",
+      "description": "A name for the classification, but different from the name property"
+    }
+  },
+  "required": ["label"],
+  "$extends": "../common/VfObject.json"
+}

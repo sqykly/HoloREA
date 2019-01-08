@@ -132,6 +132,12 @@ declare namespace events {
     outputs: Hash<EconomicEvent>;
   }
 
+  export interface TransferInitializer extends VfObject {
+    transferClassifiedAs: Hash<TransferClassification>;
+    inputs: Hash<EconomicEvent> | EconomicEvent;
+    outputs: Hash<EconomicEvent> | EconomicEvent;
+  }
+
   export interface Action extends VfObject {
     name: string;
     behavior: '+'|'-'|'0';
@@ -148,6 +154,19 @@ declare namespace events {
     scope?: Hash<any>;
     start: IntDate;
     duration: IntDate;
+  }
+
+  export interface ProcessClassification extends VfObject {
+    label: string;
+  }
+
+  export interface Process extends VfObject {
+    processClassifiedAs: Hash<ProcessClassification>;
+    isFinished: boolean;
+    plannedStart: IntDate;
+    plannedDuration: IntDate;
+    inputs: Hash<EconomicEvent>[];
+    outputs: Hash<EconomicEvent>[];
   }
 
   export interface Subtotals {
@@ -178,12 +197,28 @@ declare namespace events {
   ): Promise<CrudResponse<TransferClassification>[]>
 
   export function createTransfer(
-    props: Transfer
+    props: Transfer | TransferInitializer
   ): Promise<CrudResponse<Transfer>>
 
   export function readTransfers(
     which: Hash<Transfer>[]
   ): Promise<CrudResponse<Transfer>[]>
+
+  export function createProcessClass(
+    props: ProcessClassification
+  ): Promise<CrudResponse<ProcessClassification>>
+
+  export function readProcessClasses(
+    which: Hash<ProcessClassification>[]
+  ): Promise<CrudResponse<ProcessClassification>[]>
+
+  export function createProcess(
+    props: Process
+  ): Promise<CrudResponse<Process>>
+
+  export function readProcesses(
+    which: Hash<Process>[]
+  ): Promise<CrudResponse<Process>[]>
 
   export function createAction(
     props: Action
@@ -262,7 +297,8 @@ declare namespace events {
   export function getFixtures(
     dontCare?: any
   ): Promise<{
-    Action: Fixture<Action, "Give"|"Receive"|"Adjust">;
-    TransferClassification: Fixture<TransferClassification, "Stub">
+    Action: Fixture<Action, "give"|"receive"|"adjust"|"produce"|"consume">;
+    TransferClassification: Fixture<TransferClassification, "stub">;
+    ProcessClassification: Fixture<ProcessClassification, "stub">;
   }>
 }

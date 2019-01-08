@@ -41,7 +41,8 @@ const events = new Zome(`events`, [
   `getFixtures`, `traceEvents`, `trackEvents`, `traceTransfers`, `trackTransfers`,
   `eventSubtotals`, `eventsStartedAfter`, `eventsStartedBefore`, `eventsEndedAfter`,
   `eventsEndedBefore`, `sortEvents`, `resourceCreationEvent`, `readEvents`,
-  `readTransfers`, `readActions`, `readTransferClasses`
+  `readTransfers`, `readActions`, `readTransferClasses`, `createProcess`,
+  `readProcesses`, `createProcessClass`, `readProcessClasses`
 ]);
 
 export default {agents, resources, events};

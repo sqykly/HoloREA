@@ -8,14 +8,14 @@ const expect = chai.expect;
  * Agents
  */
 
-class Person {
+export class Person {
   agent: CrudResponse<agents.Agent>;
   apples: CrudResponse<resources.EconomicResource>;
   beans: CrudResponse<resources.EconomicResource>;
   coffee: CrudResponse<resources.EconomicResource>;
   turnovers: CrudResponse<resources.EconomicResource>;
 }
-interface Verbs {
+export interface Verbs {
 
   pickApples(
     howMany: number,
@@ -51,7 +51,7 @@ interface Verbs {
   ): Promise<CrudResponse<events.Transfer>>
 
 }
-interface Scenario {
+export interface Scenario {
 
   al: Person,
   bea: Person,
@@ -65,9 +65,11 @@ interface Scenario {
   },
 
   actions: { [name:string]: CrudResponse<events.Action> },
+  /*
   events: { [name:string]: CrudResponse<events.EconomicEvent> },
   transfers: { [name:string]: CrudResponse<events.Transfer> },
   processes: { [name:string]: CrudResponse<events.Process> },
+  */
   verbs: Verbs,
   facts: { [name:string]: number },
   timeline: { [name:string]: number }
@@ -85,11 +87,11 @@ function scenario(): Scenario {
       process: {}
     },
     actions: {},
-    events: {},
+    //events: {},
     facts: {},
     verbs: null,
-    transfers: {},
-    processes: {},
+    //transfers: {},
+    //processes: {},
     timeline: {}
   };
 }
@@ -120,26 +122,6 @@ function checkAllInventory(
   return (sc) => Promise.all(Object.keys(invs).map(
     (name) => checkInv(sc[name], invs[name])
   )).then(() => sc);
-}
-
-async function checkInv(person: Person, inv: Inventory) {
-  for (let resName of Object.keys(inv)) {
-    let resHash: Hash<resources.EconomicResource> = person[resName].hash;
-    let [res] = await resources.readResources([resHash]);
-    expectGoodCrud(res, `EconomicResource`, `inventory crud: ${person.agent.entry.name} ${resName}`);
-    expect(res.entry.currentQuantity, `inventory quantity: ${person.agent.entry.name} ${resName}`)
-      .to.have.property(`quantity`, inv[resHash]);
-  }
-}
-
-function expectEqualSets<T>(i1: Iterable<T>, i2: Iterable<T>) {
-  let s1 = new Set(i1);
-  let s2 = new Set(i2);
-  let n1 = [...i2].filter(el => !s1.has(el));
-  let n2 = [...i1].filter(el => !s2.has(el));
-
-  expect(n1, `set 2 not in set 1`).to.be.empty;
-  expect(n2, `set 1 not in set 2`).to.be.empty;
 }
 
 function expectGoodCrud<T>(
@@ -1011,99 +993,10 @@ prep = prep.then(async (my) => {
   return my;
 });
 
+export var ready: () => Promise<Scenario> = () => prep;
 
-/*
-  agents
-  [x] createAgent
-  [x] readAgents
-  [x] getOwnedResources
-
-  resources
-  [ ] getResourcesInClass
-  [ ] getAffectingEvents
-  [ ] getFixtures
-
-  events
-  [x] createTransfer(Transfer)
-  [ ] createTransfer(TransferInitializer)
-  [ ] readTransfers
-  [x] createProcessClass
-  [x] readProcessClasses
-  [ ] createProcess
-  export function readProcesses(
-    which: Hash<Process>[]
-  ): Promise<CrudResponse<Process>[]>
-
-  export function traceEvents(
-    eventHashes: Hash<EconomicEvent>[]
-  ): Promise<CrudResponse<EconomicFunction*>[]>
-
-  export function trackEvents(
-    eventHashes: Hash<EconomicEvent>[]
-  ): Promise<CrudResponse<Transfer>[]>
-
-  export function traceTransfers(
-    hashes: Hash<Transfer>[]
-  ): Promise<CrudResponse<EconomicEvent>[]>
-
-  export function trackTransfers(
-    hashes: Hash<Transfer>[]
-  ): Promise<CrudResponse<EconomicEvent>[]>
-
-  export function sortEvents(
-    args: {
-      events: Hash<EconomicEvent>[],
-      by: "start"|"end",
-      order: "up"|"down",
-      start?: IntDate,
-      end?: IntDate
-    }
-  ): Promise<CrudResponse<EconomicEvent>[]>
-
-  export function eventsStartedBefore(
-    when: TimeFilter
-  ): Promise<CrudResponse<EconomicEvent>[]>
-
-  export function eventsStartedAfter(
-    when: TimeFilter
-  ): Promise<CrudResponse<EconomicEvent>>
-
-  export function eventsEndedBefore(
-    when: TimeFilter
-  ): Promise<CrudResponse<EconomicEvent>>
-
-  export function eventsEndedAfter(
-    when: TimeFilter
-  ): Promise<CrudResponse<EconomicEvent>>
-
-  export function eventSubtotals(
-    events: Hash<EconomicEvent>[]
-  ): Promise<Subtotals>
-
-  export function resourceCreationEvent(
-    args: {
-      resource: resources.EconomicResource,
-      dates?: {
-        start: IntDate,
-        end?: IntDate
-      }
-    }
-  ): Promise<CrudResponse<EconomicEvent>>
-
-  type Fixture<T, K extends string> = { [P in K]: Hash<T> };
-
-  export function getFixtures(
-    dontCare?: any
-  ): Promise<{
-    Action: Fixture<Action, "give"|"receive"|"adjust"|"produce"|"consume">;
-    TransferClassification: Fixture<TransferClassification, "stub">;
-    ProcessClassification: Fixture<ProcessClassification, "stub">;
-  }>
-*/
 
 // Come back to:
 //  resources.getResourcesInClass
 //  resources.getFixtures?
 // Come back to: agents.getOwnedResources
-
-// hmmm I think I can organize this a little better

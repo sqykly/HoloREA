@@ -154,7 +154,7 @@
               "DataFormat": "json",
               "SchemaFile": "Process.json",
               "Sharing": "public"
-            }
+            },
             {
               "Name": "Action",
               "Description": "Describes the behavior of an event",

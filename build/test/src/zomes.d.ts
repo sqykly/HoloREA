@@ -14,7 +14,7 @@ declare interface VfObject {
   name?: string;
   note?: string;
   url?: string;
-  primaryLocation?: PhysicalLocation;
+  image?: string;
 }
 
 declare type CrudResponse<T> = {

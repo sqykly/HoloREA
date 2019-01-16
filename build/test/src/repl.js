@@ -1,5 +1,5 @@
 
-import $ from "https://code.jquery.com/jquery-3.3.1.min.js";
+//import $ from "https://code.jquery.com/jquery-3.3.1.min.js";
 
 const output = $(`#output`);
 const input = $(`#input`);

@@ -1,0 +1,62 @@
+<html>
+  <head>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <title>By far the worst HTML I have ever written.</title>
+    <link rel="stylesheet" type="text/css" href="index.css"/>
+  </head>
+  <body>
+    <h4>LinkRepo REPL</h4>
+
+    <textarea cols=80 rows=6 autocomplete="on" style="font: courier; display: block;" id="input">
+      zome.help
+    </textarea>
+    <button onclick="repl($(`#input`).val())">Run</button>
+
+    <output id="output">
+      <span class="put-stuff-above-me"></span>
+    </output>
+
+    <script type="text/javascript" src="repl.js"></script>
+    <!-- <script type="text/javascript" src="scenario.js"></script> -->
+    <script type="text/javascript">
+      repl(async () => {
+        import {resources} from `zomes.js`;
+        let needReload = false;
+        let storage = window.localStorage();
+        let saved = storage.getItem(`scenario`);
+
+        if (!saved) {
+          needReload = true;
+        } else {
+          const apples = saved.types.resource.apples;
+          if (!apples) {
+            needReload = true;
+          } else {
+            const read = await resources.readResourceClasses([apples.hash]);
+            if (!read || !read.length || read[0].error) {
+              needReload = true;
+            }
+          }
+        }
+
+        if (needReload) {
+          import {ready} from "scenario.js";
+
+          repl(ready.then((it) => {
+            window.scenario = it;
+            saved = Object.assign({}, it);
+            saved.verbs = null;
+            storage.setItem(`scenario`, saved);
+            return it;
+          }));
+        } else {
+          import {verbify} from "scenario.js";
+
+          window.scenario = verbify(saved);
+        }
+
+        return `scenario loaded ok`;
+    });
+    </script>
+  </body>
+</html>

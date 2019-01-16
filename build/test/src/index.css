@@ -1,0 +1,130 @@
+textarea#input {
+  font-family: monospace;
+  display: block;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* an array displays
+  <ol.array>
+    <li.item> <.value/> </li.item>
+    <.../>
+    </ol.array>
+*/
+ol.array {
+
+}
+li.item {
+
+}
+
+/* object displays as
+  <ul.object>
+    <li.property> <.key><.../>: </.key> <.value/> </li.property>
+    <.../>
+  </ul.object>
+*/
+ul.object {
+
+}
+li.property {
+
+}
+.key {
+
+}
+
+/* A primitive value of any kind */
+.value {
+
+}
+
+/* Includes any and all JS or JSON */
+.code {
+  font-family: monospace;
+}
+/* a message straight from JS runtime */
+.js {
+  font-family: monospace;
+}
+
+/* A wrapper for the output of a single command on the console */
+.command {
+  border-radius: 8px;
+  border-width: medium;
+  border-style: solid;
+}
+/* Waiting for a server response */
+.pending {
+  border-color: plum;
+}
+.waiting {
+  font-style: italic;
+}
+/* Command is concluded */
+.complete {
+
+}
+/* Command did not complete */
+.fail, .fail .response {
+
+  border-color: crimson;
+}
+/* Command executed without error */
+.success, .success .response {
+
+  border-color: blue;
+}
+
+
+/* The return value or status message that concludes the command */
+.response {
+
+  border-top-width: medium;
+}
+/* A response head */
+.head {
+
+}
+/* A status message */
+.status-message {
+
+  color: white;
+  font-weight: bold;
+}
+/* The response to a command whose status is ok */
+.ok {
+
+  background-color: lime;
+}
+
+/* part of a response that failed on the server */
+.failed {
+
+  background-color: maroon;
+}
+
+/* user input displayed in the console */
+.user {
+
+}
+/* messages or output from the client-side JS */
+.client {
+
+}
+/* messages or output from the server */
+.server {
+
+}
+
+/* the source of an error or the error text from a JS Error */
+.error {
+
+  color: red;
+}
+/* a wrapper for explanations of a failure */
+.error-message {
+
+}

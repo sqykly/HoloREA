@@ -99,10 +99,10 @@ function scenario(): Scenario {
 }
 
 interface Inventory {
-  apples?: number;
-  beans?: number;
-  coffee?: number;
-  turnovers?: number;
+  apples?: string;
+  beans?: string;
+  coffee?: string;
+  turnovers?: string;
 }
 
 async function ms(n: number) {
@@ -306,7 +306,10 @@ export function verbify(my: Scenario) {
     );
 
     let res: Inventory = {};
-    let [qa, qb, qc, qt] = [apples, beans, coffee, turnovers].map(r => r.entry.currentQuantity.quantity);
+    let [qa, qb, qc, qt] = [apples, beans, coffee, turnovers].map((r) => {
+      let q = r.entry.currentQuantity;
+      return `${q.quantity} ${q.units}`;
+    });
 
     if (qa) res.apples = qa;
     if (qb) res.beans = qb;

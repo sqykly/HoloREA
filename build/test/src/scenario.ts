@@ -50,7 +50,7 @@ export interface Verbs {
     when?: IntDate
   ): Promise<CrudResponse<events.Transfer>>
 
-  inventory(who: Person): Promise<Inventory>;
+  inventory(who: Person): Promise<Inventory<QuantityValue>>;
 }
 
 export interface Scenario {
@@ -98,11 +98,11 @@ function scenario(): Scenario {
   };
 }
 
-interface Inventory {
-  apples?: string;
-  beans?: string;
-  coffee?: string;
-  turnovers?: string;
+interface Inventory<T extends string|number|QuantityValue> {
+  apples?: T;
+  beans?: T;
+  coffee?: T;
+  turnovers?: T;
 }
 
 async function ms(n: number) {
@@ -298,17 +298,17 @@ export function verbify(my: Scenario) {
     });
   }
 
-  async function inventory(who: Person): Promise<Inventory> {
+  async function inventory(who: Person): Promise<Inventory<QuantityValue>> {
     let {apples, beans, coffee, turnovers} = who;
 
     [apples, beans, coffee, turnovers] = await resources.readResources(
       [apples, beans, coffee, turnovers].map((r) => r.hash)
     );
 
-    let res: Inventory = {};
+    let res: Inventory<QuantityValue> = {};
     let [qa, qb, qc, qt] = [apples, beans, coffee, turnovers].map((r) => {
       let q = r.entry.currentQuantity;
-      return `${q.quantity} ${q.units}`;
+      return q;
     });
 
     if (qa) res.apples = qa;
@@ -329,17 +329,17 @@ export function verbify(my: Scenario) {
 
 function checkAllInventory(
   invs: Partial<{
-    [name in "al"|"bea"|"chloe"]: Inventory
+    [name in "al"|"bea"|"chloe"]: Inventory<number>
   }>
 ): (sc: Scenario) => Promise<Scenario> {
 
-  async function checkInv(person: Person, inv: Inventory) {
+  async function checkInv(person: Person, inv: Inventory<number>) {
     for (let resName of Object.keys(inv)) {
       let resHash: Hash<resources.EconomicResource> = person[resName].hash;
       let [res] = await resources.readResources([resHash]);
       expectGoodCrud(res, `EconomicResource`, `inventory crud: ${person.agent.entry.name} ${resName}`);
       expect(res.entry.currentQuantity, `inventory quantity: ${person.agent.entry.name} ${resName}`)
-        .to.have.property(`quantity`, inv[resHash]);
+        .to.have.property(`quantity`, inv[resName]);
     }
   }
 

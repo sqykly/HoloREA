@@ -1,3 +1,21 @@
+@import url('https://fonts.googleapis.com/css?family=Lato');
+
+html, body {
+    margin: 0;
+    height: 100%;
+    background: #000;
+    color: white;
+    font-family: 'Lato', sans-serif;
+    font-size: 13px;
+}
+
+* {
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+}
+
+
 textarea#input {
   font-family: monospace;
   display: block;
@@ -50,12 +68,14 @@ li.property {
   font-family: monospace;
 }
 
+
 /* A wrapper for the output of a single command on the console */
 .command {
-  border-radius: 8px;
   border-width: medium;
   border-style: solid;
+  padding: 10px;
 }
+
 /* Waiting for a server response */
 .pending {
   border-color: plum;
@@ -69,19 +89,16 @@ li.property {
 }
 /* Command did not complete */
 .fail, .fail .response {
-
   border-color: crimson;
 }
 /* Command executed without error */
 .success, .success .response {
-
   border-color: blue;
 }
 
 
 /* The return value or status message that concludes the command */
 .response {
-
   border-top-width: medium;
 }
 /* A response head */
@@ -97,7 +114,7 @@ li.property {
 /* The response to a command whose status is ok */
 .ok {
 
-  background-color: lime;
+  background-color: #0f8;
 }
 
 /* part of a response that failed on the server */
@@ -108,7 +125,7 @@ li.property {
 
 /* user input displayed in the console */
 .user {
-
+    color: #0f8;
 }
 /* messages or output from the client-side JS */
 .client {
@@ -121,10 +138,64 @@ li.property {
 
 /* the source of an error or the error text from a JS Error */
 .error {
-
   color: red;
 }
+
 /* a wrapper for explanations of a failure */
 .error-message {
 
+}
+
+
+
+
+
+.outputWrapper{
+  //background-color: #1d1e22;
+}
+.outputWrapper #output {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    height: 60%;
+}
+
+
+/* Command Input */
+.inputWrapper {
+    position:  relative;
+
+    display: block;
+    background-color:blue;
+
+    display: -webkit-box;
+    -webkit-box-orient: horizontal;
+    -webkit-box-align: stretch;
+
+    display: -moz-box;
+    -moz-box-orient: horizontal;
+    -moz-box-align: stretch;
+
+    clear: both;
+    margin-top: 20px;
+}
+.inputWrapper textarea {
+    background-color: #1d1e22;
+    margin: 0;
+    width: 100%;
+    font: inherit;
+    border: none;
+    color: inherit;
+    padding-left: 10px;
+    outline: none;
+}
+.inputWrapper button {
+    position: absolute;
+    right: 5%;
+    bottom: 5%;
+}
+
+/* Help link */
+.help a {
+    color: green;
 }

@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
-   	"outDir": "../../../build/bin/tests",
+   	"outDir": "../../../bin/HoloREA/ui",
    	"rootDir": "./",
    	"allowJs": true,
     "target": "es6",
-    "module": "Node",
+    "module": "es6",
     "lib" : ["es5", "es6"],
     "newLine" : "lf",
     "downlevelIteration": true
   },
-  "exclude" : []
+  "include" : ["scenario.ts", "zomes.d.ts", "chai/index.d.ts"],
+  "exclude": []
 }

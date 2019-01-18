@@ -90,7 +90,7 @@ class ResourceClassification<T = {}> extends VfObject<T & RcEntry & typeof VfObj
   static className = "ResourceClassification";
   className = "ResourceClassification";
   static entryType: RcEntry & typeof VfObject.entryType;
-  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <RcEntry> {
+  static entryDefaults = deepAssign({}, VfObject.entryDefaults, <Initializer<RcEntry>> {
       defaultUnits: ''
     });
 
@@ -232,7 +232,7 @@ class EconomicResource<T = {}> extends VfObject<T & ErEntry & typeof VfObject.en
   }
   static entryDefaults = Object.assign({}, VfObject.entryDefaults, <Initializer<ErEntry>>{
     currentQuantity: {units: '', quantity: 0},
-    resourceClassifiedAs: () => getFixtures(null).ResourceClassification.Currency,
+    resourceClassifiedAs: () => getFixtures(null).ResourceClassification.currency,
     quantityLastCalculated: 0,
     owner: ``
   });
@@ -502,10 +502,10 @@ const readResourceClasses = reader(ResourceClassification);
 function getFixtures(dontCare: {}): {ResourceClassification: Fixture<ResourceClassification>} {
   return {
     ResourceClassification: {
-      Thing: new ResourceClassification({name: `Thing`, defaultUnits: ``}).commit(),
-      Currency: new ResourceClassification({name: `Currency`, defaultUnits: ``}).commit(),
-      Work: new ResourceClassification({name: `Work`, defaultUnits: `hours`}).commit(),
-      Idea: new ResourceClassification({name: `Idea`, defaultUnits: `citations`}).commit()
+      thing: new ResourceClassification({name: `Thing`, defaultUnits: ``}).commit(),
+      currency: new ResourceClassification({name: `Currency`, defaultUnits: ``}).commit(),
+      work: new ResourceClassification({name: `Work`, defaultUnits: `hours`}).commit(),
+      idea: new ResourceClassification({name: `Idea`, defaultUnits: `citations`}).commit()
     }
   }
 }

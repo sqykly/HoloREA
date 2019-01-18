@@ -7,7 +7,7 @@ ZOMES="agents events resources"
 MODULES="${ZOMES} common"
 LIBPATH="$STAGING/common/"
 REPOPATH=~/LinkRepo/bin
-JSLIBS=$REPOPATH/LinkRepo.js
+JSLIBS="$REPOPATH/LinkRepo.js "
 DTSLIBS="$LIBPATH/holochain-proto.d.ts $REPOPATH/LinkRepo.d.ts"
 
 function allow {
@@ -43,7 +43,7 @@ tsc --project $STAGING/ --declaration --emitDeclarationOnly --declarationDir $ST
 # remove "export default" to make the declarations fully ambient
 for zome in $ZOMES; do
   folder=$STAGING/$zome
-  sed $folder/${zome}.d.ts -e "s:export default[^;]*;://:g" > $folder/_$zome.d.ts
+  sed $folder/${zome}.d.ts -e "s:export default[^;]*;://:g" -e "s:import://:g" > $folder/_$zome.d.ts
 done
 
 # accumulate all of the symbol imports of each zome to a default lib (lib.d.ts)
@@ -70,7 +70,7 @@ for zome in $ZOMES; do
   cat $STAGING/LinkRepo.js $BINDNA/${zome}/_${zome}.js > $BINDNA/${zome}/${zome}.js
 done
 
-tsc ./json/inline.ts
+tsc --project ./json/
 cd json
 node ./inline.js
 cd ..

@@ -17,7 +17,7 @@ function Zome(name, fnTypes) {
         }
       };
 
-      xhr.send(data);
+      xhr.send(JSON.stringify(data));
     });
   }
 
@@ -45,4 +45,4 @@ const events = new Zome(`events`, [
   `readProcesses`, `createProcessClass`, `readProcessClasses`
 ]);
 
-export default {agents, resources, events};
+export {agents, resources, events};

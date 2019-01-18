@@ -166,10 +166,10 @@ export/**/ type Initializer<T, U = void> =
   ) | (
     (it:U) => T
   );
-var foo: Initializer<string> = () => { return "baz"; };
+
 //* EXPORT
 export/**/ function deepInit<T extends holochain.JsonEntry>(
-  target: object,
+  target: Partial<T>,
   ...inits: Initializer<T>[]
 ): T {
   target = target || {};
@@ -183,9 +183,13 @@ export/**/ function deepInit<T extends holochain.JsonEntry>(
         let over = target[key];
         if (over instanceof Array) {
           val = over.concat(val);
+        } else if (val instanceof Array && (over || over === 0 || over === false || over === "")) {
+          val = [over].concat(val);
         } else if (!(val instanceof Array)) {
           val = deepInit(over || {}, val);
         }
+      } else if (key in target) {
+        val = target[key];
       }
       target[key] = val;
     }
@@ -561,7 +565,7 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
    */
   protected hasChanged(): boolean {
     if (this.myHash) {
-      return this.myHash === this.makeHash();
+      return this.lastHash === this.makeHash();
     } else {
       return true;
     }
@@ -570,8 +574,9 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
    * Subclasses may call committed() to determine whether any version of the entry
    * is in the DHT.
    */
-  protected commited(): boolean {
-    return this.isCommitted;
+  protected committed(): boolean {
+    if (this.isCommitted) return true;
+    return !!this.myHash || !!this.lastHash || !!this.originalHash;
   }
 
   /**
@@ -592,7 +597,7 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
    * @abstract
    * @static
    */
-  static entryDefaults: holochain.JsonEntry = {};
+  static entryDefaults: Initializer<holochain.JsonEntry> = {};
 
   /**
    * Create a brand new entry and return the HoloObject that handles it.
@@ -603,12 +608,11 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
    * @param {holochain.JsonEntry} entryProps The new entry properties
    * @returns {HoloObject}
    */
-  static create(entryProps?: typeof HoloObject.entryType): HoloObject {
-    let entry: typeof entryProps = {};
+  static create(entryProps?: holochain.JsonEntry): HoloObject<holochain.JsonEntry> {
+    //let entry: typeof entryProps = {};
     let defs = this.entryDefaults;
-
-    deepInit(entry, defs);
-    if (entryProps) deepAssign(entry, entryProps);
+    let entry = deepInit({}, entryProps, defs);
+    // must test for existing entry here.  Or in constructor?  In constructor.
     return new this(entry);
   }
 
@@ -625,7 +629,8 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
    * @protected
    */
   protected myHash: Hash<this>;
-
+  private originalHash: Hash<this>;
+  private lastHash: Hash<this>;
   /**
    * Returns the POD struct that is stored in the DHT. Modifying the object
    * will have no effect.
@@ -647,9 +652,8 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
    * @param {Hash<this>} hash the hash of the entry on the DHT
    * @returns {this} an instance of this class
    */
-  static get(hash: Hash<object>): HoloObject<object> {
-    let obj = new this(null, hash);
-    return obj;
+  static get(hash: Hash<holochain.JsonEntry>): HoloObject<holochain.JsonEntry> {
+    return new this(null, hash);
   }
 
   /**
@@ -683,16 +687,27 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
    * @throws {holochain.HolochainError} if the DHT didn't know about the given hash
    * @throws {TypeError} if the entry doesn't pass the DHT's inspection
    */
-  protected constructor(entry?: tE|null, hash?: Hash<object>) {
+  protected constructor(entry?: tE|null, hash?: Hash<tE>) {
     if (!entry == !hash) throw new Error(`use either entry or hash arguments; can't use both or none`)
 
     if (entry) {
       this.myEntry = entry;
-
+      hash = notError(makeHash(this.className, entry));
+      let old = get(hash);
+      if (old && !isErr(old)) {
+        this.originalHash = hash;
+        this.myHash = hash;
+        this.lastHash = notError(makeHash(this.className, old));
+        this.isCommitted = true;
+      }
     } else {
       this.myEntry = <tE>notError(get(hash));
-      this.isCommitted = true;
-      this.myHash = hash;
+      if (this.myEntry) {
+        this.isCommitted = true;
+        this.myHash = hash;
+        this.originalHash = hash;
+        this.lastHash = notError(makeHash(this.className, this.myEntry));
+      }
     }
 
   }
@@ -713,6 +728,9 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
       throw new TypeError(`entry type mismatch or invalid data; hash ${this.myHash} is not a ${this.className}`);
     } else {
       this.isCommitted = true;
+      this.originalHash = this.originalHash || hash;
+      this.lastHash = hash;
+      this.myHash = hash;
       return hash;
     }
 
@@ -728,7 +746,7 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
     if (!!this.openCount) return this.myHash;
     if (this.openError) throw this.openError;
 
-    if (this.isCommitted) {
+    if (this.committed()) {
       return this._update();
     } else {
       return this._commit();
@@ -748,7 +766,7 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
     if (!!this.openCount) return this.myHash;
     if (this.openError) throw this.openError;
 
-    if (!this.isCommitted) {
+    if (!this.committed()) {
       return this._commit();
     } else if (this.hasChanged()) {
       return this._update();
@@ -764,8 +782,10 @@ export /**/class HoloObject<tE extends holochain.JsonEntry = {}> implements Name
    * @returns {this}
    */
   remove(msg = ""): this {
-    if (!!this.myHash && this.isCommitted) {
+    if (!!this.myHash && this.committed()) {
       remove(this.myHash, msg);
+      this.isCommitted = false;
+      this.myHash = null;
       return this;
     }
     return this;
@@ -898,7 +918,7 @@ interface VfEntry {
  * @arg T Use this type argument to convey the entry type of a subclass.
  */
 //* EXPORT
-export /**/class VfObject<T extends object = {}> extends HoloObject<VfEntry/* & typeof HoloObject.entryType */& T> {
+export /**/class VfObject<T extends object = {}> extends HoloObject<VfEntry & typeof HoloObject.entryType & T> {
   static entryType: VfEntry & typeof HoloObject.entryType;
   protected myEntry: VfEntry & typeof HoloObject.entryType & T;
   static className = "VfObject";

@@ -1,0 +1,9 @@
+/dht
+node_modules/
+src/HoloREA/**/_*
+src/lib/**/_*
+docs/_*
+build/json/**/_*
+build/staging/**/_*
+build/test/**/_*
+bin/**/_*
